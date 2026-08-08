@@ -1,10 +1,11 @@
 export const appConfig = {
-    appName: "Davranış Panosu",
+    appName: "Sınıf Yönetim Sistemi",
     modules: [
         { id: 'duyurular', name: 'Duyurular', icon: '📢' },
         { id: 'ogrenciler', name: 'Öğrenciler', icon: '👥' },
         { id: 'eba', name: 'EBA Şifreleri', icon: '🔑' },
         { id: 'ihtiyaclar', name: 'İhtiyaçlar', icon: '📦' },
-        { id: 'etkinlikler', name: 'Etkinlikler', icon: '📅' } // YENİ EKLENEN SATIR
+        { id: 'etkinlikler', name: 'Etkinlikler', icon: '📅' },
+        { id: 'davranis', name: 'Davranış Panosu', icon: '⭐' } // YENİ EKLENEN
     ]
 };

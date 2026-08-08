@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sınıf Uygulaması - Misafir Panosu</title>
+    <link rel="stylesheet" href="css/global.css">
+</head>
+<body>
+    <header class="top-header">
+        <div class="header-left">
+            <button id="mobile-menu-btn" class="hamburger-btn">☰</button>
+            <h1>Sınıf Panosu</h1>
+        </div>
+        <a href="login.html" class="btn btn-primary">Sisteme Giriş Yap</a>
+    </header>
+
+    <div class="layout">
+        <aside class="sidebar">
+            <nav id="menu-container"></nav>
+        </aside>
+        <main id="app-content" class="content-area">
+            <div class="card">
+                <h2>Sınıfımıza Hoş Geldiniz!</h2>
+                <p>Soldaki menüden herkese açık duyuru ve etkinlikleri inceleyebilirsiniz.</p>
+            </div>
+        </main>
+    </div>
+
+    <script type="module">
+        import { initApp } from './js/app.js';
+        initApp('guest');
+    </script>
+</body>
+</html>

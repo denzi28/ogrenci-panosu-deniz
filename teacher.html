@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Öğretmen Paneli</title>
+    <link rel="stylesheet" href="css/global.css">
+</head>
+<body>
+    <header class="top-header">
+        <div class="header-left">
+            <button id="mobile-menu-btn" class="hamburger-btn">☰</button>
+            <h1>👨‍🏫 Öğretmen Paneli</h1>
+        </div>
+        <div class="header-actions">
+            <span id="user-info"></span>
+            <button id="btn-logout" class="btn btn-danger">Çıkış Yap</button>
+        </div>
+    </header>
+
+    <div class="layout">
+        <aside class="sidebar">
+            <nav id="menu-container"></nav>
+        </aside>
+        <main id="app-content" class="content-area"></main>
+    </div>
+
+    <script type="module">
+        import { initApp } from './js/app.js';
+        import { auth } from './js/auth.js';
+
+        if (!auth.currentUser || auth.currentUser.role !== 'teacher') {
+            window.location.href = 'index.html';
+        }
+
+        document.getElementById('user-info').innerText = `Merhaba, ${auth.currentUser.name}`;
+        
+        document.getElementById('btn-logout').addEventListener('click', () => {
+            auth.logout();
+        });
+
+        initApp('teacher');
+    </script>
+</body>
+</html>

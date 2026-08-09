@@ -7,6 +7,7 @@ export const appConfig = {
         { id: 'ihtiyaclar', name: 'İhtiyaçlar', icon: '📦' },
         { id: 'etkinlikler', name: 'Etkinlikler', icon: '📅' },
         { id: 'davranis', name: 'Davranış Panosu', icon: '⭐' },
-        { id: 'uygulamalar', name: 'İnteraktif Görevler', icon: '🎮' } // YENİ EKLENEN
+        { id: 'uygulamalar', name: 'İnteraktif Görevler', icon: '🎮' },
+        { id: 'yedekleme', name: 'Sistem Yedekleme', icon: '💾' } // YENİ EKLENEN
     ]
 };

@@ -34,18 +34,33 @@ export async function render(container) {
         <!-- YÖNETİM SEKMESİ -->
         <div id="view-yonetim" style="display: none;">
             <div class="card" style="border-top: 4px solid var(--primary);">
-                <h3>1. Davranış / Kriter Ekle</h3>
+                <h3>1. Yeni Davranış / Kriter Ekle</h3>
                 <div style="display: flex; gap: 10px; margin-top: 15px;">
                     <input type="text" id="yeni-kriter-ad" placeholder="Örn: Ödevini Yaptı, Derse Katıldı, Saygılı Davrandı vb." style="flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 4px;">
                     <button id="btn-kriter-ekle" class="btn btn-primary">Kriter Ekle</button>
                 </div>
-                <div id="kriter-basliklari" style="margin-top: 15px; display: flex; flex-wrap: wrap; gap: 10px;"></div>
             </div>
 
-            <div class="card" style="overflow-x: auto;">
-                <h3>2. Öğrenci Yıldız Tablosu</h3>
-                <p style="font-size:0.85em; color:#666; margin-bottom: 15px;">Hücrelere tıklayıp 1-5 arası yıldız verebilirsiniz. Seçim yaptığınız an buluta otomatik kaydedilir ve toplam puan hesaplanır.</p>
-                <div id="puan-tablosu-alani"><p>⏳ Tablo yükleniyor...</p></div>
+            <div class="card">
+                <h3>2. Davranışlar ve Sınıfı Puanlama</h3>
+                <p style="font-size:0.85em; color:#666; margin-bottom: 15px;">Öğrencilere yıldız vermek için değerlendirmek istediğiniz davranışın yanındaki <strong>"⭐ Puanla"</strong> butonuna tıklayın.</p>
+                <div id="kriter-listesi-alani"><p>⏳ Kriterler yükleniyor...</p></div>
+            </div>
+        </div>
+
+        <!-- YILDIZ VERME KUTUSU (MODAL) -->
+        <div id="star-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.6); z-index: 9999; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box; backdrop-filter: blur(3px);">
+            <div class="card" style="background: white; width: 100%; max-width: 450px; max-height: 85vh; display: flex; flex-direction: column; padding: 0; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); overflow: hidden;">
+                <div style="background: var(--primary); padding: 15px 20px; display: flex; justify-content: space-between; align-items: center;">
+                    <h3 id="modal-criteria-name" style="margin: 0; color: white; font-size: 1.1em;">Davranış Adı</h3>
+                    <button id="modal-close" style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4); color: white; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; transition: all 0.2s;">Kapat</button>
+                </div>
+                <div style="background: #f1f2f6; padding: 10px 20px; font-size: 0.85em; color: #555; text-align: center; border-bottom: 1px solid #ddd;">
+                    Seçtiğiniz yıldıza tıklandığında anında buluta kaydedilir.
+                </div>
+                <div id="modal-student-list" style="padding: 10px 20px 20px 20px; overflow-y: auto; flex: 1; background: #fdfdfd;">
+                    <p>Yükleniyor...</p>
+                </div>
             </div>
         </div>
     `;
@@ -87,6 +102,12 @@ export async function render(container) {
         }
     });
 
+    // Modalı Kapatma
+    document.getElementById('modal-close').addEventListener('click', () => {
+        document.getElementById('star-modal').style.display = 'none';
+        arayuzuGuncelle(); // Modal kapandığında Pano'daki toplam puanları güncelle
+    });
+
     await arayuzuGuncelle();
 }
 
@@ -96,7 +117,7 @@ async function arayuzuGuncelle() {
     const ogrenciler = tumKullanicilar.filter(u => u.role === 'student');
     const matris = await db.getAll('davranis_matrisi'); 
 
-    // Her öğrencinin toplam yıldızını hesapla
+    // Her öğrencinin toplam yıldızını hesapla (Pano İçin)
     ogrenciler.forEach(ogr => {
         let total = 0;
         kriterler.forEach(k => {
@@ -108,120 +129,135 @@ async function arayuzuGuncelle() {
         ogr.score = total;
     });
 
-    // 1. KRİTER BAŞLIKLARINI YÖNETİM EKRANINA ÇİZ
-    let basliklarHtml = '';
-    kriterler.forEach(k => {
-        basliklarHtml += `
-            <div style="background: #f1f1f1; padding: 5px 10px; border-radius: 15px; display: flex; align-items: center; gap: 8px; border: 1px solid #ddd;">
-                <span style="font-size: 0.9em; font-weight: bold;">${k.ad}</span>
-                <button class="btn-kriter-sil" data-id="${k.id}" style="background: none; border: none; color: var(--danger); cursor: pointer; font-weight: bold;">✕</button>
-            </div>
-        `;
-    });
-    document.getElementById('kriter-basliklari').innerHTML = basliklarHtml;
-
-    document.querySelectorAll('.btn-kriter-sil').forEach(btn => {
-        btn.addEventListener('click', async (e) => {
-            if(confirm("Bu kriteri silmek istediğinize emin misiniz?")) {
-                e.target.innerText = "...";
-                await db.delete('davranis_kriterleri', e.target.getAttribute('data-id'));
-                await arayuzuGuncelle();
-            }
-        });
-    });
-
-    // 2. ÖĞRENCİ YILDIZ TABLOSUNU ÇİZ
+    // 1. KRİTER BAZLI YÖNETİM LİSTESİNİ ÇİZ
+    const kriterListesiAlani = document.getElementById('kriter-listesi-alani');
+    
     if (kriterler.length === 0) {
-        document.getElementById('puan-tablosu-alani').innerHTML = '<p style="color:var(--secondary);">Lütfen önce yukarıdan puanlama yapmak için bir kriter ekleyin.</p>';
-        document.getElementById('pano-alani').innerHTML = '<p style="text-align:center; color:#888;">Panoda listelenecek veri yok.</p>';
-        return;
-    }
-
-    const tabloOgrenciler = [...ogrenciler].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-
-    let tabloHtml = `
-        <table style="width: 100%; border-collapse: collapse; min-width: 600px; font-size: 0.9em;">
-            <thead>
-                <tr style="background: #f8f9fa;">
-                    <th style="border: 1px solid #ddd; padding: 8px; width: 30px;">SN</th>
-                    <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">ADI SOYADI</th>
-                    ${kriterler.map(k => `<th style="border: 1px solid #ddd; padding: 8px; text-align:center;">${k.ad}</th>`).join('')}
-                    <th style="border: 1px solid #ddd; padding: 8px; width: 80px; color: var(--primary);">TOPLAM YILDIZ</th>
-                </tr>
-            </thead>
-            <tbody>
-    `;
-
-    tabloOgrenciler.forEach((ogr, index) => {
-        tabloHtml += `<tr>
-            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${index + 1}</td>
-            <td style="border: 1px solid #ddd; padding: 8px; font-weight: bold;">${ogr.name}</td>
-        `;
-
+        kriterListesiAlani.innerHTML = '<p style="color:#888;">Henüz değerlendirilecek bir davranış/kriter eklemediniz.</p>';
+    } else {
+        let kriterHtml = '<div style="display: flex; flex-direction: column; gap: 10px;">';
+        
         kriterler.forEach(k => {
-            let hucreDegeri = matris.find(m => m.ogrId === ogr.id && m.targetId === k.id)?.deger || '0';
-            
-            tabloHtml += `
-                <td style="border: 1px solid #ddd; padding: 0;">
-                    <select class="hucre-input" data-ogr="${ogr.id}" data-kriter="${k.id}" 
-                            style="width: 100%; height: 100%; padding: 8px; border: none; text-align: center; box-sizing: border-box; outline: none; background: transparent; cursor: pointer; font-size: 1.1em;">
-                        <option value="0" ${hucreDegeri === '0' ? 'selected' : ''}>Boş</option>
-                        <option value="1" ${hucreDegeri === '1' ? 'selected' : ''}>⭐</option>
-                        <option value="2" ${hucreDegeri === '2' ? 'selected' : ''}>⭐⭐</option>
-                        <option value="3" ${hucreDegeri === '3' ? 'selected' : ''}>⭐⭐⭐</option>
-                        <option value="4" ${hucreDegeri === '4' ? 'selected' : ''}>⭐⭐⭐⭐</option>
-                        <option value="5" ${hucreDegeri === '5' ? 'selected' : ''}>⭐⭐⭐⭐⭐</option>
-                    </select>
-                </td>
+            kriterHtml += `
+                <div style="background: #f9f9f9; padding: 15px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #eee; flex-wrap: wrap; gap: 10px;">
+                    <span style="font-weight: bold; font-size: 1.1em; color: var(--primary);">${k.ad}</span>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn btn-primary btn-kriter-puanla" data-id="${k.id}" data-name="${k.ad}" style="font-weight: bold;">
+                            ⭐ Sınıfı Puanla
+                        </button>
+                        <button class="btn btn-danger btn-kriter-sil" data-id="${k.id}">Sil</button>
+                    </div>
+                </div>
             `;
         });
         
-        tabloHtml += `<td style="border: 1px solid #ddd; padding: 8px; text-align: center; font-size: 1.1em; font-weight: bold; color: var(--danger); background: #fdf5f5;">${ogr.score} <span style="font-size:0.8em">⭐</span></td></tr>`;
-    });
+        kriterHtml += '</div>';
+        kriterListesiAlani.innerHTML = kriterHtml;
 
-    tabloHtml += `</tbody></table>`;
-    document.getElementById('puan-tablosu-alani').innerHTML = tabloHtml;
-
-    document.querySelectorAll('.hucre-input').forEach(input => {
-        input.addEventListener('change', async (e) => {
-            const ogrId = e.target.getAttribute('data-ogr');
-            const kriterId = e.target.getAttribute('data-kriter');
-            const deger = e.target.value;
-            
-            e.target.style.backgroundColor = '#fff3cd'; 
-            await db.saveMatrixStatus('davranis_matrisi', ogrId, kriterId, deger);
-            e.target.style.backgroundColor = '#e6ffed'; 
-            
-            setTimeout(() => { arayuzuGuncelle(); }, 600);
+        // "Sınıfı Puanla" Butonları
+        document.querySelectorAll('.btn-kriter-puanla').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const kriterId = e.target.getAttribute('data-id');
+                const kriterName = e.target.getAttribute('data-name');
+                modaliAc(kriterId, kriterName, ogrenciler, matris);
+            });
         });
-    });
 
-    // 3. PANO (LİDERLİK) GÖRÜNÜMÜNÜ ÇİZ
+        // "Sil" Butonları
+        document.querySelectorAll('.btn-kriter-sil').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                if(confirm("Bu davranışı tamamen silmek istediğinize emin misiniz? Öğrencilerin bu davranıştan aldığı tüm yıldızlar da silinecektir.")) {
+                    e.target.innerText = "...";
+                    await db.delete('davranis_kriterleri', e.target.getAttribute('data-id'));
+                    await arayuzuGuncelle();
+                }
+            });
+        });
+    }
+
+    // 2. PANO (LİDERLİK) GÖRÜNÜMÜNÜ ÇİZ
+    const panoAlani = document.getElementById('pano-alani');
     const panoOgrenciler = [...ogrenciler].sort((a, b) => b.score - a.score);
 
-    let panoHtml = '<div style="display: flex; flex-direction: column; gap: 10px;">';
-    panoOgrenciler.forEach((ogr, index) => {
-        let madalya = '';
-        let bgRenk = '#f8f9fa';
-        let borderRenk = '#eee';
+    if (panoOgrenciler.length === 0) {
+        panoAlani.innerHTML = '<p style="text-align:center; color:#888;">Panoda gösterilecek öğrenci bulunamadı.</p>';
+    } else {
+        let panoHtml = '<div style="display: flex; flex-direction: column; gap: 10px;">';
+        panoOgrenciler.forEach((ogr, index) => {
+            let madalya = '';
+            let bgRenk = '#f8f9fa';
+            let borderRenk = '#eee';
 
-        if (index === 0 && ogr.score > 0) { madalya = '🥇'; bgRenk = '#fffbec'; borderRenk = '#ffc107'; }
-        else if (index === 1 && ogr.score > 0) { madalya = '🥈'; bgRenk = '#f8f9fa'; borderRenk = '#cbd5e1'; }
-        else if (index === 2 && ogr.score > 0) { madalya = '🥉'; bgRenk = '#fff7ed'; borderRenk = '#fb923c'; }
+            if (index === 0 && ogr.score > 0) { madalya = '🥇'; bgRenk = '#fffbec'; borderRenk = '#ffc107'; }
+            else if (index === 1 && ogr.score > 0) { madalya = '🥈'; bgRenk = '#f8f9fa'; borderRenk = '#cbd5e1'; }
+            else if (index === 2 && ogr.score > 0) { madalya = '🥉'; bgRenk = '#fff7ed'; borderRenk = '#fb923c'; }
 
-        panoHtml += `
-        <div style="background: ${bgRenk}; padding: 15px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; border: 1px solid ${borderRenk}; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-            <div style="display: flex; align-items: center; gap: 15px;">
-                <span style="font-size: 1.8em; width: 40px; text-align: center; font-weight: bold; color: #555;">${madalya || (index + 1)}</span>
-                <span style="font-size: 1.2em; font-weight: bold; color: var(--primary);">${ogr.name}</span>
+            panoHtml += `
+            <div style="background: ${bgRenk}; padding: 15px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; border: 1px solid ${borderRenk}; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <span style="font-size: 1.8em; width: 40px; text-align: center; font-weight: bold; color: #555;">${madalya || (index + 1)}</span>
+                    <span style="font-size: 1.2em; font-weight: bold; color: var(--primary);">${ogr.name}</span>
+                </div>
+                <div style="text-align: right;">
+                    <span style="font-size: 2em; font-weight: 900; color: var(--danger);">${ogr.score} <span style="font-size:0.6em;">⭐</span></span>
+                    <span style="font-size: 0.8em; font-weight: bold; color: #888; display: block; margin-top: -5px;">TOPLAM YILDIZ</span>
+                </div>
+            </div>`;
+        });
+        panoHtml += '</div>';
+        panoAlani.innerHTML = panoHtml;
+    }
+}
+
+// MODAL İÇERİĞİNİ OLUŞTURAN FONKSİYON (Davranışa Göre Sınıf Listesi)
+function modaliAc(kriterId, kriterName, ogrenciler, matris) {
+    document.getElementById('modal-criteria-name').innerText = `⭐ ${kriterName}`;
+    
+    // Sınıf listesini isme göre sırala
+    const siraliOgrenciler = [...ogrenciler].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+    
+    let modalHtml = '';
+    
+    siraliOgrenciler.forEach((ogr, index) => {
+        let mevcutDeger = matris.find(m => m.ogrId === ogr.id && m.targetId === kriterId)?.deger || '0';
+        
+        modalHtml += `
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #eee;">
+            <div style="display: flex; align-items: center; gap: 10px; flex: 1; padding-right: 10px;">
+                <span style="color: #999; font-size: 0.9em;">${index + 1}.</span>
+                <span style="font-weight: bold; color: #444;">${ogr.name}</span>
             </div>
-            <div style="text-align: right;">
-                <span style="font-size: 2em; font-weight: 900; color: var(--danger);">${ogr.score} <span style="font-size:0.6em;">⭐</span></span>
-                <span style="font-size: 0.8em; font-weight: bold; color: #888; display: block; margin-top: -5px;">TOPLAM YILDIZ</span>
-            </div>
+            <select class="modal-hucre-input" data-ogr="${ogr.id}" data-kriter="${kriterId}" 
+                    style="padding: 8px 10px; border: 2px solid #ddd; border-radius: 8px; font-size: 1em; cursor: pointer; outline: none; background: #fff; min-width: 130px;">
+                <option value="0" ${mevcutDeger === '0' ? 'selected' : ''}>Boş (0)</option>
+                <option value="1" ${mevcutDeger === '1' ? 'selected' : ''}>⭐ (1)</option>
+                <option value="2" ${mevcutDeger === '2' ? 'selected' : ''}>⭐⭐ (2)</option>
+                <option value="3" ${mevcutDeger === '3' ? 'selected' : ''}>⭐⭐⭐ (3)</option>
+                <option value="4" ${mevcutDeger === '4' ? 'selected' : ''}>⭐⭐⭐⭐ (4)</option>
+                <option value="5" ${mevcutDeger === '5' ? 'selected' : ''}>⭐⭐⭐⭐⭐ (5)</option>
+            </select>
         </div>`;
     });
-    panoHtml += '</div>';
+    
+    document.getElementById('modal-student-list').innerHTML = modalHtml;
+    document.getElementById('star-modal').style.display = 'flex';
 
-    document.getElementById('pano-alani').innerHTML = panoHtml;
+    // Seçim değiştiğinde anında buluta kaydet
+    document.querySelectorAll('.modal-hucre-input').forEach(input => {
+        input.addEventListener('change', async (e) => {
+            const oId = e.target.getAttribute('data-ogr');
+            const kId = e.target.getAttribute('data-kriter');
+            const deger = e.target.value;
+            
+            // Görsel geri bildirim
+            e.target.style.borderColor = '#ffc107'; 
+            e.target.style.backgroundColor = '#fff3cd';
+            
+            await db.saveMatrixStatus('davranis_matrisi', oId, kId, deger);
+            
+            // İşlem bitince yeşile dön
+            e.target.style.borderColor = '#28a745'; 
+            e.target.style.backgroundColor = '#e6ffed';
+        });
+    });
 }

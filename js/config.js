@@ -6,6 +6,7 @@ export const appConfig = {
         { id: 'eba', name: 'EBA Şifreleri', icon: '🔑' },
         { id: 'ihtiyaclar', name: 'İhtiyaçlar', icon: '📦' },
         { id: 'etkinlikler', name: 'Etkinlikler', icon: '📅' },
-        { id: 'davranis', name: 'Davranış Panosu', icon: '⭐' } // YENİ EKLENEN
+        { id: 'davranis', name: 'Davranış Panosu', icon: '⭐' },
+        { id: 'uygulamalar', name: 'İnteraktif Görevler', icon: '🎮' } // YENİ EKLENEN
     ]
 };

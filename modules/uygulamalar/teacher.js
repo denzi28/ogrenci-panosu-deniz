@@ -128,6 +128,7 @@ async function arayuzuGuncelle() {
     const ogrenciler = tumKullanicilar.filter(u => u.role === 'student');
     const matris = await db.getAll('uygulama_matrisi'); 
 
+    const toplamOgrenciSayisi = ogrenciler.length;
     let listHtml = '';
     
     if (kalemler.length === 0) {
@@ -138,13 +139,23 @@ async function arayuzuGuncelle() {
             const bgRenk = isSelected ? '#e8f4fd' : '#f9f9f9';
             const borderStil = isSelected ? 'border: 2px solid var(--primary);' : 'border: 1px solid #ddd;';
 
+            // BU GÖREVİ TAMAMLAYAN ÖĞRENCİ SAYISINI HESAPLIYORUZ
+            const tamamlayanSayisi = matris.filter(m => m.targetId === k.id && m.deger && m.deger !== '').length;
+            const tamamlandiMi = (tamamlayanSayisi === toplamOgrenciSayisi && toplamOgrenciSayisi > 0);
+            
+            // KATILIM ROZETİ (Tümü tamamladıysa yeşil, eksik varsa gri)
+            const rozetBg = tamamlandiMi ? '#d1fae5' : '#e2e8f0';
+            const rozetText = tamamlandiMi ? '#065f46' : '#475569';
+            const katilimRozeti = `<span style="display: inline-block; margin-top: 8px; background: ${rozetBg}; color: ${rozetText}; padding: 4px 10px; border-radius: 12px; font-size: 0.85em; font-weight: bold;">📊 Katılım: ${tamamlayanSayisi} / ${toplamOgrenciSayisi} Öğrenci</span>`;
+
             listHtml += `
                 <div style="background: ${bgRenk}; padding: 10px 15px; border-radius: 8px; display: flex; justify-content: space-between; align-items: flex-start; ${borderStil} transition: all 0.2s; flex-wrap: wrap; gap: 10px;">
                     <div style="flex: 1; min-width: 200px;">
                         <span style="font-weight: bold; color: var(--primary); font-size: 1.1em;">${k.ad}</span><br>
                         ${k.aciklama ? `<div style="font-size: 0.85em; color: #444; margin: 4px 0; font-style: italic;">📝 ${k.aciklama}</div>` : ''}
                         <span style="font-size: 0.8em; color: #888;">Yol: ${k.link}</span><br>
-                        <span style="font-size: 0.8em; color: #555;">📅 Tarih: ${tarihFormatla(k.baslangic)} - ${tarihFormatla(k.bitis)}</span>
+                        <span style="font-size: 0.8em; color: #555;">📅 Tarih: ${tarihFormatla(k.baslangic)} - ${tarihFormatla(k.bitis)}</span><br>
+                        ${katilimRozeti}
                     </div>
                     <div style="display: flex; gap: 8px; align-items: center; margin-top: 5px;">
                         <button class="btn btn-primary btn-incele" data-id="${k.id}" style="padding: 6px 12px; font-size: 0.85em; font-weight: bold;">

@@ -114,7 +114,7 @@ export async function render(container) {
 
     document.getElementById('btn-gorev-iptal').addEventListener('click', formuTemizle);
 
-    // PDF İndirme İşlemi
+    // PDF İndirme İşlemi - A4'e Tam Uyumlu Versiyon
     document.getElementById('btn-pdf-indir').addEventListener('click', async (e) => {
         if (!seciliGorevId) return;
         const kalemler = await db.getAll('uygulama_kalemleri');
@@ -128,28 +128,25 @@ export async function render(container) {
         try {
             await loadHtml2Pdf();
 
-            // Asıl tabloyu kopyalıyoruz
             const tableArea = document.getElementById('gorev-tablosu-alani');
             const clone = tableArea.cloneNode(true);
             
-            // 1. Tablonun ana iskeletini PDF'e uygun formata sok
             const table = clone.querySelector('table');
+            // A4'e sığması için sabit düzen
             table.style.width = '100%';
             table.style.borderCollapse = 'collapse';
             table.style.fontFamily = 'Arial, sans-serif';
-            table.style.fontSize = '13px';
+            table.style.fontSize = '12px'; // A4'e uygun punto
             table.style.color = '#000';
 
-            // 2. Tablo başlıkları
             const ths = clone.querySelectorAll('th');
             ths.forEach(th => {
                 th.style.border = '1px solid #000';
-                th.style.padding = '10px';
-                th.style.backgroundColor = '#e2e8f0'; 
+                th.style.padding = '8px';
+                th.style.backgroundColor = '#f1f5f9'; 
                 th.style.color = '#000';
             });
 
-            // 3. Tablo satırlarını (TR) ve hücreleri düzenle
             const rows = clone.querySelectorAll('tbody tr');
             rows.forEach(row => {
                 const input = row.querySelector('.hucre-input');
@@ -158,7 +155,7 @@ export async function render(container) {
                 
                 Array.from(row.cells).forEach(cell => {
                     cell.style.border = '1px solid #000';
-                    cell.style.padding = '8px 10px';
+                    cell.style.padding = '6px 8px';
                 });
 
                 const td = row.cells[2]; 
@@ -167,28 +164,34 @@ export async function render(container) {
                 td.style.textAlign = 'center';
             });
 
-            // 4. PDF belgesi çerçevesi ve başlığı
             const printWrapper = document.createElement('div');
-            printWrapper.style.padding = '30px';
+            // Sabit genişlik (html2canvas'ın düzgün kesmesini sağlar)
+            printWrapper.style.width = '800px'; 
+            printWrapper.style.padding = '20px';
             printWrapper.style.backgroundColor = '#ffffff';
             
             printWrapper.innerHTML = `
-                <div style="text-align: center; margin-bottom: 25px; font-family: Arial, sans-serif;">
-                    <h2 style="color: #000; margin: 0 0 10px 0; font-size: 24px; text-transform: uppercase;">${aktifGorev.ad}</h2>
-                    <p style="color: #333; margin: 0; font-size: 14px; border-bottom: 2px solid #000; padding-bottom: 10px;">
+                <div style="text-align: center; margin-bottom: 20px; font-family: Arial, sans-serif;">
+                    <h2 style="color: #000; margin: 0 0 8px 0; font-size: 22px; text-transform: uppercase;">${aktifGorev.ad}</h2>
+                    <p style="color: #333; margin: 0; font-size: 13px; border-bottom: 2px solid #000; padding-bottom: 10px;">
                         Görev Sonuç Raporu | Tarih: ${new Date().toLocaleDateString('tr-TR')}
                     </p>
                 </div>
             `;
             printWrapper.appendChild(clone);
 
-            // 5. PDF Çıktı Kalitesi Ayarları
+            // Sayfa sonlarında satırların ortadan bölünmesini engelle
+            const style = document.createElement('style');
+            style.innerHTML = `tr { page-break-inside: avoid; }`;
+            printWrapper.appendChild(style);
+
             const opt = {
-                margin:       10, 
+                margin:       [15, 10, 15, 10], // Üst, Sağ, Alt, Sol marginleri (mm)
                 filename:     `${aktifGorev.ad}_Raporu.pdf`,
-                image:        { type: 'jpeg', quality: 1 },
-                html2canvas:  { scale: 2, useCORS: true }, 
-                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2, useCORS: true, windowWidth: 800 }, 
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
+                pagebreak:    { mode: 'avoid-all' }
             };
 
             await html2pdf().set(opt).from(printWrapper).save();

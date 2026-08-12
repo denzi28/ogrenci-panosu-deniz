@@ -75,6 +75,7 @@ export async function render(container) {
         </div>
     `;
 
+    // Modül Görünürlüğü
     document.getElementById('toggle-module-btn').addEventListener('click', async (e) => {
         const newStatus = !(await db.getModuleVisibility('uygulamalar'));
         await db.toggleModuleVisibility('uygulamalar', newStatus);
@@ -83,6 +84,7 @@ export async function render(container) {
         else { btn.className = "btn btn-secondary"; btn.innerText = "Menüde Gizli (Göster)"; }
     });
 
+    // Görev Kaydetme
     document.getElementById('btn-gorev-kaydet').addEventListener('click', async () => {
         const id = document.getElementById('gorev-id').value;
         const ad = document.getElementById('gorev-ad').value.trim();
@@ -126,41 +128,66 @@ export async function render(container) {
         try {
             await loadHtml2Pdf();
 
-            // Tabloyu kopyala ki asıl ekrandaki inputlar/butonlar bozulmasın
+            // Asıl tabloyu kopyalıyoruz
             const tableArea = document.getElementById('gorev-tablosu-alani');
             const clone = tableArea.cloneNode(true);
             
-            // Kopyalanan tablodaki karmaşık input ve butonları PDF için temiz metne çeviriyoruz
+            // 1. Tablonun ana iskeletini PDF'e uygun formata sok
+            const table = clone.querySelector('table');
+            table.style.width = '100%';
+            table.style.borderCollapse = 'collapse';
+            table.style.fontFamily = 'Arial, sans-serif';
+            table.style.fontSize = '13px';
+            table.style.color = '#000';
+
+            // 2. Tablo başlıkları
+            const ths = clone.querySelectorAll('th');
+            ths.forEach(th => {
+                th.style.border = '1px solid #000';
+                th.style.padding = '10px';
+                th.style.backgroundColor = '#e2e8f0'; 
+                th.style.color = '#000';
+            });
+
+            // 3. Tablo satırlarını (TR) ve hücreleri düzenle
             const rows = clone.querySelectorAll('tbody tr');
             rows.forEach(row => {
                 const input = row.querySelector('.hucre-input');
                 const islemGorduMu = input && input.value.trim() !== '';
                 const val = input ? input.value : '';
                 
-                const td = row.cells[2]; // Puan Sütunu
-                td.innerHTML = islemGorduMu ? `<span style="color: #065f46; font-weight: bold;">${val}</span>` : `<span style="color: #94a3b8;">Bekleniyor</span>`;
-                td.style.background = islemGorduMu ? '#d1fae5' : '#f8f9fa'; // PDF'te temiz yeşil ve gri arka plan
+                Array.from(row.cells).forEach(cell => {
+                    cell.style.border = '1px solid #000';
+                    cell.style.padding = '8px 10px';
+                });
+
+                const td = row.cells[2]; 
+                td.innerHTML = islemGorduMu ? `<strong>${val}</strong>` : `<span style="color: #64748b; font-style: italic;">Bekleniyor</span>`;
+                td.style.backgroundColor = islemGorduMu ? '#d1fae5' : '#ffffff';
                 td.style.textAlign = 'center';
             });
 
-            // Yazdırma (PDF) ekranı için şık bir başlık oluştur
+            // 4. PDF belgesi çerçevesi ve başlığı
             const printWrapper = document.createElement('div');
-            printWrapper.style.padding = '20px';
-            printWrapper.style.fontFamily = 'Arial, sans-serif';
+            printWrapper.style.padding = '30px';
+            printWrapper.style.backgroundColor = '#ffffff';
             
             printWrapper.innerHTML = `
-                <h2 style="text-align: center; color: #333; margin-bottom: 5px; font-size: 24px;">${aktifGorev.ad}</h2>
-                <p style="text-align: center; color: #666; font-size: 14px; margin-top: 0; margin-bottom: 25px;">
-                    Görev Sonuç Raporu | Tarih: ${new Date().toLocaleDateString('tr-TR')}
-                </p>
+                <div style="text-align: center; margin-bottom: 25px; font-family: Arial, sans-serif;">
+                    <h2 style="color: #000; margin: 0 0 10px 0; font-size: 24px; text-transform: uppercase;">${aktifGorev.ad}</h2>
+                    <p style="color: #333; margin: 0; font-size: 14px; border-bottom: 2px solid #000; padding-bottom: 10px;">
+                        Görev Sonuç Raporu | Tarih: ${new Date().toLocaleDateString('tr-TR')}
+                    </p>
+                </div>
             `;
             printWrapper.appendChild(clone);
 
+            // 5. PDF Çıktı Kalitesi Ayarları
             const opt = {
-                margin:       10, // A4 kenar boşluğu
+                margin:       10, 
                 filename:     `${aktifGorev.ad}_Raporu.pdf`,
-                image:        { type: 'jpeg', quality: 0.98 },
-                html2canvas:  { scale: 2 }, // Tablo çözünürlüğünü artırır
+                image:        { type: 'jpeg', quality: 1 },
+                html2canvas:  { scale: 2, useCORS: true }, 
                 jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
             };
 
@@ -220,7 +247,7 @@ async function arayuzuGuncelle() {
             const tamamlayanSayisi = matris.filter(m => m.targetId === k.id && m.deger && m.deger !== '').length;
             const tamamlandiMi = (tamamlayanSayisi === toplamOgrenciSayisi && toplamOgrenciSayisi > 0);
             
-            // KATILIM ROZETİ (Tümü tamamladıysa yeşil, eksik varsa gri)
+            // KATILIM ROZETİ
             const rozetBg = tamamlandiMi ? '#d1fae5' : '#e2e8f0';
             const rozetText = tamamlandiMi ? '#065f46' : '#475569';
             const katilimRozeti = `<span style="display: inline-block; margin-top: 8px; background: ${rozetBg}; color: ${rozetText}; padding: 4px 10px; border-radius: 12px; font-size: 0.85em; font-weight: bold;">📊 Katılım: ${tamamlayanSayisi} / ${toplamOgrenciSayisi} Öğrenci</span>`;
@@ -333,7 +360,6 @@ async function arayuzuGuncelle() {
         let bgStil = 'transparent';
         
         if (islemGorduMu) {
-            // Eğer değer içinde '/' varsa (Oyun limit gönderdiyse) İlerleme Çubuğu Çiz
             if (hucreDegeri.includes('/')) {
                 let parcalar = hucreDegeri.split('/');
                 let puan = parseInt(parcalar[0]);
@@ -346,7 +372,6 @@ async function arayuzuGuncelle() {
                     bgStil = '#e6ffed';
                 }
             } else {
-                // Limit yoksa sadece yeşil yap
                 bgStil = '#e6ffed';
             }
         }
@@ -357,7 +382,7 @@ async function arayuzuGuncelle() {
             <td style="border: 1px solid #ddd; padding: 0;">
                 <div style="display: flex; align-items: center; width: 100%; height: 100%; background: ${bgStil};">
                     <input type="text" class="hucre-input" data-ogr="${ogr.id}" data-gorev="${aktifGorev.id}" value="${hucreDegeri}" placeholder="Bekleniyor..."
-                           style="flex: 1; padding: 12px; border: none; text-align: center; box-sizing: border-box; outline: none; background: transparent; font-weight: bold; color: ${islemGorduMu ? 'var(--success)' : '#888'};">
+                        style="flex: 1; padding: 12px; border: none; text-align: center; box-sizing: border-box; outline: none; background: transparent; font-weight: bold; color: ${islemGorduMu ? 'var(--success)' : '#888'};">
                     ${islemGorduMu ? `<button class="btn btn-danger btn-temizle" data-ogr="${ogr.id}" data-gorev="${aktifGorev.id}" style="margin-right: 8px; padding: 4px 8px; font-size: 0.75em;" title="Sıfırla">Temizle</button>` : ''}
                 </div>
             </td>

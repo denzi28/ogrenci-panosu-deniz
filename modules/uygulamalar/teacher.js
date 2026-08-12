@@ -2,18 +2,6 @@ import { db } from '../../js/db.js';
 
 let seciliGorevId = null; 
 
-// A4 PDF Çıktısı için gerekli kütüphaneyi dinamik yükleyen fonksiyon
-function loadHtml2Pdf() {
-    if (window.html2pdf) return Promise.resolve();
-    return new Promise((resolve, reject) => {
-        const script = document.createElement('script');
-        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
-        script.onload = () => resolve();
-        script.onerror = () => reject(new Error('PDF kütüphanesi yüklenemedi. İnternet bağlantınızı kontrol edin.'));
-        document.head.appendChild(script);
-    });
-}
-
 export async function render(container) {
     container.innerHTML = '<div class="card"><p>⏳ Görevler yükleniyor...</p></div>';
 
@@ -68,14 +56,12 @@ export async function render(container) {
         <div class="card" id="takip-karti" style="display: none; border-top: 4px solid var(--success); overflow-x: auto;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
                 <h3 id="takip-baslik" style="margin: 0;">Görev Takip Tablosu</h3>
-                <button id="btn-pdf-indir" class="btn btn-secondary" style="padding: 6px 15px; font-size: 0.9em; font-weight: bold; display: none;">📄 PDF İndir (A4)</button>
             </div>
             <p style="font-size:0.85em; color:#666; margin-bottom: 15px;">Eğer oyunun bir limiti varsa hücre otomatik olarak ilerleme çubuğuna dönüşür. Limiti olmayan oyunlar düz yeşil olarak işaretlenir.</p>
             <div id="gorev-tablosu-alani"><p>⏳ Tablo yükleniyor...</p></div>
         </div>
     `;
 
-    // Modül Görünürlüğü
     document.getElementById('toggle-module-btn').addEventListener('click', async (e) => {
         const newStatus = !(await db.getModuleVisibility('uygulamalar'));
         await db.toggleModuleVisibility('uygulamalar', newStatus);
@@ -84,7 +70,6 @@ export async function render(container) {
         else { btn.className = "btn btn-secondary"; btn.innerText = "Menüde Gizli (Göster)"; }
     });
 
-    // Görev Kaydetme
     document.getElementById('btn-gorev-kaydet').addEventListener('click', async () => {
         const id = document.getElementById('gorev-id').value;
         const ad = document.getElementById('gorev-ad').value.trim();
@@ -113,96 +98,6 @@ export async function render(container) {
     });
 
     document.getElementById('btn-gorev-iptal').addEventListener('click', formuTemizle);
-
-    // PDF İndirme İşlemi - A4'e Tam Uyumlu Versiyon
-    document.getElementById('btn-pdf-indir').addEventListener('click', async (e) => {
-        if (!seciliGorevId) return;
-        const kalemler = await db.getAll('uygulama_kalemleri');
-        const aktifGorev = kalemler.find(k => k.id === seciliGorevId);
-        
-        const btn = e.target;
-        const originalText = btn.innerText;
-        btn.innerText = "⏳ Hazırlanıyor...";
-        btn.disabled = true;
-
-        try {
-            await loadHtml2Pdf();
-
-            const tableArea = document.getElementById('gorev-tablosu-alani');
-            const clone = tableArea.cloneNode(true);
-            
-            const table = clone.querySelector('table');
-            // A4'e sığması için sabit düzen
-            table.style.width = '100%';
-            table.style.borderCollapse = 'collapse';
-            table.style.fontFamily = 'Arial, sans-serif';
-            table.style.fontSize = '12px'; // A4'e uygun punto
-            table.style.color = '#000';
-
-            const ths = clone.querySelectorAll('th');
-            ths.forEach(th => {
-                th.style.border = '1px solid #000';
-                th.style.padding = '8px';
-                th.style.backgroundColor = '#f1f5f9'; 
-                th.style.color = '#000';
-            });
-
-            const rows = clone.querySelectorAll('tbody tr');
-            rows.forEach(row => {
-                const input = row.querySelector('.hucre-input');
-                const islemGorduMu = input && input.value.trim() !== '';
-                const val = input ? input.value : '';
-                
-                Array.from(row.cells).forEach(cell => {
-                    cell.style.border = '1px solid #000';
-                    cell.style.padding = '6px 8px';
-                });
-
-                const td = row.cells[2]; 
-                td.innerHTML = islemGorduMu ? `<strong>${val}</strong>` : `<span style="color: #64748b; font-style: italic;">Bekleniyor</span>`;
-                td.style.backgroundColor = islemGorduMu ? '#d1fae5' : '#ffffff';
-                td.style.textAlign = 'center';
-            });
-
-            const printWrapper = document.createElement('div');
-            // Sabit genişlik (html2canvas'ın düzgün kesmesini sağlar)
-            printWrapper.style.width = '800px'; 
-            printWrapper.style.padding = '20px';
-            printWrapper.style.backgroundColor = '#ffffff';
-            
-            printWrapper.innerHTML = `
-                <div style="text-align: center; margin-bottom: 20px; font-family: Arial, sans-serif;">
-                    <h2 style="color: #000; margin: 0 0 8px 0; font-size: 22px; text-transform: uppercase;">${aktifGorev.ad}</h2>
-                    <p style="color: #333; margin: 0; font-size: 13px; border-bottom: 2px solid #000; padding-bottom: 10px;">
-                        Görev Sonuç Raporu | Tarih: ${new Date().toLocaleDateString('tr-TR')}
-                    </p>
-                </div>
-            `;
-            printWrapper.appendChild(clone);
-
-            // Sayfa sonlarında satırların ortadan bölünmesini engelle
-            const style = document.createElement('style');
-            style.innerHTML = `tr { page-break-inside: avoid; }`;
-            printWrapper.appendChild(style);
-
-            const opt = {
-                margin:       [15, 10, 15, 10], // Üst, Sağ, Alt, Sol marginleri (mm)
-                filename:     `${aktifGorev.ad}_Raporu.pdf`,
-                image:        { type: 'jpeg', quality: 0.98 },
-                html2canvas:  { scale: 2, useCORS: true, windowWidth: 800 }, 
-                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
-                pagebreak:    { mode: 'avoid-all' }
-            };
-
-            await html2pdf().set(opt).from(printWrapper).save();
-        } catch (error) {
-            console.error(error);
-            alert("PDF oluşturulurken bir hata oluştu.");
-        } finally {
-            btn.innerText = originalText;
-            btn.disabled = false;
-        }
-    });
 
     await arayuzuGuncelle();
 }
@@ -246,11 +141,9 @@ async function arayuzuGuncelle() {
             const bgRenk = isSelected ? '#e8f4fd' : '#f9f9f9';
             const borderStil = isSelected ? 'border: 2px solid var(--primary);' : 'border: 1px solid #ddd;';
 
-            // BU GÖREVİ TAMAMLAYAN ÖĞRENCİ SAYISINI HESAPLIYORUZ
             const tamamlayanSayisi = matris.filter(m => m.targetId === k.id && m.deger && m.deger !== '').length;
             const tamamlandiMi = (tamamlayanSayisi === toplamOgrenciSayisi && toplamOgrenciSayisi > 0);
             
-            // KATILIM ROZETİ
             const rozetBg = tamamlandiMi ? '#d1fae5' : '#e2e8f0';
             const rozetText = tamamlandiMi ? '#065f46' : '#475569';
             const katilimRozeti = `<span style="display: inline-block; margin-top: 8px; background: ${rozetBg}; color: ${rozetText}; padding: 4px 10px; border-radius: 12px; font-size: 0.85em; font-weight: bold;">📊 Katılım: ${tamamlayanSayisi} / ${toplamOgrenciSayisi} Öğrenci</span>`;
@@ -322,11 +215,9 @@ async function arayuzuGuncelle() {
     });
 
     const takipKarti = document.getElementById('takip-karti');
-    const pdfButonu = document.getElementById('btn-pdf-indir');
     
     if (!seciliGorevId) {
         takipKarti.style.display = 'none';
-        pdfButonu.style.display = 'none';
         return;
     }
 
@@ -334,12 +225,10 @@ async function arayuzuGuncelle() {
     if (!aktifGorev) {
         seciliGorevId = null;
         takipKarti.style.display = 'none';
-        pdfButonu.style.display = 'none';
         return;
     }
 
     takipKarti.style.display = 'block'; 
-    pdfButonu.style.display = 'block';
     document.getElementById('takip-baslik').innerText = `📊 Takip Tablosu: ${aktifGorev.ad}`;
 
     const tabloOgrenciler = [...ogrenciler].sort((a, b) => (a.name || '').localeCompare(b.name || ''));

@@ -2,6 +2,18 @@ import { db } from '../../js/db.js';
 
 let seciliGorevId = null; 
 
+// A4 PDF Çıktısı için gerekli kütüphaneyi dinamik yükleyen fonksiyon
+function loadHtml2Pdf() {
+    if (window.html2pdf) return Promise.resolve();
+    return new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+        script.onload = () => resolve();
+        script.onerror = () => reject(new Error('PDF kütüphanesi yüklenemedi. İnternet bağlantınızı kontrol edin.'));
+        document.head.appendChild(script);
+    });
+}
+
 export async function render(container) {
     container.innerHTML = '<div class="card"><p>⏳ Görevler yükleniyor...</p></div>';
 
@@ -54,7 +66,10 @@ export async function render(container) {
         </div>
 
         <div class="card" id="takip-karti" style="display: none; border-top: 4px solid var(--success); overflow-x: auto;">
-            <h3 id="takip-baslik">Görev Takip Tablosu</h3>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                <h3 id="takip-baslik" style="margin: 0;">Görev Takip Tablosu</h3>
+                <button id="btn-pdf-indir" class="btn btn-secondary" style="padding: 6px 15px; font-size: 0.9em; font-weight: bold; display: none;">📄 PDF İndir (A4)</button>
+            </div>
             <p style="font-size:0.85em; color:#666; margin-bottom: 15px;">Eğer oyunun bir limiti varsa hücre otomatik olarak ilerleme çubuğuna dönüşür. Limiti olmayan oyunlar düz yeşil olarak işaretlenir.</p>
             <div id="gorev-tablosu-alani"><p>⏳ Tablo yükleniyor...</p></div>
         </div>
@@ -96,6 +111,68 @@ export async function render(container) {
     });
 
     document.getElementById('btn-gorev-iptal').addEventListener('click', formuTemizle);
+
+    // PDF İndirme İşlemi
+    document.getElementById('btn-pdf-indir').addEventListener('click', async (e) => {
+        if (!seciliGorevId) return;
+        const kalemler = await db.getAll('uygulama_kalemleri');
+        const aktifGorev = kalemler.find(k => k.id === seciliGorevId);
+        
+        const btn = e.target;
+        const originalText = btn.innerText;
+        btn.innerText = "⏳ Hazırlanıyor...";
+        btn.disabled = true;
+
+        try {
+            await loadHtml2Pdf();
+
+            // Tabloyu kopyala ki asıl ekrandaki inputlar/butonlar bozulmasın
+            const tableArea = document.getElementById('gorev-tablosu-alani');
+            const clone = tableArea.cloneNode(true);
+            
+            // Kopyalanan tablodaki karmaşık input ve butonları PDF için temiz metne çeviriyoruz
+            const rows = clone.querySelectorAll('tbody tr');
+            rows.forEach(row => {
+                const input = row.querySelector('.hucre-input');
+                const islemGorduMu = input && input.value.trim() !== '';
+                const val = input ? input.value : '';
+                
+                const td = row.cells[2]; // Puan Sütunu
+                td.innerHTML = islemGorduMu ? `<span style="color: #065f46; font-weight: bold;">${val}</span>` : `<span style="color: #94a3b8;">Bekleniyor</span>`;
+                td.style.background = islemGorduMu ? '#d1fae5' : '#f8f9fa'; // PDF'te temiz yeşil ve gri arka plan
+                td.style.textAlign = 'center';
+            });
+
+            // Yazdırma (PDF) ekranı için şık bir başlık oluştur
+            const printWrapper = document.createElement('div');
+            printWrapper.style.padding = '20px';
+            printWrapper.style.fontFamily = 'Arial, sans-serif';
+            
+            printWrapper.innerHTML = `
+                <h2 style="text-align: center; color: #333; margin-bottom: 5px; font-size: 24px;">${aktifGorev.ad}</h2>
+                <p style="text-align: center; color: #666; font-size: 14px; margin-top: 0; margin-bottom: 25px;">
+                    Görev Sonuç Raporu | Tarih: ${new Date().toLocaleDateString('tr-TR')}
+                </p>
+            `;
+            printWrapper.appendChild(clone);
+
+            const opt = {
+                margin:       10, // A4 kenar boşluğu
+                filename:     `${aktifGorev.ad}_Raporu.pdf`,
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2 }, // Tablo çözünürlüğünü artırır
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+
+            await html2pdf().set(opt).from(printWrapper).save();
+        } catch (error) {
+            console.error(error);
+            alert("PDF oluşturulurken bir hata oluştu.");
+        } finally {
+            btn.innerText = originalText;
+            btn.disabled = false;
+        }
+    });
 
     await arayuzuGuncelle();
 }
@@ -215,9 +292,11 @@ async function arayuzuGuncelle() {
     });
 
     const takipKarti = document.getElementById('takip-karti');
+    const pdfButonu = document.getElementById('btn-pdf-indir');
     
     if (!seciliGorevId) {
         takipKarti.style.display = 'none';
+        pdfButonu.style.display = 'none';
         return;
     }
 
@@ -225,10 +304,12 @@ async function arayuzuGuncelle() {
     if (!aktifGorev) {
         seciliGorevId = null;
         takipKarti.style.display = 'none';
+        pdfButonu.style.display = 'none';
         return;
     }
 
     takipKarti.style.display = 'block'; 
+    pdfButonu.style.display = 'block';
     document.getElementById('takip-baslik').innerText = `📊 Takip Tablosu: ${aktifGorev.ad}`;
 
     const tabloOgrenciler = [...ogrenciler].sort((a, b) => (a.name || '').localeCompare(b.name || ''));

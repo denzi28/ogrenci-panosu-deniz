@@ -56,8 +56,9 @@ export async function render(container) {
         <div class="card" id="takip-karti" style="display: none; border-top: 4px solid var(--success); overflow-x: auto;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
                 <h3 id="takip-baslik" style="margin: 0;">Görev Takip Tablosu</h3>
+                <button id="btn-yazdir" class="btn btn-primary" style="padding: 6px 15px; font-size: 0.9em; font-weight: bold; background-color: #0284c7; border: none; display: none;">🖨️ Yazdır / PDF Al</button>
             </div>
-            <p style="font-size:0.85em; color:#666; margin-bottom: 15px;">Eğer oyunun bir limiti varsa hücre otomatik olarak ilerleme çubuğuna dönüşür. Limiti olmayan oyunlar düz yeşil olarak işaretlenir.</p>
+            <p style="font-size:0.85em; color:#666; margin-bottom: 15px;">Eğer oyunun bir limiti varsa hücre otomatik olarak ilerleme çubuğuna dönüşür. Limiti olmayan oyunlar düz yeşil olarak işaretlenir. <strong>Puanları değiştirmek için doğrudan tablodaki ilgili hücreye tıklayıp yazabilirsiniz.</strong></p>
             <div id="gorev-tablosu-alani"><p>⏳ Tablo yükleniyor...</p></div>
         </div>
     `;
@@ -98,6 +99,81 @@ export async function render(container) {
     });
 
     document.getElementById('btn-gorev-iptal').addEventListener('click', formuTemizle);
+
+    // YAZDIRMA İŞLEMİ
+    document.getElementById('btn-yazdir').addEventListener('click', async () => {
+        if (!seciliGorevId) return;
+        
+        const kalemler = await db.getAll('uygulama_kalemleri');
+        const aktifGorev = kalemler.find(k => k.id === seciliGorevId);
+        const tumKullanicilar = await db.getAll('users');
+        const ogrenciler = tumKullanicilar.filter(u => u.role === 'student');
+        const tabloOgrenciler = [...ogrenciler].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+        const matris = await db.getAll('uygulama_matrisi');
+
+        let printContent = `
+            <!DOCTYPE html>
+            <html lang="tr">
+            <head>
+                <meta charset="UTF-8">
+                <title>${aktifGorev.ad} - Rapor</title>
+                <style>
+                    body { font-family: Arial, sans-serif; padding: 20px; color: #000; }
+                    h2 { text-align: center; margin: 0 0 10px 0; font-size: 24px; text-transform: uppercase; }
+                    .tarih { text-align: center; color: #444; font-size: 14px; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 25px; }
+                    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+                    th, td { border: 1px solid #000; padding: 8px 10px; }
+                    th { background-color: #f1f5f9; font-weight: bold; }
+                    td.merkez { text-align: center; }
+                    .yesil { background-color: #d1fae5 !important; font-weight: bold; -webkit-print-color-adjust: exact; color-adjust: exact; }
+                    .gri { color: #64748b; font-style: italic; }
+                </style>
+            </head>
+            <body>
+                <h2>${aktifGorev.ad}</h2>
+                <div class="tarih">Görev Sonuç Raporu | Tarih: ${new Date().toLocaleDateString('tr-TR')}</div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 40px; text-align: center;">SN</th>
+                            <th style="text-align: left;">Öğrenci Adı Soyadı</th>
+                            <th style="width: 180px; text-align: center;">Sonuç / Puan</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+
+        tabloOgrenciler.forEach((ogr, index) => {
+            let hucreDegeri = matris.find(m => m.ogrId === ogr.id && m.targetId === aktifGorev.id)?.deger || '';
+            let islemGorduMu = hucreDegeri !== '';
+            let sonucHucresi = islemGorduMu ? `<td class="merkez yesil">${hucreDegeri}</td>` : `<td class="merkez gri">Bekleniyor</td>`;
+            
+            printContent += `
+                <tr>
+                    <td class="merkez">${index + 1}</td>
+                    <td>${ogr.name}</td>
+                    ${sonucHucresi}
+                </tr>
+            `;
+        });
+
+        printContent += `
+                    </tbody>
+                </table>
+                <script>
+                    window.onload = function() { 
+                        window.print(); 
+                        setTimeout(() => window.close(), 500); 
+                    };
+                </script>
+            </body>
+            </html>
+        `;
+
+        const printWindow = window.open('', '_blank');
+        printWindow.document.write(printContent);
+        printWindow.document.close();
+    });
 
     await arayuzuGuncelle();
 }
@@ -215,9 +291,11 @@ async function arayuzuGuncelle() {
     });
 
     const takipKarti = document.getElementById('takip-karti');
+    const yazdirButonu = document.getElementById('btn-yazdir');
     
     if (!seciliGorevId) {
         takipKarti.style.display = 'none';
+        yazdirButonu.style.display = 'none';
         return;
     }
 
@@ -225,10 +303,12 @@ async function arayuzuGuncelle() {
     if (!aktifGorev) {
         seciliGorevId = null;
         takipKarti.style.display = 'none';
+        yazdirButonu.style.display = 'none';
         return;
     }
 
     takipKarti.style.display = 'block'; 
+    yazdirButonu.style.display = 'block';
     document.getElementById('takip-baslik').innerText = `📊 Takip Tablosu: ${aktifGorev.ad}`;
 
     const tabloOgrenciler = [...ogrenciler].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
@@ -272,9 +352,14 @@ async function arayuzuGuncelle() {
             <td style="border: 1px solid #ddd; padding: 8px; text-align: center; color: #555;">${index + 1}</td>
             <td style="border: 1px solid #ddd; padding: 8px; font-weight: bold; color: #333;">${ogr.name}</td>
             <td style="border: 1px solid #ddd; padding: 0;">
-                <div style="display: flex; align-items: center; width: 100%; height: 100%; background: ${bgStil};">
-                    <input type="text" class="hucre-input" data-ogr="${ogr.id}" data-gorev="${aktifGorev.id}" value="${hucreDegeri}" placeholder="Bekleniyor..."
-                        style="flex: 1; padding: 12px; border: none; text-align: center; box-sizing: border-box; outline: none; background: transparent; font-weight: bold; color: ${islemGorduMu ? 'var(--success)' : '#888'};">
+                <div style="display: flex; align-items: center; width: 100%; height: 100%; background: ${bgStil}; border-radius: 4px; transition: 0.2s;">
+                    <!-- MANUEL GİRİŞ İÇİN TASARIM GÜNCELLENDİ -->
+                    <input type="text" class="hucre-input" data-ogr="${ogr.id}" data-gorev="${aktifGorev.id}" value="${hucreDegeri}" placeholder="✏️ Puan Gir..."
+                        title="Manuel puan girmek için tıklayın ve yazın"
+                        onfocus="this.style.backgroundColor='#f8fafc'; this.style.border='1px dashed #94a3b8';"
+                        onblur="this.style.backgroundColor='transparent'; this.style.border='none';"
+                        style="flex: 1; padding: 12px; border: none; text-align: center; box-sizing: border-box; outline: none; background: transparent; font-weight: bold; color: ${islemGorduMu ? 'var(--success)' : '#888'}; cursor: text; transition: 0.2s;">
+                    
                     ${islemGorduMu ? `<button class="btn btn-danger btn-temizle" data-ogr="${ogr.id}" data-gorev="${aktifGorev.id}" style="margin-right: 8px; padding: 4px 8px; font-size: 0.75em;" title="Sıfırla">Temizle</button>` : ''}
                 </div>
             </td>

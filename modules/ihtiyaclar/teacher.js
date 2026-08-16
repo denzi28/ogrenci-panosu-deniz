@@ -27,8 +27,13 @@ export async function render(container) {
             <div id="ihtiyac-basliklari" style="margin-top: 15px; display: flex; flex-wrap: wrap; gap: 10px;"></div>
         </div>
 
-        <div class="card" style="overflow-x: auto;">
-            <h3>2. Aşama: Sınıf Takip Tablosu</h3>
+        <div class="card" style="border-top: 4px solid var(--success); overflow-x: auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; flex-wrap: wrap; gap: 10px;">
+                <h3 style="margin: 0;">2. Aşama: Sınıf Takip Tablosu</h3>
+                <button id="btn-ihtiyac-yazdir" class="btn btn-primary" style="padding: 10px 20px; font-size: 1em; font-weight: bold; background-color: #0284c7; color: white; border: none; border-radius: 5px; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                    🖨️ Listeyi Yazdır / PDF Al
+                </button>
+            </div>
             <p style="font-size:0.85em; color:#666; margin-bottom: 15px;">Hücrelere "x", "Devamsız" veya miktar yazabilirsiniz. Başka yere tıkladığınız an buluta otomatik kaydedilir.</p>
             <div id="ihtiyac-tablosu-alani"><p>⏳ Tablo yükleniyor...</p></div>
         </div>
@@ -52,6 +57,103 @@ export async function render(container) {
             btn.disabled = false; btn.innerText = "Sütun Ekle";
             await arayuzuGuncelle();
         }
+    });
+
+    // YAZDIRMA İŞLEMİ
+    document.getElementById('btn-ihtiyac-yazdir').addEventListener('click', async () => {
+        const kalemler = await db.getAll('ihtiyac_kalemleri');
+        
+        if (kalemler.length === 0) {
+            alert("Yazdırılacak herhangi bir ihtiyaç sütunu bulunmuyor.");
+            return;
+        }
+
+        const tumKullanicilar = await db.getAll('users');
+        const ogrenciler = tumKullanicilar.filter(u => u.role === 'student');
+        const matris = await db.getAll('ihtiyac_matrisi');
+
+        // Okul numarasına göre sıralama
+        ogrenciler.sort((a, b) => {
+            const noA = parseInt(a.okulno) || 999999;
+            const noB = parseInt(b.okulno) || 999999;
+            if (noA === noB) return (a.name || '').localeCompare(b.name || '');
+            return noA - noB;
+        });
+
+        let printContent = `
+            <!DOCTYPE html>
+            <html lang="tr">
+            <head>
+                <meta charset="UTF-8">
+                <title>Sınıf İhtiyaç Takip Tablosu</title>
+                <style>
+                    body { font-family: Arial, sans-serif; padding: 20px; color: #000; }
+                    h2 { text-align: center; margin: 0 0 10px 0; font-size: 24px; text-transform: uppercase; }
+                    .tarih { text-align: center; color: #444; font-size: 14px; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 25px; }
+                    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+                    th, td { border: 1px solid #000; padding: 6px 8px; }
+                    th { background-color: #f1f5f9; font-weight: bold; }
+                    td.merkez { text-align: center; }
+                    .dolu { background-color: #d1fae5 !important; font-weight: bold; -webkit-print-color-adjust: exact; color-adjust: exact; }
+                    .devamsiz { color: #dc2626 !important; font-style: italic; -webkit-print-color-adjust: exact; color-adjust: exact; }
+                </style>
+            </head>
+            <body>
+                <h2>SINIF İHTİYAÇ TAKİP LİSTESİ</h2>
+                <div class="tarih">Güncelleme Tarihi: ${new Date().toLocaleDateString('tr-TR')}</div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 30px; text-align: center;">SN</th>
+                            <th style="width: 50px; text-align: center;">Okul No</th>
+                            <th style="text-align: left;">Öğrenci Adı Soyadı</th>
+                            ${kalemler.map(k => `<th>${k.ad}</th>`).join('')}
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+
+        ogrenciler.forEach((ogr, index) => {
+            printContent += `
+                <tr>
+                    <td class="merkez">${index + 1}</td>
+                    <td class="merkez"><strong>${ogr.okulno || '-'}</strong></td>
+                    <td>${ogr.name}</td>
+            `;
+            
+            kalemler.forEach(k => {
+                let hucreDegeri = matris.find(m => m.ogrId === ogr.id && m.targetId === k.id)?.deger || '';
+                let islemGorduMu = hucreDegeri !== '';
+                let cssClass = "merkez";
+                
+                if (hucreDegeri.toLowerCase() === 'devamsız') {
+                    cssClass += " devamsiz";
+                } else if (islemGorduMu) {
+                    cssClass += " dolu";
+                }
+                
+                printContent += `<td class="${cssClass}">${hucreDegeri}</td>`;
+            });
+            
+            printContent += `</tr>`;
+        });
+
+        printContent += `
+                    </tbody>
+                </table>
+                <script>
+                    window.onload = function() { 
+                        window.print(); 
+                        setTimeout(() => window.close(), 500); 
+                    };
+                </script>
+            </body>
+            </html>
+        `;
+
+        const printWindow = window.open('', '_blank');
+        printWindow.document.write(printContent);
+        printWindow.document.close();
     });
 
     await arayuzuGuncelle();

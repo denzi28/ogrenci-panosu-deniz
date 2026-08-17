@@ -206,6 +206,13 @@ async function arayuzuGuncelle() {
     const ogrenciler = tumKullanicilar.filter(u => u.role === 'student');
     const matris = await db.getAll('uygulama_matrisi'); 
 
+    // Bugünün tarihini alıp YYYY-MM-DD formatına dönüştürüyoruz
+    const bugunObj = new Date();
+    const yyyy = bugunObj.getFullYear();
+    const mm = String(bugunObj.getMonth() + 1).padStart(2, '0');
+    const dd = String(bugunObj.getDate()).padStart(2, '0');
+    const bugun = `${yyyy}-${mm}-${dd}`;
+
     const toplamOgrenciSayisi = ogrenciler.length;
     let listHtml = '';
     
@@ -217,12 +224,29 @@ async function arayuzuGuncelle() {
             const bgRenk = isSelected ? '#e8f4fd' : '#f9f9f9';
             const borderStil = isSelected ? 'border: 2px solid var(--primary);' : 'border: 1px solid #ddd;';
 
+            // Katılım Rozeti
             const tamamlayanSayisi = matris.filter(m => m.targetId === k.id && m.deger && m.deger !== '').length;
             const tamamlandiMi = (tamamlayanSayisi === toplamOgrenciSayisi && toplamOgrenciSayisi > 0);
-            
             const rozetBg = tamamlandiMi ? '#d1fae5' : '#e2e8f0';
             const rozetText = tamamlandiMi ? '#065f46' : '#475569';
             const katilimRozeti = `<span style="display: inline-block; margin-top: 8px; background: ${rozetBg}; color: ${rozetText}; padding: 4px 10px; border-radius: 12px; font-size: 0.85em; font-weight: bold;">📊 Katılım: ${tamamlayanSayisi} / ${toplamOgrenciSayisi} Öğrenci</span>`;
+
+            // Dinamik Tarih (Durum) Rozeti (Sarı, Yeşil, Kırmızı)
+            let durumText = "🟢 Yayında";
+            let durumBg = "#dcfce7"; 
+            let durumColor = "#166534"; 
+            
+            if (k.baslangic && bugun < k.baslangic) {
+                durumText = "⏳ Beklemede";
+                durumBg = "#fef9c3"; // Sarı arka plan
+                durumColor = "#854d0e"; // Koyu sarı yazı
+            } else if (k.bitis && bugun > k.bitis) {
+                durumText = "⛔ Süre Doldu";
+                durumBg = "#fee2e2"; // Kırmızı arka plan
+                durumColor = "#991b1b"; // Koyu kırmızı yazı
+            }
+
+            const durumRozeti = `<span style="display: inline-block; margin-top: 8px; margin-right: 5px; background: ${durumBg}; color: ${durumColor}; padding: 4px 10px; border-radius: 12px; font-size: 0.85em; font-weight: bold;">${durumText}</span>`;
 
             listHtml += `
                 <div style="background: ${bgRenk}; padding: 10px 15px; border-radius: 8px; display: flex; justify-content: space-between; align-items: flex-start; ${borderStil} transition: all 0.2s; flex-wrap: wrap; gap: 10px;">
@@ -231,7 +255,7 @@ async function arayuzuGuncelle() {
                         ${k.aciklama ? `<div style="font-size: 0.85em; color: #444; margin: 4px 0; font-style: italic;">📝 ${k.aciklama}</div>` : ''}
                         <span style="font-size: 0.8em; color: #888;">Yol: ${k.link}</span><br>
                         <span style="font-size: 0.8em; color: #555;">📅 Tarih: ${tarihFormatla(k.baslangic)} - ${tarihFormatla(k.bitis)}</span><br>
-                        ${katilimRozeti}
+                        ${durumRozeti} ${katilimRozeti}
                     </div>
                     <div style="display: flex; gap: 8px; align-items: center; margin-top: 5px;">
                         <button class="btn btn-primary btn-incele" data-id="${k.id}" style="padding: 6px 12px; font-size: 0.85em; font-weight: bold;">

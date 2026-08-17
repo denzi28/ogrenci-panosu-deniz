@@ -1,123 +1,76 @@
-import { auth } from '../../js/auth.js';
 import { db } from '../../js/db.js';
 
-let aktifGorevId = null; 
-
-function tarihFormatla(tarihStr) {
-    if (!tarihStr) return 'Belirtilmedi';
-    return tarihStr.split('-').reverse().join('.');
-}
-
 export async function render(container) {
-    container.innerHTML = '<div class="card"><p>⏳ Etkileşimli Görevler yükleniyor...</p></div>';
+    container.innerHTML = '<div class="card"><p>⏳ Görevler yükleniyor...</p></div>';
 
-    const userId = auth.currentUser.id;
+    const isModuleVisible = await db.getModuleVisibility('uygulamalar');
+    if (!isModuleVisible) {
+        container.innerHTML = `
+            <div class="card" style="text-align: center; padding: 40px 20px;">
+                <h3 style="color: var(--secondary);">🎮 İnteraktif Görevler</h3>
+                <p style="color: #666;">Şu an için yayında olan bir görev bulunmamaktadır.</p>
+            </div>
+        `;
+        return;
+    }
+
+    const currentUser = JSON.parse(localStorage.getItem('currentUser'));
     const kalemler = await db.getAll('uygulama_kalemleri');
     const matris = await db.getAll('uygulama_matrisi');
-    
-    // Katılım hesaplaması için tüm öğrencileri çekiyoruz
-    const tumKullanicilar = await db.getAll('users');
-    const ogrenciler = tumKullanicilar.filter(u => u.role === 'student');
-    const toplamOgrenciSayisi = ogrenciler.length;
+
+    // Bugünün tarihini YYYY-MM-DD formatında al (Tarih kıyaslaması için)
+    const bugunObj = new Date();
+    const yyyy = bugunObj.getFullYear();
+    const mm = String(bugunObj.getMonth() + 1).padStart(2, '0');
+    const dd = String(bugunObj.getDate()).padStart(2, '0');
+    const bugun = `${yyyy}-${mm}-${dd}`;
+
+    // TARİH FİLTRESİ: Sadece tarihi uygun olan görevleri seç
+    const aktifGorevler = kalemler.filter(k => {
+        const baslangic = k.baslangic || '';
+        const bitis = k.bitis || '';
+        
+        let yayinda = true;
+        if (baslangic && bugun < baslangic) yayinda = false; // Başlangıç tarihi gelmediyse gizle
+        if (bitis && bugun > bitis) yayinda = false;       // Bitiş tarihi geçtiyse gizle
+        
+        return yayinda;
+    });
 
     let html = `
-        <div class="card" style="border-left: 4px solid var(--primary);">
-            <h2 style="color: var(--primary);">🎮 İnteraktif Görevlerim</h2>
-            <p style="color: #666; margin-bottom: 20px;">Aşağıdaki görevlere tıklayarak etkinlikleri başlatabilirsiniz.</p>
-            <div style="display: flex; flex-direction: column; gap: 15px;">
+        <div class="card" style="border-top: 4px solid var(--primary);">
+            <h3 style="margin-top: 0; color: var(--primary);">🎮 İnteraktif Görevlerim</h3>
+            <p style="font-size:0.85em; color:#666;">Aşağıdaki listeden senin için tanımlanmış ve süresi devam eden görevlere ulaşabilirsin.</p>
+            <div style="margin-top: 15px; display: flex; flex-direction: column; gap: 10px;">
     `;
 
-    if (kalemler.length === 0) {
-        html += `<p style="color: #888;">Henüz atanmış bir görev bulunmuyor.</p>`;
+    if (aktifGorevler.length === 0) {
+        html += '<p style="color:#888;">Şu an için süresi devam eden aktif bir görev bulunmuyor.</p>';
     } else {
-        kalemler.forEach(k => {
-            let kayit = matris.find(m => m.ogrId === userId && m.targetId === k.id);
-            let durum = kayit ? kayit.deger : null;
+        aktifGorevler.forEach(k => {
+            let hucreDegeri = matris.find(m => m.ogrId === currentUser.id && m.targetId === k.id)?.deger || '';
+            let islemGorduMu = hucreDegeri !== '';
             
-            let btnMetin = durum ? `Tamamlandı (Sonuç: ${durum})` : "▶️ Görevi Başlat";
-            let btnClass = durum ? `btn-success` : `btn-primary`;
-
-            // Katılım Rozeti Hesaplama
-            const tamamlayanSayisi = matris.filter(m => m.targetId === k.id && m.deger && m.deger !== '').length;
-            const tamamlandiMiSınıf = (tamamlayanSayisi === toplamOgrenciSayisi && toplamOgrenciSayisi > 0);
-            
-            const rozetBg = tamamlandiMiSınıf ? '#d1fae5' : '#e2e8f0';
-            const rozetText = tamamlandiMiSınıf ? '#065f46' : '#475569';
-            const katilimRozeti = `<span style="display: inline-block; margin-top: 8px; background: ${rozetBg}; color: ${rozetText}; padding: 4px 10px; border-radius: 12px; font-size: 0.85em; font-weight: bold;">📊 Sınıf Katılımı: ${tamamlayanSayisi} / ${toplamOgrenciSayisi}</span>`;
+            let durumRozeti = islemGorduMu 
+                ? `<span style="background: #d1fae5; color: #065f46; padding: 4px 8px; border-radius: 4px; font-size: 0.8em; font-weight: bold;">Tamamlandı (Puan: ${hucreDegeri})</span>` 
+                : `<span style="background: #fee2e2; color: #991b1b; padding: 4px 8px; border-radius: 4px; font-size: 0.8em; font-weight: bold;">Bekleniyor</span>`;
 
             html += `
-            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; display: flex; flex-direction: column; gap: 10px; border: 1px solid #eee;">
-                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-                    <span style="font-weight: bold; font-size: 1.1em; color: #333;">${k.ad}</span>
-                    <button class="btn ${btnClass} btn-baslat" data-id="${k.id}" data-link="${k.link}">${btnMetin}</button>
+                <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 15px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                    <div>
+                        <h4 style="margin: 0 0 5px 0; color: var(--primary); font-size: 1.1em;">${k.ad}</h4>
+                        ${k.aciklama ? `<p style="margin: 0 0 8px 0; font-size: 0.85em; color: #555;">${k.aciklama}</p>` : ''}
+                        <div style="font-size: 0.8em; color: #888;">📅 Son Gün: <strong>${k.bitis ? k.bitis.split('-').reverse().join('.') : 'Süresiz'}</strong></div>
+                    </div>
+                    <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 8px;">
+                        ${durumRozeti}
+                        <a href="${k.link}" target="_blank" class="btn btn-primary" style="text-decoration: none; padding: 6px 15px; font-size: 0.9em; text-align: center; border-radius: 5px;">▶️ Göreve Git</a>
+                    </div>
                 </div>
-                ${k.aciklama ? `<div style="font-size: 0.95em; color: #444; background: #fff; padding: 10px; border-radius: 6px; border-left: 3px solid var(--primary);">📝 ${k.aciklama}</div>` : ''}
-                <div style="font-size: 0.85em; color: #777; font-weight: bold;">
-                    📅 Tarih: ${tarihFormatla(k.baslangic)} - ${tarihFormatla(k.bitis)}
-                    <br>${katilimRozeti}
-                </div>
-            </div>`;
+            `;
         });
     }
 
     html += `</div></div>`;
-
-    html += `
-        <div id="oyun-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.8); z-index: 9999; flex-direction: column;">
-            <div style="background: #fff; padding: 10px; display: flex; justify-content: space-between; align-items: center;">
-                <h3 id="modal-baslik" style="margin: 0; color: var(--primary);">Görev</h3>
-                <button id="btn-kapat" class="btn btn-danger">Kapat (Çıkış)</button>
-            </div>
-            <div style="flex: 1; width: 100%; background: #000;">
-                <iframe id="oyun-iframe" style="width: 100%; height: 100%; border: none;"></iframe>
-            </div>
-        </div>
-    `;
-
     container.innerHTML = html;
-
-    document.querySelectorAll('.btn-baslat').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            const link = e.target.getAttribute('data-link');
-            aktifGorevId = e.target.getAttribute('data-id'); 
-            
-            const parentDiv = e.target.closest('div').parentElement;
-            const baslikElementi = parentDiv.querySelector('span');
-            document.getElementById('modal-baslik').innerText = baslikElementi.innerText;
-            
-            document.getElementById('oyun-iframe').src = link;
-            document.getElementById('oyun-modal').style.display = 'flex';
-        });
-    });
-
-    document.getElementById('btn-kapat').addEventListener('click', () => {
-        document.getElementById('oyun-modal').style.display = 'none';
-        document.getElementById('oyun-iframe').src = "";
-        aktifGorevId = null;
-    });
-
-    window.addEventListener('message', async (event) => {
-        if (event.data && event.data.islem === 'gorev_bitti' && aktifGorevId) {
-            const alinanPuan = event.data.puan !== undefined ? event.data.puan : "Tamamlandı";
-            const oyunLimiti = event.data.limit; 
-            
-            let kaydedilecekDeger = alinanPuan;
-            
-            if (oyunLimiti && !isNaN(alinanPuan)) {
-                kaydedilecekDeger = `${alinanPuan}/${oyunLimiti}`;
-            }
-            
-            kaydedilecekDeger = String(kaydedilecekDeger);
-            
-            document.getElementById('oyun-modal').style.display = 'none';
-            document.getElementById('oyun-iframe').src = "";
-            
-            await db.saveMatrixStatus('uygulama_matrisi', userId, aktifGorevId, kaydedilecekDeger);
-            
-            alert(`Tebrikler! Görevi başarıyla tamamladınız. Sonucunuz (${kaydedilecekDeger}) öğretmeninize iletildi.`);
-            aktifGorevId = null;
-            
-            render(container); 
-        }
-    });
 }

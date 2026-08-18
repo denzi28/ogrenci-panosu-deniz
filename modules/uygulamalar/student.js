@@ -1,6 +1,6 @@
 import { db } from '../../js/db.js';
 
-let aktifOynananGorevId = null; // Hangi görevin oynandığını takip etmek için
+let aktifOynananGorevId = null; 
 
 export async function render(container) {
     container.innerHTML = '<div class="card"><p>⏳ Görevler yükleniyor...</p></div>';
@@ -20,14 +20,12 @@ export async function render(container) {
     const kalemler = await db.getAll('uygulama_kalemleri');
     const matris = await db.getAll('uygulama_matrisi');
 
-    // Bugünün tarihini YYYY-MM-DD formatında al
     const bugunObj = new Date();
     const yyyy = bugunObj.getFullYear();
     const mm = String(bugunObj.getMonth() + 1).padStart(2, '0');
     const dd = String(bugunObj.getDate()).padStart(2, '0');
     const bugun = `${yyyy}-${mm}-${dd}`;
 
-    // Tarihe göre yayında olanları filtrele
     const aktifGorevler = kalemler.filter(k => {
         const baslangic = k.baslangic || '';
         const bitis = k.bitis || '';
@@ -64,7 +62,6 @@ export async function render(container) {
                     </div>
                     <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 8px;">
                         ${durumRozeti}
-                        <!-- YENİ SEKMEYE GİTMEK YERİNE OYUNU SİSTEM İÇİNDE AÇAN BUTON -->
                         <button class="btn btn-primary btn-gorev-baslat" data-link="${k.link}" data-id="${k.id}" style="padding: 6px 15px; font-size: 0.9em; border-radius: 5px; cursor: pointer; border: none; color: white; background: var(--primary); font-weight: bold;">▶️ Oyuna Başla</button>
                     </div>
                 </div>
@@ -74,7 +71,6 @@ export async function render(container) {
 
     html += `</div></div>`;
 
-    // OYUNUN AÇILACAĞI GİZLİ PENCERE (MODAL) EKRANI
     html += `
         <div id="oyun-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 9999; flex-direction: column;">
             <div style="padding: 10px 20px; background: #fff; display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid var(--primary);">
@@ -87,7 +83,6 @@ export async function render(container) {
 
     container.innerHTML = html;
 
-    // Görevi Başlatma (Iframe içinde açma)
     document.querySelectorAll('.btn-gorev-baslat').forEach(btn => {
         btn.addEventListener('click', (e) => {
             const link = e.target.getAttribute('data-link');
@@ -98,35 +93,35 @@ export async function render(container) {
         });
     });
 
-    // Manuel Kapatma Butonu
     document.getElementById('btn-oyun-kapat').addEventListener('click', () => {
         document.getElementById('oyun-iframe').src = '';
         document.getElementById('oyun-modal').style.display = 'none';
         aktifOynananGorevId = null;
-        render(container); // Ekrana puanın yansıması için listeyi yenile
+        render(container); 
     });
 
-    // OYUNDAN GELEN PUANI DİNLEYİP BULUTA KAYDETME İŞLEMİ
     if (!window.oyunDinleyiciEklendi) {
         window.addEventListener('message', async (event) => {
             if (event.data && event.data.islem === 'gorev_bitti') {
                 if (aktifOynananGorevId) {
                     const aktifUser = JSON.parse(localStorage.getItem('currentUser'));
                     
-                    // Öğretmen panosunun beklediği Puan/Limit formatını oluşturuyoruz
-                    const formatliPuan = `${event.data.puan}/${event.data.limit}`;
+                    // LİMİT KONTROLÜ YAPAN YENİ KISIM
+                    let formatliPuan;
+                    if (event.data.limit && event.data.limit !== 'undefined') {
+                        formatliPuan = `${event.data.puan}/${event.data.limit}`; // Limiti olanlar için
+                    } else {
+                        formatliPuan = `${event.data.puan}`; // Limiti olmayan sınırsız oyunlar için
+                    }
                     
-                    // Puanı veritabanına kaydet
                     await db.saveMatrixStatus('uygulama_matrisi', aktifUser.id, aktifOynananGorevId, formatliPuan);
                     
-                    // Oyun ekranındaki konfetiler bitince (yaklaşık 2 saniye sonra) modalı otomatik kapat
                     setTimeout(() => {
                         const modal = document.getElementById('oyun-modal');
                         if (modal && modal.style.display === 'flex') {
                             document.getElementById('oyun-iframe').src = '';
                             modal.style.display = 'none';
                             aktifOynananGorevId = null;
-                            // Arayüzü yenile ki yeni puan rozette anında görünsün
                             render(document.getElementById('content') || container);
                         }
                     }, 2000);

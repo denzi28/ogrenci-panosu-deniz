@@ -1,5 +1,7 @@
 import { db } from '../../js/db.js';
 
+let aktifOynananGorevId = null; // Hangi görevin oynandığını takip etmek için
+
 export async function render(container) {
     container.innerHTML = '<div class="card"><p>⏳ Görevler yükleniyor...</p></div>';
 
@@ -18,22 +20,20 @@ export async function render(container) {
     const kalemler = await db.getAll('uygulama_kalemleri');
     const matris = await db.getAll('uygulama_matrisi');
 
-    // Bugünün tarihini YYYY-MM-DD formatında al (Tarih kıyaslaması için)
+    // Bugünün tarihini YYYY-MM-DD formatında al
     const bugunObj = new Date();
     const yyyy = bugunObj.getFullYear();
     const mm = String(bugunObj.getMonth() + 1).padStart(2, '0');
     const dd = String(bugunObj.getDate()).padStart(2, '0');
     const bugun = `${yyyy}-${mm}-${dd}`;
 
-    // TARİH FİLTRESİ: Sadece tarihi uygun olan görevleri seç
+    // Tarihe göre yayında olanları filtrele
     const aktifGorevler = kalemler.filter(k => {
         const baslangic = k.baslangic || '';
         const bitis = k.bitis || '';
-        
         let yayinda = true;
-        if (baslangic && bugun < baslangic) yayinda = false; // Başlangıç tarihi gelmediyse gizle
-        if (bitis && bugun > bitis) yayinda = false;       // Bitiş tarihi geçtiyse gizle
-        
+        if (baslangic && bugun < baslangic) yayinda = false;
+        if (bitis && bugun > bitis) yayinda = false;
         return yayinda;
     });
 
@@ -64,7 +64,8 @@ export async function render(container) {
                     </div>
                     <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 8px;">
                         ${durumRozeti}
-                        <a href="${k.link}" target="_blank" class="btn btn-primary" style="text-decoration: none; padding: 6px 15px; font-size: 0.9em; text-align: center; border-radius: 5px;">▶️ Göreve Git</a>
+                        <!-- YENİ SEKMEYE GİTMEK YERİNE OYUNU SİSTEM İÇİNDE AÇAN BUTON -->
+                        <button class="btn btn-primary btn-gorev-baslat" data-link="${k.link}" data-id="${k.id}" style="padding: 6px 15px; font-size: 0.9em; border-radius: 5px; cursor: pointer; border: none; color: white; background: var(--primary); font-weight: bold;">▶️ Oyuna Başla</button>
                     </div>
                 </div>
             `;
@@ -72,5 +73,66 @@ export async function render(container) {
     }
 
     html += `</div></div>`;
+
+    // OYUNUN AÇILACAĞI GİZLİ PENCERE (MODAL) EKRANI
+    html += `
+        <div id="oyun-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 9999; flex-direction: column;">
+            <div style="padding: 10px 20px; background: #fff; display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid var(--primary);">
+                <h3 style="margin: 0; color: var(--primary);">🎮 Görev Oynanıyor</h3>
+                <button id="btn-oyun-kapat" class="btn btn-danger" style="padding: 8px 15px; font-weight: bold; border: none; border-radius: 5px; cursor: pointer;">Kapat</button>
+            </div>
+            <iframe id="oyun-iframe" style="width: 100%; flex: 1; border: none; background: #f0fdf4;"></iframe>
+        </div>
+    `;
+
     container.innerHTML = html;
+
+    // Görevi Başlatma (Iframe içinde açma)
+    document.querySelectorAll('.btn-gorev-baslat').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const link = e.target.getAttribute('data-link');
+            aktifOynananGorevId = e.target.getAttribute('data-id');
+            
+            document.getElementById('oyun-iframe').src = link;
+            document.getElementById('oyun-modal').style.display = 'flex';
+        });
+    });
+
+    // Manuel Kapatma Butonu
+    document.getElementById('btn-oyun-kapat').addEventListener('click', () => {
+        document.getElementById('oyun-iframe').src = '';
+        document.getElementById('oyun-modal').style.display = 'none';
+        aktifOynananGorevId = null;
+        render(container); // Ekrana puanın yansıması için listeyi yenile
+    });
+
+    // OYUNDAN GELEN PUANI DİNLEYİP BULUTA KAYDETME İŞLEMİ
+    if (!window.oyunDinleyiciEklendi) {
+        window.addEventListener('message', async (event) => {
+            if (event.data && event.data.islem === 'gorev_bitti') {
+                if (aktifOynananGorevId) {
+                    const aktifUser = JSON.parse(localStorage.getItem('currentUser'));
+                    
+                    // Öğretmen panosunun beklediği Puan/Limit formatını oluşturuyoruz
+                    const formatliPuan = `${event.data.puan}/${event.data.limit}`;
+                    
+                    // Puanı veritabanına kaydet
+                    await db.saveMatrixStatus('uygulama_matrisi', aktifUser.id, aktifOynananGorevId, formatliPuan);
+                    
+                    // Oyun ekranındaki konfetiler bitince (yaklaşık 2 saniye sonra) modalı otomatik kapat
+                    setTimeout(() => {
+                        const modal = document.getElementById('oyun-modal');
+                        if (modal && modal.style.display === 'flex') {
+                            document.getElementById('oyun-iframe').src = '';
+                            modal.style.display = 'none';
+                            aktifOynananGorevId = null;
+                            // Arayüzü yenile ki yeni puan rozette anında görünsün
+                            render(document.getElementById('content') || container);
+                        }
+                    }, 2000);
+                }
+            }
+        });
+        window.oyunDinleyiciEklendi = true;
+    }
 }

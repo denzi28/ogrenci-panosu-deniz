@@ -1,7 +1,6 @@
 import { db } from '../../js/db.js';
 
-export async function render(container) {
-    
+export async function render(container) {   
     container.innerHTML = '<div class="card"><p>⏳ Kitap okuma tablosu yükleniyor...</p></div>';
 
     const isModuleVisible = await db.getModuleVisibility('kitap');

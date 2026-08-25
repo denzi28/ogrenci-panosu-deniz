@@ -9,6 +9,7 @@ export const appConfig = {
         { id: 'davranis', name: 'Davranış Panosu', icon: '⭐' },
         { id: 'uygulamalar', name: 'İnteraktif Görevler', icon: '🎮' },
         {id: 'program',name: 'Ders Programı',icon: '📅'},
+        {id: 'kitap',name: 'Kitap Okuma',icon: '📚'},
         { id: 'yedekleme', name: 'Sistem Yedekleme', icon: '💾' } // YENİ EKLENEN
     ]
 };

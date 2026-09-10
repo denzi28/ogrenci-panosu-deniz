@@ -8,6 +8,29 @@ export async function initApp(role) {
     currentRole = role;
     await renderMenu();
     setupMobileMenu();
+
+    // YENİ: Sayfa ilk açıldığında veya dışarıdan linkle gelindiğinde URL'deki # kısmını yakala
+    const hash = window.location.hash.substring(1);
+    if (hash) {
+        // Hash varsa ve bu modül yüklenmek isteniyorsa onu aç
+        loadModule(hash);
+    } else {
+        // Hash yoksa (siteye düz girildiyse) menüdeki ilk elemanı aç ve URL'yi ona göre ayarla
+        const firstMenuItem = document.querySelector('.menu-item');
+        if (firstMenuItem) {
+            const defaultModule = firstMenuItem.getAttribute('data-module');
+            window.location.hash = defaultModule; // URL'ye ekle
+            loadModule(defaultModule);
+        }
+    }
+
+    // YENİ: Tarayıcıda geri/ileri tuşlarına basıldığında veya menüye tıklandığında URL değişimini dinle
+    window.addEventListener('hashchange', () => {
+        const targetModule = window.location.hash.substring(1);
+        if (targetModule) {
+            loadModule(targetModule);
+        }
+    });
 }
 
 async function renderMenu() {
@@ -22,7 +45,9 @@ async function renderMenu() {
             const isVisible = await db.getModuleVisibility(mod.id);
             if (!isVisible) continue; // Modül gizliyse atla
         }
-        html += `<a href="#" class="menu-item" data-module="${mod.id}">
+        
+        // YENİ: href="#" kısmını href="#modul.id" olarak değiştirdik, tıklayınca URL otomatik değişecek
+        html += `<a href="#${mod.id}" class="menu-item" data-module="${mod.id}">
                     <span class="icon">${mod.icon}</span> ${mod.name}
                  </a>`;
     }
@@ -32,14 +57,18 @@ async function renderMenu() {
     const menuItems = document.querySelectorAll('.menu-item');
     menuItems.forEach(item => {
         item.addEventListener('click', (e) => {
-            e.preventDefault();
-            loadModule(item.getAttribute('data-module'));
+            const modId = item.getAttribute('data-module');
+            // Zaten bulunduğumuz modüle tıklanıyorsa URL değişmeyeceği için sayfayı manuel tazele
+            if (window.location.hash.substring(1) === modId) {
+                e.preventDefault();
+                loadModule(modId);
+            }
+            // Farklı sayfaya tıklanıyorsa e.preventDefault() yapmıyoruz ki href="#modId" doğal olarak URL'yi değiştirsin
         });
     });
 
-    if (menuItems.length > 0) {
-        menuItems[0].click(); 
-    } else if (currentRole === 'guest') {
+    // Artık ilk tıklamayı initApp içinden yönettiğimiz için buradaki [0].click() kısmını kaldırdık
+    if (menuItems.length === 0 && currentRole === 'guest') {
         document.getElementById('app-content').innerHTML = `
             <div class="card" style="text-align:center; padding: 40px;">
                 <h2>Şu an misafirlere açık bir içerik bulunmuyor 🔒</h2>
@@ -50,6 +79,11 @@ async function renderMenu() {
 async function loadModule(moduleId) {
     const container = document.getElementById('app-content');
     container.innerHTML = '<div class="card"><p>⏳ Yükleniyor...</p></div>';
+
+    // YENİ: Hangi sayfada olduğumuzu belli etmek için menü butonunun rengini koyulaştır
+    document.querySelectorAll('.menu-item').forEach(btn => btn.style.backgroundColor = 'transparent');
+    const activeItem = document.querySelector(`.menu-item[data-module="${moduleId}"]`);
+    if (activeItem) activeItem.style.backgroundColor = 'rgba(0, 0, 0, 0.05)';
 
     let linkId = `css-${moduleId}`;
     if (!document.getElementById(linkId)) {
@@ -72,7 +106,9 @@ async function loadModule(moduleId) {
     } catch (err) {
         console.error("Modül yükleme hatası:", err);
         container.innerHTML = `<div class="card" style="border-left:4px solid red;">
-            <h3>Geliştirme Aşamasında</h3><p>Bu role ait (<b>${currentRole}</b>) <b>${moduleId}</b> modülü henüz oluşturulmamış.</p></div>`;
+            <h3>Sayfa Bulunamadı</h3><p>Ulaşmaya çalıştığınız (<b>${moduleId}</b>) sayfası şu an aktif değil veya yetkiniz yok.</p>
+            <button onclick="window.history.back()" style="padding: 8px 15px; margin-top: 10px; cursor: pointer; border-radius: 5px;">Geri Dön</button>
+            </div>`;
     }
 }
 

@@ -186,7 +186,6 @@
         let currentQuestionIndex = 0;
         let canAnswer = true;
 
-        // Sorular MEB kitabındaki örneklerden birebir alınmıştır
         const questions = [
             {
                 q: "Gökyüzüne baktın, gri bulutları gördün ve rüzgârın estiğini fark ettin. 'Yağmur yağabilir.' diye düşünmen hangi bilimsel yöntemdir?",
@@ -220,7 +219,6 @@
             }
         ];
 
-        // Soruları karıştır
         questions.sort(() => Math.random() - 0.5);
 
         const scoreEl = document.getElementById('score');
@@ -233,7 +231,7 @@
         function loadQuestion() {
             canAnswer = true;
             if (currentQuestionIndex >= questions.length) {
-                currentQuestionIndex = 0; // Sorular biterse başa sar
+                currentQuestionIndex = 0; 
                 questions.sort(() => Math.random() - 0.5);
             }
 
@@ -241,7 +239,6 @@
             questionBox.innerText = qData.q;
             questionBox.classList.remove('shake');
             
-            // Şıkları karıştır
             const shuffledOptions = [...qData.options].sort(() => Math.random() - 0.5);
             
             optionsBox.innerHTML = '';
@@ -269,15 +266,18 @@
                 btn.classList.add('correct');
                 score += 10;
                 scoreEl.innerText = score;
-                
-                // Sisteme otomatik kayıt gönder (Öğrenci aniden sekmeyi kapatırsa puan gitmesin)
-                window.parent.postMessage({ islem: 'gorev_bitti', puan: score, limit: HEDEF_PUAN }, '*');
 
                 if (score >= HEDEF_PUAN) {
+                    // Hedef puana ulaşıldıysa GÖREV BİTTİ mesajı gönder ve pencereyi kapat
+                    window.parent.postMessage({ islem: 'gorev_bitti', puan: score, limit: HEDEF_PUAN }, '*');
+                    
                     showFeedback("GÖREV TAMAMLANDI! 🏆", "var(--success)");
                     createConfetti();
                     setTimeout(kaydetVeCik, 2000);
                 } else {
+                    // Oyun devam ediyorsa PUAN GÜNCELLE mesajı gönder (Pencere kapanmaz)
+                    window.parent.postMessage({ islem: 'puan_guncelle', puan: score, limit: HEDEF_PUAN }, '*');
+                    
                     showFeedback("Tebrikler! Doğru Bildin 🌟", "var(--success)");
                     setTimeout(() => {
                         currentQuestionIndex++;
@@ -289,13 +289,12 @@
                 questionBox.classList.add('shake');
                 showFeedback("Tekrar Dene! 💪", "var(--danger)");
                 
-                // Doğru cevabı göster
                 Array.from(optionsBox.children).forEach(b => {
                     if (b.innerText === correct) b.classList.add('correct');
                 });
 
                 setTimeout(() => {
-                    loadQuestion(); // Yanlış bilinirse puan artmaz, aynı soru başka şıklarla veya yeni soru gelir
+                    loadQuestion(); 
                 }, 2000);
             }
         }
@@ -315,7 +314,6 @@
             if(particles.length === 0) updateConfetti();
         }
 
-        // Konfeti Animasyonu
         let particles = [];
         function createConfetti() {
             for (let i = 0; i < 50; i++) {
@@ -355,7 +353,6 @@
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
 
-        // Oyunu Başlat
         loadQuestion();
     </script>
 </body>

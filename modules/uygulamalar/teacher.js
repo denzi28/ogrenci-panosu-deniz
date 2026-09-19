@@ -49,7 +49,7 @@ export async function render(container) {
                 </div>
             </div>
             
-            <h3 style="border-bottom: 1px solid #eee; padding-bottom: 10px; margin-top: 25px;">📋 Eklenen Görevler</h3>
+            <h3 style="border-bottom: 1px solid #eee; padding-bottom: 10px; margin-top: 25px;">📋 Eklenen Görevler <span style="font-size: 0.6em; color: #888; font-weight: normal;">(Test etmek için oyun adına tıklayın)</span></h3>
             <div id="gorev-listesi" style="margin-top: 15px; display: flex; flex-direction: column; gap: 8px;"></div>
         </div>
 
@@ -60,6 +60,17 @@ export async function render(container) {
             </div>
             <p style="font-size:0.85em; color:#666; margin-bottom: 15px;">Eğer oyunun bir limiti varsa hücre otomatik olarak ilerleme çubuğuna dönüşür. Limiti olmayan oyunlar düz yeşil olarak işaretlenir. <strong>Puanları değiştirmek için doğrudan tablodaki ilgili hücreye tıklayıp yazabilirsiniz.</strong></p>
             <div id="gorev-tablosu-alani"><p>⏳ Tablo yükleniyor...</p></div>
+        </div>
+    `;
+
+    // ÖĞRETMEN İÇİN OYUN TEST PENCERESİ (MODAL)
+    container.innerHTML += `
+        <div id="oyun-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 9999; flex-direction: column;">
+            <div style="padding: 10px 20px; background: #fff; display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid var(--primary);">
+                <h3 style="margin: 0; color: var(--primary);">🛠️ Öğretmen Test Ekranı</h3>
+                <button id="btn-oyun-kapat" class="btn btn-danger" style="padding: 8px 15px; font-weight: bold; border: none; border-radius: 5px; cursor: pointer;">Kapat</button>
+            </div>
+            <iframe id="oyun-iframe" style="width: 100%; flex: 1; border: none; background: #f0fdf4;"></iframe>
         </div>
     `;
 
@@ -99,6 +110,28 @@ export async function render(container) {
     });
 
     document.getElementById('btn-gorev-iptal').addEventListener('click', formuTemizle);
+
+    // Modal Kapatma İşlemi
+    document.getElementById('btn-oyun-kapat').addEventListener('click', () => {
+        document.getElementById('oyun-iframe').src = '';
+        document.getElementById('oyun-modal').style.display = 'none';
+    });
+
+    // Öğretmen Test Modunda Gelen Mesajları Yakala (Pencereyi kapatmak için)
+    if (!window.ogretmenOyunDinleyiciEklendi) {
+        window.addEventListener('message', (event) => {
+            if (event.data && event.data.islem === 'gorev_bitti') {
+                setTimeout(() => {
+                    const modal = document.getElementById('oyun-modal');
+                    if (modal && modal.style.display === 'flex') {
+                        document.getElementById('oyun-iframe').src = '';
+                        modal.style.display = 'none';
+                    }
+                }, 2000);
+            }
+        });
+        window.ogretmenOyunDinleyiciEklendi = true;
+    }
 
     // YAZDIRMA İŞLEMİ
     document.getElementById('btn-yazdir').addEventListener('click', async () => {
@@ -206,7 +239,6 @@ async function arayuzuGuncelle() {
     const ogrenciler = tumKullanicilar.filter(u => u.role === 'student');
     const matris = await db.getAll('uygulama_matrisi'); 
 
-    // Bugünün tarihini alıp YYYY-MM-DD formatına dönüştürüyoruz
     const bugunObj = new Date();
     const yyyy = bugunObj.getFullYear();
     const mm = String(bugunObj.getMonth() + 1).padStart(2, '0');
@@ -224,26 +256,24 @@ async function arayuzuGuncelle() {
             const bgRenk = isSelected ? '#e8f4fd' : '#f9f9f9';
             const borderStil = isSelected ? 'border: 2px solid var(--primary);' : 'border: 1px solid #ddd;';
 
-            // Katılım Rozeti
             const tamamlayanSayisi = matris.filter(m => m.targetId === k.id && m.deger && m.deger !== '').length;
             const tamamlandiMi = (tamamlayanSayisi === toplamOgrenciSayisi && toplamOgrenciSayisi > 0);
             const rozetBg = tamamlandiMi ? '#d1fae5' : '#e2e8f0';
             const rozetText = tamamlandiMi ? '#065f46' : '#475569';
             const katilimRozeti = `<span style="display: inline-block; margin-top: 8px; background: ${rozetBg}; color: ${rozetText}; padding: 4px 10px; border-radius: 12px; font-size: 0.85em; font-weight: bold;">📊 Katılım: ${tamamlayanSayisi} / ${toplamOgrenciSayisi} Öğrenci</span>`;
 
-            // Dinamik Tarih (Durum) Rozeti (Sarı, Yeşil, Kırmızı)
             let durumText = "🟢 Yayında";
             let durumBg = "#dcfce7"; 
             let durumColor = "#166534"; 
             
             if (k.baslangic && bugun < k.baslangic) {
                 durumText = "⏳ Beklemede";
-                durumBg = "#fef9c3"; // Sarı arka plan
-                durumColor = "#854d0e"; // Koyu sarı yazı
+                durumBg = "#fef9c3";
+                durumColor = "#854d0e"; 
             } else if (k.bitis && bugun > k.bitis) {
                 durumText = "⛔ Süre Doldu";
-                durumBg = "#fee2e2"; // Kırmızı arka plan
-                durumColor = "#991b1b"; // Koyu kırmızı yazı
+                durumBg = "#fee2e2";
+                durumColor = "#991b1b"; 
             }
 
             const durumRozeti = `<span style="display: inline-block; margin-top: 8px; margin-right: 5px; background: ${durumBg}; color: ${durumColor}; padding: 4px 10px; border-radius: 12px; font-size: 0.85em; font-weight: bold;">${durumText}</span>`;
@@ -251,7 +281,7 @@ async function arayuzuGuncelle() {
             listHtml += `
                 <div style="background: ${bgRenk}; padding: 10px 15px; border-radius: 8px; display: flex; justify-content: space-between; align-items: flex-start; ${borderStil} transition: all 0.2s; flex-wrap: wrap; gap: 10px;">
                     <div style="flex: 1; min-width: 200px;">
-                        <span style="font-weight: bold; color: var(--primary); font-size: 1.1em;">${k.ad}</span><br>
+                        <span class="btn-oyun-dene" data-link="${k.link}" style="font-weight: bold; color: var(--primary); font-size: 1.2em; cursor: pointer; display: inline-block; padding: 2px 5px; border-radius: 4px; border: 1px solid transparent;" onmouseover="this.style.background='#dbeafe'; this.style.borderColor='var(--primary)';" onmouseout="this.style.background='transparent'; this.style.borderColor='transparent';" title="Oyunu Test Et">🎮 ${k.ad}</span><br>
                         ${k.aciklama ? `<div style="font-size: 0.85em; color: #444; margin: 4px 0; font-style: italic;">📝 ${k.aciklama}</div>` : ''}
                         <span style="font-size: 0.8em; color: #888;">Yol: ${k.link}</span><br>
                         <span style="font-size: 0.8em; color: #555;">📅 Tarih: ${tarihFormatla(k.baslangic)} - ${tarihFormatla(k.bitis)}</span><br>
@@ -269,6 +299,15 @@ async function arayuzuGuncelle() {
         });
     }
     document.getElementById('gorev-listesi').innerHTML = listHtml;
+
+    // Oyunu Test Etme Tıklama Olayı
+    document.querySelectorAll('.btn-oyun-dene').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const link = e.currentTarget.getAttribute('data-link');
+            document.getElementById('oyun-iframe').src = link;
+            document.getElementById('oyun-modal').style.display = 'flex';
+        });
+    });
 
     document.querySelectorAll('.btn-incele').forEach(btn => {
         btn.addEventListener('click', (e) => {
@@ -377,7 +416,6 @@ async function arayuzuGuncelle() {
             <td style="border: 1px solid #ddd; padding: 8px; font-weight: bold; color: #333;">${ogr.name}</td>
             <td style="border: 1px solid #ddd; padding: 0;">
                 <div style="display: flex; align-items: center; width: 100%; height: 100%; background: ${bgStil}; border-radius: 4px; transition: 0.2s;">
-                    <!-- MANUEL GİRİŞ İÇİN TASARIM GÜNCELLENDİ -->
                     <input type="text" class="hucre-input" data-ogr="${ogr.id}" data-gorev="${aktifGorev.id}" value="${hucreDegeri}" placeholder="✏️ Puan Gir..."
                         title="Manuel puan girmek için tıklayın ve yazın"
                         onfocus="this.style.backgroundColor='#f8fafc'; this.style.border='1px dashed #94a3b8';"

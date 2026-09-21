@@ -31,6 +31,8 @@
             align-items: center;
             min-height: 100vh;
             overflow: hidden;
+            /* Mobilde ekranın yanlışlıkla yenilenmesini engeller */
+            overscroll-behavior-y: contain; 
         }
 
         #game-container {
@@ -99,7 +101,7 @@
             display: flex;
             justify-content: center;
             gap: 15px;
-            min-height: 80px;
+            min-height: 90px;
             padding: 15px;
             background: #f8fafc;
             border-radius: 15px;
@@ -162,15 +164,12 @@
             box-shadow: 0 5px 0 #1d4ed8;
             cursor: grab;
             transition: transform 0.1s;
+            /* KRİTİK: Mobilde ve tahtada kaydırmayı engeller, sürüklemeyi aktifleştirir */
+            touch-action: none; 
         }
 
         .digit:active {
             cursor: grabbing;
-        }
-
-        .digit.selected {
-            border: 4px solid var(--secondary);
-            transform: scale(1.1);
         }
 
         /* Kontrol Butonu */
@@ -225,9 +224,10 @@
         }
 
         .mobile-tip {
-            font-size: 0.8rem;
-            color: #94a3b8;
+            font-size: 0.85rem;
+            color: #64748b;
             margin-bottom: 10px;
+            font-weight: bold;
         }
         
         .soru-sayaci {
@@ -255,7 +255,7 @@
                 3 basamaklı sayıyı oluştur!
             </div>
             
-            <div class="mobile-tip">💡 İpucu: Sürükleyip bırakabilir veya önce rakama sonra kutuya dokunabilirsin.</div>
+            <div class="mobile-tip">💡 İpucu: Rakamı parmağınla tut ve kutuya sürükle!</div>
 
             <div class="source-zone" id="source-zone">
                 <!-- Rakamlar buraya gelecek -->
@@ -285,8 +285,8 @@
         const DOGRU_PUAN = 10;
         const YANLIS_PUAN = 5;
         let score = 0;
-        let questionNumber = 1; // Soru Sayacı eklendi
-        let currentTarget = ""; // "BÜYÜK" veya "KÜÇÜK"
+        let questionNumber = 1; 
+        let currentTarget = ""; 
         let currentDigits = [];
         let correctAnswer = "";
 
@@ -301,134 +301,171 @@
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
 
-        // Soru Üretici
         function loadQuestion() {
             currentDigits = [];
             
-            // ÖZEL KURAL: 3., 7. ve 9. sorularda garantili olarak "0" rakamı eklenir
             if (questionNumber === 3 || questionNumber === 7 || questionNumber === 9) {
                 currentDigits.push(0);
             }
 
-            // Kalan boşlukları rastgele rakamlarla (0-9) doldur
             while (currentDigits.length < 3) {
                 let r = Math.floor(Math.random() * 10); 
                 if (!currentDigits.includes(r)) currentDigits.push(r);
             }
             
-            // Sıfırın hep en başta görünmesini engellemek için karıştır
             currentDigits.sort(() => Math.random() - 0.5);
 
-            // Hedefi belirle
             currentTarget = Math.random() > 0.5 ? "BÜYÜK" : "KÜÇÜK";
             targetTypeEl.innerText = `EN ${currentTarget}`;
             targetTypeEl.style.color = currentTarget === "BÜYÜK" ? "var(--primary)" : "var(--danger)";
 
-            // Doğru cevabı matematik kurallarına göre hesapla
             let sortedDigits = [...currentDigits];
             if (currentTarget === "BÜYÜK") {
-                sortedDigits.sort((a, b) => b - a); // Büyükten küçüğe
+                sortedDigits.sort((a, b) => b - a); 
             } else {
-                sortedDigits.sort((a, b) => a - b); // Küçükten büyüğe
-                
-                // KRİTİK KURAL: 3 basamaklı sayı 0 ile başlayamaz!
+                sortedDigits.sort((a, b) => a - b); 
                 if (sortedDigits[0] === 0) {
                     let temp = sortedDigits[0];
-                    sortedDigits[0] = sortedDigits[1]; // Sıfırı onlar basamağına kaydır
-                    sortedDigits[1] = temp;            // En küçük rakamı yüzler basamağına al
+                    sortedDigits[0] = sortedDigits[1]; 
+                    sortedDigits[1] = temp;            
                 }
             }
             correctAnswer = sortedDigits.join('');
 
-            // Arayüzü temizle
             sourceZone.innerHTML = '';
             slots.forEach(slot => slot.innerHTML = '');
             soruSayaciEl.innerText = `Soru: ${questionNumber}`;
 
-            // Rakamları ekrana bas ve sürükleme özelliklerini ekle
             currentDigits.forEach(num => {
                 const div = document.createElement('div');
                 div.className = 'digit';
                 div.innerText = num;
-                div.draggable = true;
                 
-                div.addEventListener('dragstart', dragStart);
-                div.addEventListener('dragend', dragEnd);
-                div.addEventListener('click', selectForMobile);
+                // YENİ DOKUNMATİK MOTOR BAĞLANTISI (Pointer Events)
+                div.addEventListener('pointerdown', onPointerDown);
 
                 sourceZone.appendChild(div);
             });
         }
 
-        // --- SÜRÜKLE BIRAK (DRAG & DROP) MANTIĞI ---
+        // --- YENİ DOKUNMATİK / MOUSE SÜRÜKLEME MOTORU ---
         let draggedItem = null;
-        let selectedItem = null; 
+        let placeholder = null;
+        let startX = 0, startY = 0;
+        let initLeft = 0, initTop = 0;
 
-        function dragStart(e) {
+        function onPointerDown(e) {
+            e.preventDefault(); 
             draggedItem = this;
-            setTimeout(() => this.style.opacity = '0.5', 0);
+
+            const rect = draggedItem.getBoundingClientRect();
+
+            // Sürüklenen rakamın arkasında boşluk kalmasın diye hayalet bir iz bırak
+            placeholder = document.createElement('div');
+            placeholder.style.width = rect.width + 'px';
+            placeholder.style.height = rect.height + 'px';
+            placeholder.style.border = '2px dashed #94a3b8';
+            placeholder.style.borderRadius = '12px';
+            placeholder.style.background = 'transparent';
+            draggedItem.parentNode.insertBefore(placeholder, draggedItem);
+
+            // Elemanı serbest bırakıp parmağın altına yapıştır
+            draggedItem.style.position = 'fixed';
+            draggedItem.style.zIndex = '1000';
+            draggedItem.style.left = rect.left + 'px';
+            draggedItem.style.top = rect.top + 'px';
+            draggedItem.style.width = rect.width + 'px';
+            draggedItem.style.height = rect.height + 'px';
+            draggedItem.style.margin = '0';
+            
+            document.body.appendChild(draggedItem);
+
+            startX = e.clientX;
+            startY = e.clientY;
+            initLeft = rect.left;
+            initTop = rect.top;
+
+            // Parmağı takip etmeye başla
+            document.addEventListener('pointermove', onPointerMove);
+            document.addEventListener('pointerup', onPointerUp);
+            document.addEventListener('pointercancel', onPointerUp);
         }
 
-        function dragEnd() {
-            setTimeout(() => this.style.opacity = '1', 0);
-            draggedItem = null;
-            slots.forEach(s => s.classList.remove('drag-over'));
-        }
-
-        slots.forEach(slot => {
-            slot.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                slot.classList.add('drag-over');
-            });
-
-            slot.addEventListener('dragleave', () => {
-                slot.classList.remove('drag-over');
-            });
-
-            slot.addEventListener('drop', (e) => {
-                e.preventDefault();
-                slot.classList.remove('drag-over');
-                if (draggedItem) dropItemToSlot(draggedItem, slot);
-            });
-
-            slot.addEventListener('click', () => {
-                if (selectedItem) dropItemToSlot(selectedItem, slot);
-            });
-        });
-
-        sourceZone.addEventListener('dragover', (e) => e.preventDefault());
-        sourceZone.addEventListener('drop', (e) => {
+        function onPointerMove(e) {
+            if (!draggedItem) return;
             e.preventDefault();
-            if (draggedItem) sourceZone.appendChild(draggedItem);
-        });
-        sourceZone.addEventListener('click', () => {
-            if (selectedItem) {
-                sourceZone.appendChild(selectedItem);
-                clearSelection();
-            }
-        });
 
-        function dropItemToSlot(item, slot) {
-            if (slot.children.length > 0) {
-                sourceZone.appendChild(slot.children[0]);
+            // Parmağın ne kadar hareket ettiğini hesapla
+            const dx = e.clientX - startX;
+            const dy = e.clientY - startY;
+
+            // Rakamın konumunu parmağa göre güncelle
+            draggedItem.style.left = (initLeft + dx) + 'px';
+            draggedItem.style.top = (initTop + dy) + 'px';
+
+            // Parmağın tam altındaki elementi bul (Kutu vurgulaması için)
+            draggedItem.style.pointerEvents = 'none'; // Kendi altını görebilmek için kendisini saydamlaştır
+            const elemBelow = document.elementFromPoint(e.clientX, e.clientY);
+            draggedItem.style.pointerEvents = 'auto'; // Geri getir
+
+            slots.forEach(s => s.classList.remove('drag-over'));
+            if (elemBelow && elemBelow.closest('.slot')) {
+                elemBelow.closest('.slot').classList.add('drag-over');
             }
-            slot.appendChild(item);
-            clearSelection();
         }
 
-        function selectForMobile(e) {
-            if (selectedItem === this) {
-                clearSelection(); 
+        function onPointerUp(e) {
+            if (!draggedItem) return;
+
+            document.removeEventListener('pointermove', onPointerMove);
+            document.removeEventListener('pointerup', onPointerUp);
+            document.removeEventListener('pointercancel', onPointerUp);
+
+            // Bırakılan yerdeki hedefi bul
+            draggedItem.style.pointerEvents = 'none';
+            const elemBelow = document.elementFromPoint(e.clientX, e.clientY);
+            draggedItem.style.pointerEvents = 'auto';
+
+            slots.forEach(s => s.classList.remove('drag-over'));
+
+            let targetSlot = elemBelow ? elemBelow.closest('.slot') : null;
+            let sourceArea = elemBelow ? elemBelow.closest('.source-zone') : null;
+
+            // Sürükleme stillerini temizle ve rakamı normal hale getir
+            draggedItem.style.position = '';
+            draggedItem.style.zIndex = '';
+            draggedItem.style.left = '';
+            draggedItem.style.top = '';
+            draggedItem.style.width = '';
+            draggedItem.style.height = '';
+            draggedItem.style.margin = '';
+
+            // Hedefe göre yerleştirme işlemleri
+            if (targetSlot) {
+                // Eğer bırakılan kutu doluysa, içindekini kaynağa geri postalayıp yenisini koy
+                if (targetSlot.children.length > 0) {
+                    sourceZone.appendChild(targetSlot.children[0]);
+                }
+                targetSlot.appendChild(draggedItem);
+            } else if (sourceArea) {
+                // Kaynak bölgesine bırakıldıysa oraya geri dön
+                sourceZone.appendChild(draggedItem);
             } else {
-                clearSelection();
-                selectedItem = this;
-                this.classList.add('selected');
+                // Boşluğa bırakıldıysa nereden alındıysa oraya (hayalet ize) geri dön
+                if (placeholder && placeholder.parentNode) {
+                    placeholder.parentNode.insertBefore(draggedItem, placeholder);
+                } else {
+                    sourceZone.appendChild(draggedItem);
+                }
             }
-        }
 
-        function clearSelection() {
-            if (selectedItem) selectedItem.classList.remove('selected');
-            selectedItem = null;
+            // Hayalet izi sil
+            if (placeholder && placeholder.parentNode) {
+                placeholder.parentNode.removeChild(placeholder);
+            }
+
+            draggedItem = null;
+            placeholder = null;
         }
 
         // --- KONTROL VE PUANLAMA MANTIĞI ---
@@ -453,31 +490,26 @@
             }
 
             if (userAnswer === correctAnswer) {
-                // DOĞRU
                 score += DOGRU_PUAN;
                 questionNumber++; 
                 scoreEl.innerText = score;
                 
-                // Arka planda kaydet (Pencere kapanmaz)
                 window.parent.postMessage({ islem: 'puan_guncelle', puan: score, limit: HEDEF_PUAN }, '*');
 
                 if (score >= HEDEF_PUAN) {
-                    // Oyun Bitti
                     window.parent.postMessage({ islem: 'gorev_bitti', puan: score, limit: HEDEF_PUAN }, '*');
                     showFeedback("GÖREV TAMAMLANDI! 🏆", "var(--success)");
                     createConfetti();
                     setTimeout(kaydetVeCik, 2000);
                 } else {
-                    // Sonraki Soru
                     showFeedback("Harika! Doğru Bildin 🌟", "var(--success)");
                     createConfetti();
                     if(particles.length <= 50) updateConfetti();
                     setTimeout(loadQuestion, 1500);
                 }
             } else {
-                // YANLIŞ
                 score -= YANLIS_PUAN;
-                if(score < 0) score = 0; // Puan 0'ın altına düşmesin
+                if(score < 0) score = 0; 
                 scoreEl.innerText = score;
                 
                 window.parent.postMessage({ islem: 'puan_guncelle', puan: score, limit: HEDEF_PUAN }, '*');
@@ -487,7 +519,6 @@
                 
                 setTimeout(() => {
                     questionBox.classList.remove('shake');
-                    // Yanlış yapınca rakamları başa (kaynağa) geri gönder
                     slots.forEach(slot => {
                         if (slot.children.length > 0) sourceZone.appendChild(slot.children[0]);
                     });
@@ -537,7 +568,6 @@
         window.addEventListener('resize', () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; });
         canvas.width = window.innerWidth; canvas.height = window.innerHeight;
 
-        // Oyunu Başlat
         loadQuestion();
     </script>
 </body>

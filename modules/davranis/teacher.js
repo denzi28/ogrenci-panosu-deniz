@@ -66,7 +66,6 @@ export async function render(container) {
         </div>
     `;
 
-    // Sekme Geçişleri
     document.getElementById('tab-pano').addEventListener('click', () => {
         document.getElementById('view-pano').style.display = 'block';
         document.getElementById('view-yonetim').style.display = 'none';
@@ -81,7 +80,6 @@ export async function render(container) {
         document.getElementById('tab-yonetim').className = 'btn btn-primary';
     });
 
-    // Modül Aç/Kapa
     document.getElementById('toggle-module-btn').addEventListener('click', async (e) => {
         const newStatus = !(await db.getModuleVisibility('davranis'));
         await db.toggleModuleVisibility('davranis', newStatus);
@@ -90,7 +88,6 @@ export async function render(container) {
         else { btn.className = "btn btn-secondary"; btn.innerText = "Menüde Gizli (Göster)"; }
     });
 
-    // Yeni Kriter Ekleme
     document.getElementById('btn-kriter-ekle').addEventListener('click', async () => {
         const ad = document.getElementById('yeni-kriter-ad').value.trim();
         if (ad) {
@@ -103,11 +100,9 @@ export async function render(container) {
         }
     });
 
-    // Puanlama Ekranından Geri Dönme İşlemi
     document.getElementById('btn-puanlama-kapat').addEventListener('click', async () => {
         document.getElementById('view-puanlama').style.display = 'none';
         document.getElementById('ana-gorunum').style.display = 'block';
-        // Ekrana geri dönüldüğünde puanların panoya yansıması için listeyi yenile
         await arayuzuGuncelle(); 
         window.scrollTo({ top: 0, behavior: 'smooth' });
     });
@@ -116,7 +111,6 @@ export async function render(container) {
 }
 
 async function arayuzuGuncelle() {
-    // HIZLANDIRMA: Tüm verileri aynı anda çek (Turbo)
     const [kriterler, tumKullanicilar, matris] = await Promise.all([
         db.getAll('davranis_kriterleri'),
         db.getAll('users'),
@@ -125,7 +119,6 @@ async function arayuzuGuncelle() {
 
     const ogrenciler = tumKullanicilar.filter(u => u.role === 'student');
 
-    // Her öğrencinin toplam yıldızını hesapla (Pano İçin)
     ogrenciler.forEach(ogr => {
         let total = 0;
         kriterler.forEach(k => {
@@ -137,7 +130,6 @@ async function arayuzuGuncelle() {
         ogr.score = total;
     });
 
-    // 1. KRİTER BAZLI YÖNETİM LİSTESİNİ ÇİZ
     const kriterListesiAlani = document.getElementById('kriter-listesi-alani');
     
     if (kriterler.length === 0) {
@@ -162,7 +154,6 @@ async function arayuzuGuncelle() {
         kriterHtml += '</div>';
         kriterListesiAlani.innerHTML = kriterHtml;
 
-        // "Sınıfı Puanla" Butonları - Artık tam ekranı açıyor
         document.querySelectorAll('.btn-kriter-puanla').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const kriterId = e.target.getAttribute('data-id');
@@ -171,7 +162,6 @@ async function arayuzuGuncelle() {
             });
         });
 
-        // "Sil" Butonları
         document.querySelectorAll('.btn-kriter-sil').forEach(btn => {
             btn.addEventListener('click', async (e) => {
                 if(confirm("Bu davranışı tamamen silmek istediğinize emin misiniz? Öğrencilerin bu davranıştan aldığı tüm yıldızlar da silinecektir.")) {
@@ -183,27 +173,45 @@ async function arayuzuGuncelle() {
         });
     }
 
-    // 2. PANO (LİDERLİK) GÖRÜNÜMÜNÜ ÇİZ
+    // 2. PANO (LİDERLİK) GÖRÜNÜMÜNÜ ÇİZ - EŞİTLİK (BERABERLİK) SİSTEMİ
     const panoAlani = document.getElementById('pano-alani');
     const panoOgrenciler = [...ogrenciler].sort((a, b) => b.score - a.score);
+
+    // Eşit puanlılara aynı madalyayı vermek için sadece benzersiz ve sıfırdan büyük puanları bul
+    const benzersizPuanlar = [...new Set(panoOgrenciler.map(o => o.score))].filter(p => p > 0).sort((a, b) => b - a);
+    const birinciPuan = benzersizPuanlar[0] || -1;
+    const ikinciPuan = benzersizPuanlar[1] || -1;
+    const ucuncuPuan = benzersizPuanlar[2] || -1;
 
     if (panoOgrenciler.length === 0) {
         panoAlani.innerHTML = '<p style="text-align:center; color:#888;">Panoda gösterilecek öğrenci bulunamadı.</p>';
     } else {
         let panoHtml = '<div style="display: flex; flex-direction: column; gap: 10px;">';
-        panoOgrenciler.forEach((ogr, index) => {
+        
+        panoOgrenciler.forEach((ogr) => {
             let madalya = '';
             let bgRenk = '#f8f9fa';
             let borderRenk = '#eee';
+            let gosterilecekSira = '';
 
-            if (index === 0 && ogr.score > 0) { madalya = '🥇'; bgRenk = '#fffbec'; borderRenk = '#ffc107'; }
-            else if (index === 1 && ogr.score > 0) { madalya = '🥈'; bgRenk = '#f8f9fa'; borderRenk = '#cbd5e1'; }
-            else if (index === 2 && ogr.score > 0) { madalya = '🥉'; bgRenk = '#fff7ed'; borderRenk = '#fb923c'; }
+            if (ogr.score > 0) {
+                if (ogr.score === birinciPuan) { 
+                    madalya = '🥇'; bgRenk = '#fffbec'; borderRenk = '#ffc107'; 
+                } else if (ogr.score === ikinciPuan) { 
+                    madalya = '🥈'; bgRenk = '#f8f9fa'; borderRenk = '#cbd5e1'; 
+                } else if (ogr.score === ucuncuPuan) { 
+                    madalya = '🥉'; bgRenk = '#fff7ed'; borderRenk = '#fb923c'; 
+                }
+                // Madalyası varsa madalya görünsün, yoksa listedeki kendi sırası görünsün
+                gosterilecekSira = madalya || (benzersizPuanlar.indexOf(ogr.score) + 1);
+            } else {
+                gosterilecekSira = '-'; // 0 puanlılara sıra verme
+            }
 
             panoHtml += `
             <div style="background: ${bgRenk}; padding: 15px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; border: 1px solid ${borderRenk}; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
                 <div style="display: flex; align-items: center; gap: 15px;">
-                    <span style="font-size: 1.8em; width: 40px; text-align: center; font-weight: bold; color: #555;">${madalya || (index + 1)}</span>
+                    <span style="font-size: 1.8em; width: 40px; text-align: center; font-weight: bold; color: #555;">${gosterilecekSira}</span>
                     <span style="font-size: 1.2em; font-weight: bold; color: var(--primary);">${ogr.name}</span>
                 </div>
                 <div style="text-align: right;">
@@ -220,8 +228,6 @@ async function arayuzuGuncelle() {
 // 5 YILDIZLI İNTERAKTİF TAM SAYFA PUANLAMA EKRANI
 function tamSayfaPuanlamayiAc(kriterId, kriterName, ogrenciler, matris) {
     document.getElementById('puanlama-criteria-name').innerText = `⭐ ${kriterName}`;
-    
-    // Sınıf listesini isme göre sırala
     const siraliOgrenciler = [...ogrenciler].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
     
     let listeHtml = '<div style="display: flex; flex-direction: column; gap: 15px;">';
@@ -229,10 +235,9 @@ function tamSayfaPuanlamayiAc(kriterId, kriterName, ogrenciler, matris) {
     siraliOgrenciler.forEach((ogr, index) => {
         let mevcutDeger = parseInt(matris.find(m => m.ogrId === ogr.id && m.targetId === kriterId)?.deger || '0');
         
-        // 5 Yıldızı Oluştur (Dolu olanlar Altın, Boş olanlar Gri)
         let starsHtml = '';
         for(let i = 1; i <= 5; i++) {
-            let renk = i <= mevcutDeger ? '#fbbf24' : '#e2e8f0'; // Doluysa Sarı, Boşsa Gri
+            let renk = i <= mevcutDeger ? '#fbbf24' : '#e2e8f0'; 
             starsHtml += `<span class="star-btn" data-ogr="${ogr.id}" data-kriter="${kriterId}" data-val="${i}" style="cursor:pointer; font-size: 2.2em; color: ${renk}; transition: color 0.2s; user-select: none; -webkit-tap-highlight-color: transparent;">★</span>`;
         }
         
@@ -243,10 +248,7 @@ function tamSayfaPuanlamayiAc(kriterId, kriterName, ogrenciler, matris) {
                 <span style="font-weight: bold; font-size: 1.2em; color: #334155;">${ogr.name}</span>
             </div>
             <div style="display: flex; align-items: center; gap: 8px;">
-                <!-- Sıfırlama Butonu (Sadece puan 0'dan büyükse görünür) -->
                 <button class="btn-sifirla" data-ogr="${ogr.id}" data-kriter="${kriterId}" style="background: none; border: none; cursor: pointer; color: #ef4444; font-size: 1.2em; padding: 5px; display: ${mevcutDeger > 0 ? 'block' : 'none'};" title="Puanı Sıfırla">✖</button>
-                
-                <!-- Yıldızların Bulunduğu Alan -->
                 <div class="stars-container" data-ogr="${ogr.id}" style="display: flex; gap: 2px;">
                     ${starsHtml}
                 </div>
@@ -255,41 +257,31 @@ function tamSayfaPuanlamayiAc(kriterId, kriterName, ogrenciler, matris) {
     });
     
     listeHtml += '</div>';
-    
     document.getElementById('puanlama-student-list').innerHTML = listeHtml;
     
-    // Ekranları Gizle / Göster
     document.getElementById('ana-gorunum').style.display = 'none';
     document.getElementById('view-puanlama').style.display = 'block';
-    
-    // Ekranın en tepesine kaydır
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
-    // YILDIZA TIKLAMA OLAYLARI
     document.querySelectorAll('.star-btn').forEach(star => {
         star.addEventListener('click', async (e) => {
             const val = parseInt(e.target.getAttribute('data-val'));
             const oId = e.target.getAttribute('data-ogr');
             const kId = e.target.getAttribute('data-kriter');
             
-            // 1. Yıldızların renklerini anında güncelle
             const container = document.querySelector(`.stars-container[data-ogr="${oId}"]`);
             container.querySelectorAll('.star-btn').forEach((s, idx) => {
                 s.style.color = (idx < val) ? '#fbbf24' : '#e2e8f0';
             });
             
-            // 2. Sıfırlama (✖) butonunu görünür yap
             document.querySelector(`.btn-sifirla[data-ogr="${oId}"]`).style.display = 'block';
 
-            // 3. Satırı geçici olarak yeşil yak (Kaydedildi efekti)
             const satir = document.querySelector(`.puan-satiri[data-ogr="${oId}"]`);
             satir.style.borderColor = '#10b981';
             satir.style.backgroundColor = '#d1fae5';
             
-            // 4. Veritabanına kaydet
             await db.saveMatrixStatus('davranis_matrisi', oId, kId, val.toString());
             
-            // 5. Yarım saniye sonra satırın rengini normale döndür
             setTimeout(() => {
                 satir.style.borderColor = '#e2e8f0';
                 satir.style.backgroundColor = '#f8fafc';
@@ -297,30 +289,24 @@ function tamSayfaPuanlamayiAc(kriterId, kriterName, ogrenciler, matris) {
         });
     });
 
-    // SIFIRLAMA (✖) TIKLAMA OLAYLARI
     document.querySelectorAll('.btn-sifirla').forEach(btn => {
         btn.addEventListener('click', async (e) => {
             const oId = e.target.getAttribute('data-ogr');
             const kId = e.target.getAttribute('data-kriter');
             
-            // 1. Bütün yıldızları griye çevir
             const container = document.querySelector(`.stars-container[data-ogr="${oId}"]`);
             container.querySelectorAll('.star-btn').forEach(s => {
                 s.style.color = '#e2e8f0';
             });
             
-            // 2. Sıfırlama butonunu tekrar gizle
             e.target.style.display = 'none';
 
-            // 3. Satırı geçici olarak sarı yak (Silindi efekti)
             const satir = document.querySelector(`.puan-satiri[data-ogr="${oId}"]`);
             satir.style.borderColor = '#fbbf24';
             satir.style.backgroundColor = '#fef3c7';
 
-            // 4. Veritabanından sıfırla
             await db.saveMatrixStatus('davranis_matrisi', oId, kId, '0');
 
-            // 5. Yarım saniye sonra satırın rengini normale döndür
             setTimeout(() => {
                 satir.style.borderColor = '#e2e8f0';
                 satir.style.backgroundColor = '#f8fafc';

@@ -1,14 +1,18 @@
 import { db } from '../../js/db.js';
 
 export async function render(container) {
-    container.innerHTML = '<div class="card"><p>⏳ Pano yükleniyor...</p></div>';
+    container.innerHTML = '<div class="card"><p>⚡ Pano hızla yükleniyor...</p></div>';
     
-    const kriterler = await db.getAll('davranis_kriterleri');
-    const tumKullanicilar = await db.getAll('users');
+    // Tüm verileri buluttan tek seferde (paralel) çekiyoruz
+    const [kriterler, tumKullanicilar, matris] = await Promise.all([
+        db.getAll('davranis_kriterleri'),
+        db.getAll('users'),
+        db.getAll('davranis_matrisi')
+    ]);
+    
     const ogrenciler = tumKullanicilar.filter(u => u.role === 'student');
-    const matris = await db.getAll('davranis_matrisi');
 
-    // Yıldızları hesapla
+    // 1. Her öğrencinin toplam yıldızını hesapla
     ogrenciler.forEach(ogr => {
         let total = 0;
         kriterler.forEach(k => {
@@ -20,8 +24,14 @@ export async function render(container) {
         ogr.score = total;
     });
 
-    // Yıldızlara göre büyükten küçüğe sırala
+    // 2. Yıldız sayısına göre öğrencileri büyükten küçüğe sırala
     ogrenciler.sort((a, b) => b.score - a.score);
+
+    // 3. Eşit puanlılara aynı madalyayı vermek için benzersiz (farklı) puanları bul
+    const benzersizPuanlar = [...new Set(ogrenciler.map(o => o.score))].filter(p => p > 0).sort((a, b) => b - a);
+    const birinciPuan = benzersizPuanlar[0] || -1;
+    const ikinciPuan = benzersizPuanlar[1] || -1;
+    const ucuncuPuan = benzersizPuanlar[2] || -1;
 
     let html = `
         <div class="card" style="border-top: 4px solid var(--success);">
@@ -32,19 +42,32 @@ export async function render(container) {
     if (ogrenciler.length === 0) {
         html += `<p style="text-align:center; color:#888;">Henüz öğrenci bulunmuyor.</p>`;
     } else {
-        ogrenciler.forEach((ogr, index) => {
+        ogrenciler.forEach((ogr) => {
             let madalya = '';
             let bgRenk = '#f8f9fa';
             let borderRenk = '#eee';
+            let gosterilecekSira = '';
 
-            if (index === 0 && ogr.score > 0) { madalya = '🥇'; bgRenk = '#fffbec'; borderRenk = '#ffc107'; }
-            else if (index === 1 && ogr.score > 0) { madalya = '🥈'; bgRenk = '#f8f9fa'; borderRenk = '#cbd5e1'; }
-            else if (index === 2 && ogr.score > 0) { madalya = '🥉'; bgRenk = '#fff7ed'; borderRenk = '#fb923c'; }
+            // 0'dan büyük bir puanı varsa sıralamaya sok
+            if (ogr.score > 0) {
+                if (ogr.score === birinciPuan) { 
+                    madalya = '🥇'; bgRenk = '#fffbec'; borderRenk = '#ffc107'; 
+                } else if (ogr.score === ikinciPuan) { 
+                    madalya = '🥈'; bgRenk = '#f8f9fa'; borderRenk = '#cbd5e1'; 
+                } else if (ogr.score === ucuncuPuan) { 
+                    madalya = '🥉'; bgRenk = '#fff7ed'; borderRenk = '#fb923c'; 
+                }
+                
+                // Madalyası yoksa, benzersiz puanlardaki kaçıncı sıradaysa o sayıyı yaz (Örn: 4, 5)
+                gosterilecekSira = madalya || (benzersizPuanlar.indexOf(ogr.score) + 1);
+            } else {
+                gosterilecekSira = '-'; // 0 puanlılara - koy
+            }
 
             html += `
             <div style="background: ${bgRenk}; padding: 15px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; border: 1px solid ${borderRenk}; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
                 <div style="display: flex; align-items: center; gap: 15px;">
-                    <span style="font-size: 1.8em; width: 40px; text-align: center; font-weight: bold; color: #555;">${madalya || (index + 1)}</span>
+                    <span style="font-size: 1.8em; width: 40px; text-align: center; font-weight: bold; color: #555;">${gosterilecekSira}</span>
                     <span style="font-size: 1.2em; font-weight: bold; color: var(--primary);">${ogr.name}</span>
                 </div>
                 <div style="text-align: right;">

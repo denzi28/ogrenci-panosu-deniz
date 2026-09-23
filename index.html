@@ -12,7 +12,7 @@
             <button id="mobile-menu-btn" class="hamburger-btn">☰</button>
             <h1>Sınıf Panosu</h1>
         </div>
-        <!-- Butona bir ID (auth-btn) verdik ki JavaScript ile kontrol edebilelim -->
+        <!-- Butona id="auth-btn" ekledik ki JavaScript ile kontrol edebilelim -->
         <a href="login.html" id="auth-btn" class="btn btn-primary">Sisteme Giriş Yap</a>
     </header>
 
@@ -33,36 +33,26 @@
         
         document.addEventListener('DOMContentLoaded', () => {
             const kayitliKullanici = localStorage.getItem('currentUser');
-            let baslangicRolu = 'guest'; // Varsayılan olarak herkesi misafir kabul et
+            const sonGiris = localStorage.getItem('sonGirisTarihi');
+            const HAFTA_MILISANIYE = 7 * 24 * 60 * 60 * 1000;
+            const simdi = Date.now();
 
-            if (kayitliKullanici) {
-                try {
-                    const user = JSON.parse(kayitliKullanici);
-                    baslangicRolu = user.role; // Hafızada kullanıcı varsa onun rolünü (teacher/student) al
-                    
-                    // Giriş yapılmışsa sağ üstteki butonu "Çıkış Yap" olarak değiştir
-                    const authBtn = document.getElementById('auth-btn');
-                    if (authBtn) {
-                        authBtn.innerText = 'Çıkış Yap';
-                        authBtn.href = '#';
-                        authBtn.style.backgroundColor = '#ef4444'; // Kırmızı renk yap
-                        authBtn.style.boxShadow = '0 4px 0 #b91c1c';
-                        
-                        // Çıkış yap butonuna tıklanınca hafızayı temizle ve sayfayı yenile
-                        authBtn.addEventListener('click', (e) => {
-                            e.preventDefault();
-                            localStorage.removeItem('currentUser');
-                            localStorage.removeItem('sonGirisTarihi');
-                            window.location.reload(); 
-                        });
-                    }
-                } catch(e) {
-                    console.error('Kullanıcı verisi okunamadı');
+            // Eğer kişi daha önce giriş yapmışsa ve 1 haftası dolmamışsa...
+            if (kayitliKullanici && sonGiris && (simdi - parseInt(sonGiris) <= HAFTA_MILISANIYE)) {
+                const user = JSON.parse(kayitliKullanici);
+                
+                // Sağ üstteki butonu değiştir ve kişiyi panosuna yönlendir
+                const authBtn = document.getElementById('auth-btn');
+                if (authBtn) {
+                    authBtn.innerText = 'Panoma Git ➔';
+                    authBtn.href = user.role === 'teacher' ? 'teacher.html' : 'student.html';
+                    authBtn.style.backgroundColor = '#10b981'; // Yeşil renk
+                    authBtn.style.boxShadow = '0 4px 0 #059669';
                 }
             }
 
-            // Kapıdaki güvenlik kontrolü bittikten sonra uygulamayı doğru rolle başlat
-            initApp(baslangicRolu);
+            // Sınıf panosu anasayfasının sol menüsünü çizmesi için başlat
+            initApp('guest');
         });
     </script>
 </body>

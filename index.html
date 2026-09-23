@@ -12,7 +12,8 @@
             <button id="mobile-menu-btn" class="hamburger-btn">☰</button>
             <h1>Sınıf Panosu</h1>
         </div>
-        <a href="login.html" class="btn btn-primary">Sisteme Giriş Yap</a>
+        <!-- Butona bir ID (auth-btn) verdik ki JavaScript ile kontrol edebilelim -->
+        <a href="login.html" id="auth-btn" class="btn btn-primary">Sisteme Giriş Yap</a>
     </header>
 
     <div class="layout">
@@ -29,7 +30,40 @@
 
     <script type="module">
         import { initApp } from './js/app.js';
-        initApp('guest');
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            const kayitliKullanici = localStorage.getItem('currentUser');
+            let baslangicRolu = 'guest'; // Varsayılan olarak herkesi misafir kabul et
+
+            if (kayitliKullanici) {
+                try {
+                    const user = JSON.parse(kayitliKullanici);
+                    baslangicRolu = user.role; // Hafızada kullanıcı varsa onun rolünü (teacher/student) al
+                    
+                    // Giriş yapılmışsa sağ üstteki butonu "Çıkış Yap" olarak değiştir
+                    const authBtn = document.getElementById('auth-btn');
+                    if (authBtn) {
+                        authBtn.innerText = 'Çıkış Yap';
+                        authBtn.href = '#';
+                        authBtn.style.backgroundColor = '#ef4444'; // Kırmızı renk yap
+                        authBtn.style.boxShadow = '0 4px 0 #b91c1c';
+                        
+                        // Çıkış yap butonuna tıklanınca hafızayı temizle ve sayfayı yenile
+                        authBtn.addEventListener('click', (e) => {
+                            e.preventDefault();
+                            localStorage.removeItem('currentUser');
+                            localStorage.removeItem('sonGirisTarihi');
+                            window.location.reload(); 
+                        });
+                    }
+                } catch(e) {
+                    console.error('Kullanıcı verisi okunamadı');
+                }
+            }
+
+            // Kapıdaki güvenlik kontrolü bittikten sonra uygulamayı doğru rolle başlat
+            initApp(baslangicRolu);
+        });
     </script>
 </body>
 </html>

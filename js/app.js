@@ -4,7 +4,29 @@ import { db } from './db.js';
 let currentRole = 'guest';
 
 export async function initApp(role) {
-    currentRole = role;
+    // --- 1 HAFTALIK "BENİ HATIRLA" KONTROLÜ ---
+    const HAFTA_MILISANIYE = 7 * 24 * 60 * 60 * 1000; // 7 günün milisaniye karşılığı
+    const simdi = Date.now();
+    let sonGiris = localStorage.getItem('sonGirisTarihi');
+
+    // Eğer sisteme giriş yapılmışsa (misafir değilse) süreyi ölç
+    if (role !== 'guest' && localStorage.getItem('currentUser')) {
+        if (sonGiris && (simdi - parseInt(sonGiris) > HAFTA_MILISANIYE)) {
+            // 1 haftadan fazla zaman geçmiş -> Bilgileri sil, oturumu kapat
+            localStorage.removeItem('currentUser');
+            localStorage.removeItem('sonGirisTarihi');
+            window.location.reload(); // Sayfayı yenileyerek giriş ekranına atar
+            return;
+        } else {
+            // 1 hafta dolmamış -> Siteye tekrar girdiği için süreyi bugünden itibaren 1 hafta daha uzat
+            localStorage.setItem('sonGirisTarihi', simdi.toString());
+            currentRole = role;
+        }
+    } else {
+        currentRole = role;
+    }
+    // ------------------------------------------
+
     await renderMenu();
     setupMobileMenu();
 
@@ -15,7 +37,7 @@ export async function initApp(role) {
         const firstMenuItem = document.querySelector('.menu-item');
         if (firstMenuItem) {
             const defaultModule = firstMenuItem.getAttribute('data-module');
-            window.location.hash = defaultModule;
+            window.location.hash = defaultModule; 
             loadModule(defaultModule);
         }
     }
@@ -34,7 +56,7 @@ async function renderMenu() {
 
     let html = '';
     
-    // HIZLANDIRMA 1: Menü çizilirken tüm modüllerin durumunu TEK SEFERDE (Paralel) soruyoruz.
+    // HIZLANDIRMA: Tüm menü görünürlükleri aynı anda çekiliyor
     let visibilityResults = [];
     if (currentRole === 'guest') {
         const visibilityPromises = appConfig.modules.map(mod => db.getModuleVisibility(mod.id));
@@ -43,7 +65,7 @@ async function renderMenu() {
 
     appConfig.modules.forEach((mod, index) => {
         if (currentRole === 'guest' && !visibilityResults[index]) {
-            return; // Modül gizliyse atla
+            return; 
         }
         
         html += `<a href="#${mod.id}" class="menu-item" data-module="${mod.id}">
@@ -74,7 +96,7 @@ async function renderMenu() {
 
 async function loadModule(moduleId) {
     const container = document.getElementById('app-content');
-    container.innerHTML = '<div class="card"><p>⚡ Sayfa hızla yükleniyor...</p></div>';
+    container.innerHTML = '<div class="card"><p>⚡ Yükleniyor...</p></div>';
 
     document.querySelectorAll('.menu-item').forEach(btn => btn.style.backgroundColor = 'transparent');
     const activeItem = document.querySelector(`.menu-item[data-module="${moduleId}"]`);

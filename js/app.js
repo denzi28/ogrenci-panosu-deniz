@@ -3,28 +3,23 @@ import { db } from './db.js';
 
 let currentRole = 'guest';
 
-// initApp artık asenkron (async) çünkü menüyü çizerken Firebase'den veri bekleyecek
 export async function initApp(role) {
     currentRole = role;
     await renderMenu();
     setupMobileMenu();
 
-    // YENİ: Sayfa ilk açıldığında veya dışarıdan linkle gelindiğinde URL'deki # kısmını yakala
     const hash = window.location.hash.substring(1);
     if (hash) {
-        // Hash varsa ve bu modül yüklenmek isteniyorsa onu aç
         loadModule(hash);
     } else {
-        // Hash yoksa (siteye düz girildiyse) menüdeki ilk elemanı aç ve URL'yi ona göre ayarla
         const firstMenuItem = document.querySelector('.menu-item');
         if (firstMenuItem) {
             const defaultModule = firstMenuItem.getAttribute('data-module');
-            window.location.hash = defaultModule; // URL'ye ekle
+            window.location.hash = defaultModule;
             loadModule(defaultModule);
         }
     }
 
-    // YENİ: Tarayıcıda geri/ileri tuşlarına basıldığında veya menüye tıklandığında URL değişimini dinle
     window.addEventListener('hashchange', () => {
         const targetModule = window.location.hash.substring(1);
         if (targetModule) {
@@ -39,18 +34,22 @@ async function renderMenu() {
 
     let html = '';
     
-    // forEach yerine for...of kullanıyoruz ki await (bekleme) işlemi doğru çalışsın
-    for (const mod of appConfig.modules) {
-        if (currentRole === 'guest') {
-            const isVisible = await db.getModuleVisibility(mod.id);
-            if (!isVisible) continue; // Modül gizliyse atla
+    // HIZLANDIRMA 1: Menü çizilirken tüm modüllerin durumunu TEK SEFERDE (Paralel) soruyoruz.
+    let visibilityResults = [];
+    if (currentRole === 'guest') {
+        const visibilityPromises = appConfig.modules.map(mod => db.getModuleVisibility(mod.id));
+        visibilityResults = await Promise.all(visibilityPromises);
+    }
+
+    appConfig.modules.forEach((mod, index) => {
+        if (currentRole === 'guest' && !visibilityResults[index]) {
+            return; // Modül gizliyse atla
         }
         
-        // YENİ: href="#" kısmını href="#modul.id" olarak değiştirdik, tıklayınca URL otomatik değişecek
         html += `<a href="#${mod.id}" class="menu-item" data-module="${mod.id}">
                     <span class="icon">${mod.icon}</span> ${mod.name}
                  </a>`;
-    }
+    });
     
     container.innerHTML = html;
 
@@ -58,16 +57,13 @@ async function renderMenu() {
     menuItems.forEach(item => {
         item.addEventListener('click', (e) => {
             const modId = item.getAttribute('data-module');
-            // Zaten bulunduğumuz modüle tıklanıyorsa URL değişmeyeceği için sayfayı manuel tazele
             if (window.location.hash.substring(1) === modId) {
                 e.preventDefault();
                 loadModule(modId);
             }
-            // Farklı sayfaya tıklanıyorsa e.preventDefault() yapmıyoruz ki href="#modId" doğal olarak URL'yi değiştirsin
         });
     });
 
-    // Artık ilk tıklamayı initApp içinden yönettiğimiz için buradaki [0].click() kısmını kaldırdık
     if (menuItems.length === 0 && currentRole === 'guest') {
         document.getElementById('app-content').innerHTML = `
             <div class="card" style="text-align:center; padding: 40px;">
@@ -78,9 +74,8 @@ async function renderMenu() {
 
 async function loadModule(moduleId) {
     const container = document.getElementById('app-content');
-    container.innerHTML = '<div class="card"><p>⏳ Yükleniyor...</p></div>';
+    container.innerHTML = '<div class="card"><p>⚡ Sayfa hızla yükleniyor...</p></div>';
 
-    // YENİ: Hangi sayfada olduğumuzu belli etmek için menü butonunun rengini koyulaştır
     document.querySelectorAll('.menu-item').forEach(btn => btn.style.backgroundColor = 'transparent');
     const activeItem = document.querySelector(`.menu-item[data-module="${moduleId}"]`);
     if (activeItem) activeItem.style.backgroundColor = 'rgba(0, 0, 0, 0.05)';
@@ -97,7 +92,6 @@ async function loadModule(moduleId) {
     try {
         const module = await import(`../modules/${moduleId}/${currentRole}.js`);
         if (module.render) {
-            // Render fonksiyonu da artık internetten veri çekeceği için await ekliyoruz
             await module.render(container);
         } else {
             container.innerHTML = `<div class="card" style="border-left:4px solid orange;">

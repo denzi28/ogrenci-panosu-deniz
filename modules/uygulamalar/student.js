@@ -3,7 +3,7 @@ import { db } from '../../js/db.js';
 let aktifOynananGorevId = null; 
 
 export async function render(container) {
-    container.innerHTML = '<div class="card"><p>⏳ Görevler yükleniyor...</p></div>';
+    container.innerHTML = '<div class="card"><p>⚡ Görevler hızla yükleniyor...</p></div>';
 
     const isModuleVisible = await db.getModuleVisibility('uygulamalar');
     if (!isModuleVisible) {
@@ -17,8 +17,12 @@ export async function render(container) {
     }
 
     const currentUser = JSON.parse(localStorage.getItem('currentUser'));
-    const kalemler = await db.getAll('uygulama_kalemleri');
-    const matris = await db.getAll('uygulama_matrisi');
+    
+    // HIZLANDIRMA: Sadece kullanıcının ihtiyaç duyduğu listeler paralel çekilir
+    const [kalemler, matris] = await Promise.all([
+        db.getAll('uygulama_kalemleri'),
+        db.getAll('uygulama_matrisi')
+    ]);
 
     const bugunObj = new Date();
     const yyyy = bugunObj.getFullYear();
@@ -87,7 +91,6 @@ export async function render(container) {
         btn.addEventListener('click', (e) => {
             const link = e.target.getAttribute('data-link');
             aktifOynananGorevId = e.target.getAttribute('data-id');
-            
             document.getElementById('oyun-iframe').src = link;
             document.getElementById('oyun-modal').style.display = 'flex';
         });
@@ -102,29 +105,30 @@ export async function render(container) {
 
     if (!window.oyunDinleyiciEklendi) {
         window.addEventListener('message', async (event) => {
-            if (event.data && event.data.islem === 'gorev_bitti') {
+            if (event.data && (event.data.islem === 'gorev_bitti' || event.data.islem === 'puan_guncelle')) {
                 if (aktifOynananGorevId) {
                     const aktifUser = JSON.parse(localStorage.getItem('currentUser'));
                     
-                    // LİMİT KONTROLÜ YAPAN YENİ KISIM
                     let formatliPuan;
                     if (event.data.limit && event.data.limit !== 'undefined') {
-                        formatliPuan = `${event.data.puan}/${event.data.limit}`; // Limiti olanlar için
+                        formatliPuan = `${event.data.puan}/${event.data.limit}`;
                     } else {
-                        formatliPuan = `${event.data.puan}`; // Limiti olmayan sınırsız oyunlar için
+                        formatliPuan = `${event.data.puan}`;
                     }
                     
                     await db.saveMatrixStatus('uygulama_matrisi', aktifUser.id, aktifOynananGorevId, formatliPuan);
                     
-                    setTimeout(() => {
-                        const modal = document.getElementById('oyun-modal');
-                        if (modal && modal.style.display === 'flex') {
-                            document.getElementById('oyun-iframe').src = '';
-                            modal.style.display = 'none';
-                            aktifOynananGorevId = null;
-                            render(document.getElementById('content') || container);
-                        }
-                    }, 2000);
+                    if (event.data.islem === 'gorev_bitti') {
+                        setTimeout(() => {
+                            const modal = document.getElementById('oyun-modal');
+                            if (modal && modal.style.display === 'flex') {
+                                document.getElementById('oyun-iframe').src = '';
+                                modal.style.display = 'none';
+                                aktifOynananGorevId = null;
+                                render(document.getElementById('content') || container);
+                            }
+                        }, 2000);
+                    }
                 }
             }
         });

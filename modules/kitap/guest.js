@@ -1,7 +1,7 @@
 import { db } from '../../js/db.js';
 
-export async function render(container) {   
-    container.innerHTML = '<div class="card"><p>⏳ Kitap okuma tablosu yükleniyor...</p></div>';
+export async function render(container) {
+    container.innerHTML = '<div class="card"><p>⚡ Kitap okuma tablosu hızla yükleniyor...</p></div>';
 
     const isModuleVisible = await db.getModuleVisibility('kitap');
     
@@ -15,10 +15,14 @@ export async function render(container) {
         return;
     }
 
-    const kalemler = await db.getAll('kitaplar_kalemleri');
-    const tumKullanicilar = await db.getAll('users');
+    // HIZLANDIRMA: Veriler paralel çekilir
+    const [kalemler, tumKullanicilar, matris] = await Promise.all([
+        db.getAll('kitaplar_kalemleri'),
+        db.getAll('users'),
+        db.getAll('kitap_matrisi')
+    ]);
+
     const ogrenciler = tumKullanicilar.filter(u => u.role === 'student');
-    const matris = await db.getAll('kitap_matrisi');
 
     if (kalemler.length === 0) {
         container.innerHTML = '<div class="card"><p style="color:#888;">Henüz listeye kitap eklenmemiş.</p></div>';
@@ -70,10 +74,10 @@ export async function render(container) {
         });
 
         tabloHtml += `<tr>
-            <td style="border: 1px solid #ddd; padding: 8px; text-align: center; color: #666;">${index + 1}</td>
-            <td style="border: 1px solid #ddd; padding: 8px; font-weight: bold; color: #333;">${ogr.name}</td>
+            <td style="border: 1px solid #ddd; padding: 10px; text-align: center; color: #666;">${index + 1}</td>
+            <td style="border: 1px solid #ddd; padding: 10px; font-weight: bold; color: #333;">${ogr.name}</td>
             ${cellsHtml}
-            <td style="border: 1px solid #ddd; padding: 8px; text-align: center; font-weight: bold; color: var(--primary); font-size: 1.1em; background: #f8f9fa;">${okunanSayisi}</td>
+            <td style="border: 1px solid #ddd; padding: 10px; text-align: center; font-weight: bold; color: var(--primary); font-size: 1.1em; background: #f8f9fa;">${okunanSayisi}</td>
         </tr>`;
     });
 

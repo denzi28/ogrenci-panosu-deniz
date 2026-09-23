@@ -3,7 +3,7 @@ import { db } from '../../js/db.js';
 let seciliGorevId = null; 
 
 export async function render(container) {
-    container.innerHTML = '<div class="card"><p>⏳ Görevler yükleniyor...</p></div>';
+    container.innerHTML = '<div class="card"><p>⚡ Görevler hızla yükleniyor...</p></div>';
 
     const isModuleVisible = await db.getModuleVisibility('uygulamalar');
     const btnClass = isModuleVisible ? 'btn-success' : 'btn-secondary';
@@ -63,7 +63,6 @@ export async function render(container) {
         </div>
     `;
 
-    // ÖĞRETMEN İÇİN OYUN TEST PENCERESİ (MODAL)
     container.innerHTML += `
         <div id="oyun-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 9999; flex-direction: column;">
             <div style="padding: 10px 20px; background: #fff; display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid var(--primary);">
@@ -111,13 +110,11 @@ export async function render(container) {
 
     document.getElementById('btn-gorev-iptal').addEventListener('click', formuTemizle);
 
-    // Modal Kapatma İşlemi
     document.getElementById('btn-oyun-kapat').addEventListener('click', () => {
         document.getElementById('oyun-iframe').src = '';
         document.getElementById('oyun-modal').style.display = 'none';
     });
 
-    // Öğretmen Test Modunda Gelen Mesajları Yakala (Pencereyi kapatmak için)
     if (!window.ogretmenOyunDinleyiciEklendi) {
         window.addEventListener('message', (event) => {
             if (event.data && event.data.islem === 'gorev_bitti') {
@@ -133,16 +130,20 @@ export async function render(container) {
         window.ogretmenOyunDinleyiciEklendi = true;
     }
 
-    // YAZDIRMA İŞLEMİ
+    // YAZDIRMA İŞLEMİ (Buraya da hızlandırma eklendi)
     document.getElementById('btn-yazdir').addEventListener('click', async () => {
         if (!seciliGorevId) return;
         
-        const kalemler = await db.getAll('uygulama_kalemleri');
+        // HIZLANDIRMA 1: Yazdırırken verileri aynı anda çekiyoruz
+        const [kalemler, tumKullanicilar, matris] = await Promise.all([
+            db.getAll('uygulama_kalemleri'),
+            db.getAll('users'),
+            db.getAll('uygulama_matrisi')
+        ]);
+        
         const aktifGorev = kalemler.find(k => k.id === seciliGorevId);
-        const tumKullanicilar = await db.getAll('users');
         const ogrenciler = tumKullanicilar.filter(u => u.role === 'student');
         const tabloOgrenciler = [...ogrenciler].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-        const matris = await db.getAll('uygulama_matrisi');
 
         let printContent = `
             <!DOCTYPE html>
@@ -218,13 +219,10 @@ function formuTemizle() {
     document.getElementById('gorev-aciklama').value = '';
     document.getElementById('gorev-baslangic').value = '';
     document.getElementById('gorev-bitis').value = '';
-    
     document.getElementById('form-baslik').innerText = "Yeni Etkileşimli Görev/Oyun Ekle";
-    
     const btnKaydet = document.getElementById('btn-gorev-kaydet');
     btnKaydet.disabled = false;
     btnKaydet.innerText = "Görev Ekle";
-    
     document.getElementById('btn-gorev-iptal').style.display = 'none';
 }
 
@@ -234,10 +232,14 @@ function tarihFormatla(tarihStr) {
 }
 
 async function arayuzuGuncelle() {
-    const kalemler = await db.getAll('uygulama_kalemleri');
-    const tumKullanicilar = await db.getAll('users');
+    // HIZLANDIRMA 2: Arayüz yüklenirken tüm tabloları tek seferde (Paralel) istiyoruz
+    const [kalemler, tumKullanicilar, matris] = await Promise.all([
+        db.getAll('uygulama_kalemleri'),
+        db.getAll('users'),
+        db.getAll('uygulama_matrisi')
+    ]);
+
     const ogrenciler = tumKullanicilar.filter(u => u.role === 'student');
-    const matris = await db.getAll('uygulama_matrisi'); 
 
     const bugunObj = new Date();
     const yyyy = bugunObj.getFullYear();
@@ -300,7 +302,6 @@ async function arayuzuGuncelle() {
     }
     document.getElementById('gorev-listesi').innerHTML = listHtml;
 
-    // Oyunu Test Etme Tıklama Olayı
     document.querySelectorAll('.btn-oyun-dene').forEach(btn => {
         btn.addEventListener('click', (e) => {
             const link = e.currentTarget.getAttribute('data-link');

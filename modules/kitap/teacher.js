@@ -1,7 +1,7 @@
 import { db } from '../../js/db.js';
 
 export async function render(container) {
-    container.innerHTML = '<div class="card"><p>⏳ Kitap okuma tablosu buluttan getiriliyor...</p></div>';
+    container.innerHTML = '<div class="card"><p>⚡ Kitap okuma tablosu hızla getiriliyor...</p></div>';
 
     const isModuleVisible = await db.getModuleVisibility('kitap');
     const btnClass = isModuleVisible ? 'btn-success' : 'btn-secondary';
@@ -59,19 +59,20 @@ export async function render(container) {
         }
     });
 
-    // YAZDIRMA İŞLEMİ
     document.getElementById('btn-kitap-yazdir').addEventListener('click', async () => {
-        const kalemler = await db.getAll('kitaplar_kalemleri');
+        // HIZLANDIRMA: Yazdırırken veriler aynı anda (paralel) çekilir
+        const [kalemler, tumKullanicilar, matris] = await Promise.all([
+            db.getAll('kitaplar_kalemleri'),
+            db.getAll('users'),
+            db.getAll('kitap_matrisi')
+        ]);
         
         if (kalemler.length === 0) {
             alert("Yazdırılacak herhangi bir kitap sütunu bulunmuyor.");
             return;
         }
 
-        const tumKullanicilar = await db.getAll('users');
         const ogrenciler = tumKullanicilar.filter(u => u.role === 'student');
-        const matris = await db.getAll('kitap_matrisi');
-
         ogrenciler.sort((a, b) => {
             const noA = parseInt(a.okulno) || 999999;
             const noB = parseInt(b.okulno) || 999999;
@@ -95,13 +96,7 @@ export async function render(container) {
                     th { background-color: #f1f5f9; font-weight: bold; }
                     td.merkez { text-align: center; }
                     .dolu { background-color: #d1fae5 !important; font-weight: bold; -webkit-print-color-adjust: exact; color-adjust: exact; color: #059669; }
-                    /* Dikey Başlık Stili */
-                    .dikey-baslik {
-                        writing-mode: vertical-rl;
-                        transform: rotate(180deg);
-                        white-space: nowrap;
-                        margin: 0 auto;
-                    }
+                    .dikey-baslik { writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap; margin: 0 auto; }
                 </style>
             </head>
             <body>
@@ -148,10 +143,7 @@ export async function render(container) {
                     </tbody>
                 </table>
                 <script>
-                    window.onload = function() { 
-                        window.print(); 
-                        setTimeout(() => window.close(), 500); 
-                    };
+                    window.onload = function() { window.print(); setTimeout(() => window.close(), 500); };
                 </script>
             </body>
             </html>
@@ -166,11 +158,14 @@ export async function render(container) {
 }
 
 async function arayuzuGuncelle() {
-    const kalemler = await db.getAll('kitaplar_kalemleri');
-    const tumKullanicilar = await db.getAll('users');
-    const ogrenciler = tumKullanicilar.filter(u => u.role === 'student');
-    const matris = await db.getAll('kitap_matrisi');
+    // HIZLANDIRMA: Tüm tablolar buluttan aynı anda çekilir
+    const [kalemler, tumKullanicilar, matris] = await Promise.all([
+        db.getAll('kitaplar_kalemleri'),
+        db.getAll('users'),
+        db.getAll('kitap_matrisi')
+    ]);
 
+    const ogrenciler = tumKullanicilar.filter(u => u.role === 'student');
     ogrenciler.sort((a, b) => {
         const noA = parseInt(a.okulno) || 999999;
         const noB = parseInt(b.okulno) || 999999;
@@ -190,14 +185,11 @@ async function arayuzuGuncelle() {
     });
     document.getElementById('kitap-basliklari').innerHTML = basliklarHtml;
 
-    // Kitap adını düzenleme işlemi
     document.querySelectorAll('.btn-kalem-duzenle').forEach(btn => {
         btn.addEventListener('click', async (e) => {
             const id = e.currentTarget.getAttribute('data-id');
             const eskiAd = e.currentTarget.getAttribute('data-ad');
-            
             const yeniAd = prompt("Kitabın adını düzeltin:", eskiAd);
-            
             if (yeniAd !== null && yeniAd.trim() !== "" && yeniAd.trim() !== eskiAd) {
                 e.currentTarget.innerText = "⏳";
                 await db.update('kitaplar_kalemleri', id, { ad: yeniAd.trim() });
@@ -248,7 +240,6 @@ async function arayuzuGuncelle() {
         kalemler.forEach(k => {
             let hucreDegeri = matris.find(m => m.ogrId === ogr.id && m.targetId === k.id)?.deger || '';
             let doluMu = hucreDegeri === '✔️';
-            
             if (doluMu) okunanSayisi++;
             
             cellsHtml += `

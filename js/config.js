@@ -8,8 +8,9 @@ export const appConfig = {
         { id: 'etkinlikler', name: 'Etkinlikler', icon: '📅' },
         { id: 'davranis', name: 'Davranış Panosu', icon: '⭐' },
         { id: 'uygulamalar', name: 'İnteraktif Görevler', icon: '🎮' },
-        {id: 'program',name: 'Ders Programı',icon: '📅'},
-        {id: 'kitap',name: 'Kitap Okuma',icon: '📚'},
-        { id: 'yedekleme', name: 'Sistem Yedekleme', icon: '💾' } // YENİ EKLENEN
+        { id: 'program', name: 'Ders Programı', icon: '📅' },
+        { id: 'kitap', name: 'Kitap Okuma', icon: '📚' },
+        { id: 'beslenme', name: 'Beslenme Programı', icon: '🍎' }, // YENİ EKLENEN MODÜL
+        { id: 'yedekleme', name: 'Sistem Yedekleme', icon: '💾' }
     ]
 };

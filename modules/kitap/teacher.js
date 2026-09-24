@@ -97,6 +97,8 @@ export async function render(container) {
                     td.merkez { text-align: center; }
                     .dolu { background-color: #d1fae5 !important; font-weight: bold; -webkit-print-color-adjust: exact; color-adjust: exact; color: #059669; }
                     .dikey-baslik { writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap; margin: 0 auto; }
+                    /* Yazıcıda da zebra deseninin çıkması için */
+                    tr:nth-child(even) { background-color: #f8fafc !important; -webkit-print-color-adjust: exact; color-adjust: exact; }
                 </style>
             </head>
             <body>
@@ -254,7 +256,10 @@ async function arayuzuGuncelle() {
             `;
         });
 
-        tabloHtml += `<tr>
+        // ZEBRA DESENİ İÇİN SATIR RENGİ: Çift sayılar beyaz, tek sayılar çok hafif gri-mavi
+        let satirArkaPlan = index % 2 === 0 ? '#ffffff' : '#f1f5f9';
+
+        tabloHtml += `<tr style="background-color: ${satirArkaPlan}; transition: background-color 0.2s;">
             <td style="border: 1px solid #ddd; padding: 8px; text-align: center; color: #666;">${index + 1}</td>
             <td style="border: 1px solid #ddd; padding: 8px; text-align: center; font-weight: bold;">${ogr.okulno || '-'}</td>
             <td style="border: 1px solid #ddd; padding: 8px; font-weight: bold; color: #333;">${ogr.name}</td>

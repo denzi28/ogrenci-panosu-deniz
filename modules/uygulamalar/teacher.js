@@ -130,11 +130,9 @@ export async function render(container) {
         window.ogretmenOyunDinleyiciEklendi = true;
     }
 
-    // YAZDIRMA İŞLEMİ (Buraya da hızlandırma eklendi)
     document.getElementById('btn-yazdir').addEventListener('click', async () => {
         if (!seciliGorevId) return;
         
-        // HIZLANDIRMA 1: Yazdırırken verileri aynı anda çekiyoruz
         const [kalemler, tumKullanicilar, matris] = await Promise.all([
             db.getAll('uygulama_kalemleri'),
             db.getAll('users'),
@@ -161,6 +159,8 @@ export async function render(container) {
                     td.merkez { text-align: center; }
                     .yesil { background-color: #d1fae5 !important; font-weight: bold; -webkit-print-color-adjust: exact; color-adjust: exact; }
                     .gri { color: #64748b; font-style: italic; }
+                    /* Yazıcıda da zebra deseninin çıkması için */
+                    tr:nth-child(even) { background-color: #f8fafc !important; -webkit-print-color-adjust: exact; color-adjust: exact; }
                 </style>
             </head>
             <body>
@@ -232,7 +232,6 @@ function tarihFormatla(tarihStr) {
 }
 
 async function arayuzuGuncelle() {
-    // HIZLANDIRMA 2: Arayüz yüklenirken tüm tabloları tek seferde (Paralel) istiyoruz
     const [kalemler, tumKullanicilar, matris] = await Promise.all([
         db.getAll('uygulama_kalemleri'),
         db.getAll('users'),
@@ -412,15 +411,18 @@ async function arayuzuGuncelle() {
             }
         }
         
-        tabloHtml += `<tr>
+        // ZEBRA DESENİ İÇİN SATIR RENGİ: Çift sayılar beyaz, tek sayılar çok hafif gri-mavi
+        let satirArkaPlan = index % 2 === 0 ? '#ffffff' : '#f1f5f9';
+        
+        tabloHtml += `<tr style="background-color: ${satirArkaPlan}; transition: background-color 0.2s;">
             <td style="border: 1px solid #ddd; padding: 8px; text-align: center; color: #555;">${index + 1}</td>
             <td style="border: 1px solid #ddd; padding: 8px; font-weight: bold; color: #333;">${ogr.name}</td>
             <td style="border: 1px solid #ddd; padding: 0;">
                 <div style="display: flex; align-items: center; width: 100%; height: 100%; background: ${bgStil}; border-radius: 4px; transition: 0.2s;">
                     <input type="text" class="hucre-input" data-ogr="${ogr.id}" data-gorev="${aktifGorev.id}" value="${hucreDegeri}" placeholder="✏️ Puan Gir..."
                         title="Manuel puan girmek için tıklayın ve yazın"
-                        onfocus="this.style.backgroundColor='#f8fafc'; this.style.border='1px dashed #94a3b8';"
-                        onblur="this.style.backgroundColor='transparent'; this.style.border='none';"
+                        onfocus="this.parentElement.parentElement.parentElement.style.backgroundColor='#fff3cd'; this.style.border='1px dashed #94a3b8';"
+                        onblur="this.parentElement.parentElement.parentElement.style.backgroundColor='${satirArkaPlan}'; this.style.border='none';"
                         style="flex: 1; padding: 12px; border: none; text-align: center; box-sizing: border-box; outline: none; background: transparent; font-weight: bold; color: ${islemGorduMu ? 'var(--success)' : '#888'}; cursor: text; transition: 0.2s;">
                     
                     ${islemGorduMu ? `<button class="btn btn-danger btn-temizle" data-ogr="${ogr.id}" data-gorev="${aktifGorev.id}" style="margin-right: 8px; padding: 4px 8px; font-size: 0.75em;" title="Sıfırla">Temizle</button>` : ''}
@@ -438,7 +440,6 @@ async function arayuzuGuncelle() {
             const gorevId = e.target.getAttribute('data-gorev');
             const deger = e.target.value.trim();
             
-            e.target.parentElement.style.backgroundColor = '#fff3cd'; 
             await db.saveMatrixStatus('uygulama_matrisi', ogrId, gorevId, deger);
             
             setTimeout(() => { arayuzuGuncelle(); }, 300);

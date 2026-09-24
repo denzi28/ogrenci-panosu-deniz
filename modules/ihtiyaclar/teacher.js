@@ -61,16 +61,19 @@ export async function render(container) {
 
     // YAZDIRMA İŞLEMİ
     document.getElementById('btn-ihtiyac-yazdir').addEventListener('click', async () => {
-        const kalemler = await db.getAll('ihtiyac_kalemleri');
+        // HIZLANDIRMA: Çıktı alırken verileri aynı anda çekiyoruz
+        const [kalemler, tumKullanicilar, matris] = await Promise.all([
+            db.getAll('ihtiyac_kalemleri'),
+            db.getAll('users'),
+            db.getAll('ihtiyac_matrisi')
+        ]);
         
         if (kalemler.length === 0) {
             alert("Yazdırılacak herhangi bir ihtiyaç sütunu bulunmuyor.");
             return;
         }
 
-        const tumKullanicilar = await db.getAll('users');
         const ogrenciler = tumKullanicilar.filter(u => u.role === 'student');
-        const matris = await db.getAll('ihtiyac_matrisi');
 
         // Okul numarasına göre sıralama
         ogrenciler.sort((a, b) => {
@@ -96,6 +99,8 @@ export async function render(container) {
                     td.merkez { text-align: center; }
                     .dolu { background-color: #d1fae5 !important; font-weight: bold; -webkit-print-color-adjust: exact; color-adjust: exact; }
                     .devamsiz { color: #dc2626 !important; font-style: italic; -webkit-print-color-adjust: exact; color-adjust: exact; }
+                    /* Yazıcıda da zebra deseninin çıkması için */
+                    tr:nth-child(even) { background-color: #f8fafc !important; -webkit-print-color-adjust: exact; color-adjust: exact; }
                 </style>
             </head>
             <body>
@@ -160,12 +165,16 @@ export async function render(container) {
 }
 
 async function arayuzuGuncelle() {
-    const kalemler = await db.getAll('ihtiyac_kalemleri');
-    const tumKullanicilar = await db.getAll('users');
+    // HIZLANDIRMA: Tüm tabloları aynı anda çekiyoruz
+    const [kalemler, tumKullanicilar, matris] = await Promise.all([
+        db.getAll('ihtiyac_kalemleri'),
+        db.getAll('users'),
+        db.getAll('ihtiyac_matrisi')
+    ]);
+    
     const ogrenciler = tumKullanicilar.filter(u => u.role === 'student');
-    const matris = await db.getAll('ihtiyac_matrisi');
 
-    // --- YENİ: OKUL NUMARASINA GÖRE SIRALAMA ---
+    // --- OKUL NUMARASINA GÖRE SIRALAMA ---
     ogrenciler.sort((a, b) => {
         const noA = parseInt(a.okulno) || 999999;
         const noB = parseInt(b.okulno) || 999999;
@@ -214,7 +223,10 @@ async function arayuzuGuncelle() {
     `;
 
     ogrenciler.forEach((ogr, index) => {
-        tabloHtml += `<tr>
+        // ZEBRA DESENİ İÇİN SATIR RENGİ: Çift sayılar beyaz, tek sayılar çok hafif gri-mavi
+        let satirArkaPlan = index % 2 === 0 ? '#ffffff' : '#f1f5f9';
+
+        tabloHtml += `<tr style="background-color: ${satirArkaPlan}; transition: background-color 0.2s;">
             <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${index + 1}</td>
             <td style="border: 1px solid #ddd; padding: 8px; text-align: center; font-weight: bold;">${ogr.okulno || '-'}</td>
             <td style="border: 1px solid #ddd; padding: 8px; font-weight: bold;">${ogr.name}</td>
@@ -227,7 +239,9 @@ async function arayuzuGuncelle() {
             tabloHtml += `
                 <td style="border: 1px solid #ddd; padding: 0;">
                     <input type="text" class="hucre-input" data-ogr="${ogr.id}" data-kalem="${k.id}" value="${hucreDegeri}" 
-                           style="width: 100%; height: 100%; padding: 8px; border: none; text-align: center; color: ${textColor}; font-weight: ${hucreDegeri ? 'bold' : 'normal'}; box-sizing: border-box; outline: none; background: transparent;">
+                           onfocus="this.parentElement.parentElement.style.backgroundColor='#fff3cd';"
+                           onblur="this.parentElement.parentElement.style.backgroundColor='${satirArkaPlan}';"
+                           style="width: 100%; height: 100%; padding: 10px; border: none; text-align: center; color: ${textColor}; font-weight: ${hucreDegeri ? 'bold' : 'normal'}; box-sizing: border-box; outline: none; background: transparent;">
                 </td>
             `;
         });
@@ -248,9 +262,8 @@ async function arayuzuGuncelle() {
             const kalemId = e.target.getAttribute('data-kalem');
             const deger = e.target.value.trim();
             
-            e.target.style.backgroundColor = '#fff3cd'; 
+            e.target.style.backgroundColor = '#d1fae5'; // Başarılı kayıt yeşili
             await db.saveMatrixStatus('ihtiyac_matrisi', ogrId, kalemId, deger);
-            e.target.style.backgroundColor = '#e6ffed'; 
             setTimeout(() => { e.target.style.backgroundColor = 'transparent'; }, 800);
         });
     });

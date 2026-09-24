@@ -21,7 +21,7 @@ export async function render(container) {
             </div>
         </div>
 
-        <!-- YENİ: EXCEL'DEN TOPLU EKLEME ALANI -->
+        <!-- EXCEL'DEN TOPLU EKLEME ALANI -->
         <div class="card" style="border-top: 4px solid var(--success); margin-bottom: 20px;">
             <h3 style="color: var(--success); margin-bottom: 10px;">📥 Excel'den Toplu Öğrenci Ekle</h3>
             <p style="font-size: 0.85em; color: #555; margin-bottom: 10px;">
@@ -63,7 +63,7 @@ export async function render(container) {
         else { btn.className = "btn btn-secondary"; btn.innerText = "Menüde Gizli (Göster)"; }
     });
 
-    // --- YENİ: TOPLU KAYDETME İŞLEMİ ---
+    // TOPLU KAYDETME İŞLEMİ
     document.getElementById('btn-bulk-kaydet').addEventListener('click', async () => {
         const text = document.getElementById('bulk-input').value.trim();
         if(!text) return alert("Lütfen kaydetmeden önce Excel'den verileri kopyalayıp kutuya yapıştırın.");
@@ -78,9 +78,8 @@ export async function render(container) {
         let hataliAdet = 0;
 
         for(const satir of satirlar) {
-            if(!satir.trim()) continue; // Boş satırları atla
+            if(!satir.trim()) continue; 
             
-            // Excel'den kopyalanan veriler sekmeyle (\t) ayrılır.
             const sutunlar = satir.split('\t').map(s => s.trim());
             
             const ad = sutunlar[0] || '';
@@ -89,19 +88,16 @@ export async function render(container) {
             const kullanici = sutunlar[3] || '';
             const sifre = sutunlar[4] || '';
 
-            // Ad, kullanıcı adı ve şifre zorunlu alanlar
             if(!ad || !kullanici || !sifre) {
                 hataliAdet++;
                 continue;
             }
 
-            // Aynı kullanıcı adı sistemde var mı?
             if(mevcutKullanicilar.find(u => u.username === kullanici)) {
                 hataliAdet++;
                 continue;
             }
 
-            // Firebase'e ekle
             await db.add('users', {
                 name: ad,
                 tcno: tcno,
@@ -112,7 +108,6 @@ export async function render(container) {
                 role: 'student'
             });
 
-            // Aynı kopyalama içinde aynı kullanıcı adından 2 tane varsa diye önlem
             mevcutKullanicilar.push({ username: kullanici });
             basariliAdet++;
         }
@@ -125,7 +120,7 @@ export async function render(container) {
         await listeyiGuncelle();
     });
 
-    // Tekil Kaydetme İşlemi (Mevcut)
+    // Tekil Kaydetme İşlemi
     document.getElementById('btn-kaydet').addEventListener('click', async () => {
         const id = document.getElementById('ogr-id').value;
         const ad = document.getElementById('ogr-ad').value;
@@ -173,18 +168,18 @@ function formuTemizle() {
     document.getElementById('btn-kaydet').disabled = false;
     document.getElementById('btn-iptal').style.display = 'none';
 }
+
 async function listeyiGuncelle() {
     const tumKullanicilar = await db.getAll('users');
     const ogrenciler = tumKullanicilar.filter(u => u.role === 'student');
     
-    // --- YENİ: OKUL NUMARASINA GÖRE SIRALAMA ---
+    // OKUL NUMARASINA GÖRE SIRALAMA
     ogrenciler.sort((a, b) => {
-        const noA = parseInt(a.okulno) || 999999; // Numarası yoksa en sona at
+        const noA = parseInt(a.okulno) || 999999;
         const noB = parseInt(b.okulno) || 999999;
-        if (noA === noB) return (a.name || '').localeCompare(b.name || ''); // Numaralar aynıysa isme göre sırala
+        if (noA === noB) return (a.name || '').localeCompare(b.name || '');
         return noA - noB;
     });
-    // -------------------------------------------
 
     let html = `<h3>Sınıf Listesi (${ogrenciler.length} Öğrenci)</h3>`;
     
@@ -203,7 +198,10 @@ async function listeyiGuncelle() {
             </tr></thead><tbody>`;
 
         ogrenciler.forEach((ogr, index) => {
-            html += `<tr>
+            // ZEBRA DESENİ İÇİN SATIR RENGİ: Çift sayılar beyaz, tek sayılar çok hafif gri-mavi
+            let satirArkaPlan = index % 2 === 0 ? '#ffffff' : '#f1f5f9';
+
+            html += `<tr style="background-color: ${satirArkaPlan}; transition: background-color 0.2s;">
                 <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${index + 1}</td>
                 <td style="border: 1px solid #ddd; padding: 8px; text-align: center; font-weight: bold;">${ogr.okulno || '-'}</td>
                 <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${ogr.tcno || '-'}</td>

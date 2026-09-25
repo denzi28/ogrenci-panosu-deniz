@@ -34,7 +34,17 @@ export async function render(container) {
                     <button id="btn-toplu-kitap-ekle" class="btn btn-success" style="margin-top: 8px;">Listeyi Toplu Ekle</button>
                 </div>
 
-                <div id="kitap-basliklari" style="margin-top: 25px; display: flex; flex-wrap: wrap; gap: 10px;"></div>
+                <!-- YENİ: GİZLENEBİLİR KİTAP YÖNETİM ALANI -->
+                <div style="margin-top: 20px;">
+                    <button id="btn-kitap-yonetimi-ac" style="width: 100%; background: #f8fafc; border: 2px solid #e2e8f0; padding: 12px 15px; border-radius: 8px; font-weight: bold; color: #334155; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: all 0.2s;">
+                        <span style="font-size: 1.1em;">📚 Sınıf Kitaplığını Yönet / Düzenle (<span id="kitap-sayaci">0</span> Kitap)</span>
+                        <span id="kitap-yonetim-ikon" style="font-size: 1.2em;">▼</span>
+                    </button>
+                    
+                    <div id="kitap-yonetim-alani" style="display: none; margin-top: 10px; max-height: 250px; overflow-y: auto; padding: 15px; border: 2px solid #e2e8f0; border-radius: 8px; background: #ffffff; box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);">
+                        <div id="kitap-basliklari" style="display: flex; flex-wrap: wrap; gap: 8px;"></div>
+                    </div>
+                </div>
             </div>
 
             <div class="card" style="border-top: 4px solid var(--success);">
@@ -51,7 +61,7 @@ export async function render(container) {
             </div>
         </div>
 
-        <!-- YENİ: ÖĞRENCİ DETAY GÖRÜNÜMÜ (Alt Alta Kitap Listesi) -->
+        <!-- ÖĞRENCİ DETAY GÖRÜNÜMÜ (Alt Alta Kitap Listesi) -->
         <div id="detay-gorunum" style="display: none;">
             <div class="card" style="border-top: 4px solid var(--primary); min-height: 50vh;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
@@ -75,6 +85,19 @@ export async function render(container) {
         const btn = e.target;
         if(newStatus) { btn.className = "btn btn-success"; btn.innerText = "Menüde Görünüyor (Gizle)"; } 
         else { btn.className = "btn btn-secondary"; btn.innerText = "Menüde Gizli (Göster)"; }
+    });
+
+    // KİTAP YÖNETİM ALANINI AÇ/KAPA İŞLEMİ
+    document.getElementById('btn-kitap-yonetimi-ac').addEventListener('click', () => {
+        const alan = document.getElementById('kitap-yonetim-alani');
+        const ikon = document.getElementById('kitap-yonetim-ikon');
+        if(alan.style.display === 'none') {
+            alan.style.display = 'block';
+            ikon.innerText = '▲';
+        } else {
+            alan.style.display = 'none';
+            ikon.innerText = '▼';
+        }
     });
 
     document.getElementById('btn-kitap-ekle').addEventListener('click', async () => {
@@ -115,15 +138,13 @@ export async function render(container) {
         }
     });
 
-    // DETAYDAN ÇIKIŞ BUTONU
     document.getElementById('btn-detay-kapat').addEventListener('click', async () => {
         document.getElementById('detay-gorunum').style.display = 'none';
         document.getElementById('ana-gorunum').style.display = 'block';
-        await arayuzuGuncelle(); // Ana listeyi (toplam sayıları) günceller
+        await arayuzuGuncelle(); 
         window.scrollTo({ top: 0, behavior: 'smooth' });
     });
 
-    // YENİLENMİŞ YAZDIRMA (ÇOK KİTAP İÇİN UYGUN FORMAT)
     document.getElementById('btn-kitap-yazdir').addEventListener('click', async () => {
         const [kalemler, tumKullanicilar, matris] = await Promise.all([
             db.getAll('kitaplar_kalemleri'),
@@ -133,7 +154,6 @@ export async function render(container) {
         
         if (kalemler.length === 0) return alert("Sistemde kitap bulunmuyor.");
 
-        // KİTAPLARI ALFABETİK SIRALA (Türkçe karakter uyumlu)
         kalemler.sort((a, b) => a.ad.localeCompare(b.ad, 'tr-TR'));
 
         const ogrenciler = tumKullanicilar.filter(u => u.role === 'student');
@@ -180,7 +200,6 @@ export async function render(container) {
 
         ogrenciler.forEach((ogr, index) => {
             let okunanSayisi = 0;
-            let okunanKitapIsimleri = [];
             let okunanlarVeSari = [];
 
             kalemler.forEach(k => {
@@ -231,8 +250,10 @@ async function arayuzuGuncelle() {
         db.getAll('kitap_matrisi')
     ]);
 
-    // KİTAPLARI ALFABETİK SIRALA (Türkçe karakter uyumlu)
     kalemler.sort((a, b) => a.ad.localeCompare(b.ad, 'tr-TR'));
+
+    // GÜNCELLEME: KİTAP SAYICISINI YENİLE
+    document.getElementById('kitap-sayaci').innerText = kalemler.length;
 
     const ogrenciler = tumKullanicilar.filter(u => u.role === 'student');
     ogrenciler.sort((a, b) => {
@@ -242,7 +263,6 @@ async function arayuzuGuncelle() {
         return noA - noB;
     });
 
-    // 1. KİTAP YÖNETİM ALANI (SİL / DÜZENLE)
     let basliklarHtml = '';
     kalemler.forEach(k => {
         basliklarHtml += `
@@ -253,6 +273,12 @@ async function arayuzuGuncelle() {
             </div>
         `;
     });
+    
+    // Eğer kitap yoksa uyarı yazısı koy
+    if(kalemler.length === 0) {
+        basliklarHtml = '<span style="color:#64748b; font-size: 0.9em; font-style: italic;">Henüz sınıf kitaplığına eklenmiş kitap bulunmuyor.</span>';
+    }
+    
     document.getElementById('kitap-basliklari').innerHTML = basliklarHtml;
 
     document.querySelectorAll('.btn-kalem-duzenle').forEach(btn => {
@@ -278,12 +304,6 @@ async function arayuzuGuncelle() {
         });
     });
 
-    if (kalemler.length === 0) {
-        document.getElementById('kitap-tablosu-alani').innerHTML = '<p style="color:var(--secondary); padding: 20px;">Lütfen önce yukarıdan en az bir kitap ekleyin.</p>';
-        return;
-    }
-
-    // 2. ANA ÖĞRENCİ LİSTESİ (SADECE İSİMLER VE TOPLAM)
     let tabloHtml = `
         <table style="width: 100%; border-collapse: collapse; min-width: 500px; font-size: 0.95em;">
             <thead>
@@ -313,7 +333,7 @@ async function arayuzuGuncelle() {
             <td style="border: 1px solid #ddd; padding: 12px; text-align: center; font-weight: bold; color: var(--primary); font-size: 1.2em; background: #f1f5f9;">${okunanSayisi}</td>
             <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">
                 <button class="btn btn-primary btn-detay-ac" data-ogrid="${ogr.id}" data-ogrname="${ogr.name}" style="padding: 8px 15px; font-weight: bold; font-size: 0.9em;">
-                    📚 Kitapları Gör
+                    📚 İşaretle / Gör
                 </button>
             </td>
         </tr>`;
@@ -322,7 +342,6 @@ async function arayuzuGuncelle() {
     tabloHtml += `</tbody></table>`;
     document.getElementById('kitap-tablosu-alani').innerHTML = tabloHtml;
 
-    // DETAY BUTONUNA TIKLAMA İŞLEMİ
     document.querySelectorAll('.btn-detay-ac').forEach(btn => {
         btn.addEventListener('click', (e) => {
             const ogrId = e.currentTarget.getAttribute('data-ogrid');
@@ -332,7 +351,6 @@ async function arayuzuGuncelle() {
     });
 }
 
-// 3. YENİ AÇILAN ALT ALTA KİTAP İŞARETLEME EKRANI
 function ogrenciDetayiniAc(ogrId, ogrName, kalemler, matris) {
     document.getElementById('ana-gorunum').style.display = 'none';
     document.getElementById('detay-gorunum').style.display = 'block';
@@ -373,7 +391,6 @@ function ogrenciDetayiniAc(ogrId, ogrName, kalemler, matris) {
     listeHtml += '</div>';
     document.getElementById('detay-kitap-listesi').innerHTML = listeHtml;
 
-    // DETAY İÇİNDEKİ DURUM DEĞİŞTİRME BUTONLARI (3 AŞAMALI)
     document.querySelectorAll('.btn-durum-degistir').forEach(btn => {
         btn.addEventListener('click', async (e) => {
             const oId = e.currentTarget.getAttribute('data-ogr');
@@ -386,7 +403,6 @@ function ogrenciDetayiniAc(ogrId, ogrName, kalemler, matris) {
             let textColor = '#64748b';
             let borderRenk = '#cbd5e1';
 
-            // Döngü: Boş -> ⏳ (Okuyor) -> ✔️ (Okudu) -> Boş
             if (val === '') {
                 newValue = '⏳'; btnText = '⏳ Okuyor'; bgRenk = '#fef3c7'; textColor = '#d97706'; borderRenk = '#f59e0b';
             } else if (val === '⏳') {
@@ -395,14 +411,12 @@ function ogrenciDetayiniAc(ogrId, ogrName, kalemler, matris) {
                 newValue = '';
             }
             
-            // Görseli Anında Güncelle
             e.currentTarget.setAttribute('data-val', newValue);
             e.currentTarget.innerText = btnText;
             e.currentTarget.style.backgroundColor = bgRenk;
             e.currentTarget.style.color = textColor;
             e.currentTarget.style.borderColor = borderRenk;
 
-            // Veritabanına Arka Planda Kaydet (Tıklamayı engellemez)
             db.saveMatrixStatus('kitap_matrisi', oId, kId, newValue);
         });
     });

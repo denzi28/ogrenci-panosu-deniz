@@ -1,57 +1,70 @@
 import { db } from '../../js/db.js';
 
 export async function render(container) {
-    container.innerHTML = '<div class="card"><p>⚡ Kitap okuma tablosu hızla getiriliyor...</p></div>';
+    container.innerHTML = '<div class="card"><p>⚡ Kitap okuma modülü yükleniyor...</p></div>';
 
     const isModuleVisible = await db.getModuleVisibility('kitap');
     const btnClass = isModuleVisible ? 'btn-success' : 'btn-secondary';
     const btnText = isModuleVisible ? 'Menüde Görünüyor (Gizle)' : 'Menüde Gizli (Göster)';
 
     container.innerHTML = `
-        <div class="card" style="background: #e8f4fd; border: 1px solid var(--primary); display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-            <div>
-                <h3 style="margin: 0; color: var(--primary);">👀 Modül Görünürlüğü (Misafirler İçin)</h3>
-                <p style="margin: 5px 0 0 0; font-size: 0.9em;">Açık olduğunda veliler ve öğrenciler sınıfın kitap okuma tablosunu görebilir.</p>
+        <!-- ANA GÖRÜNÜM (Sınıf Listesi ve Kitap Ekleme) -->
+        <div id="ana-gorunum" style="display: block;">
+            <div class="card" style="background: #e8f4fd; border: 1px solid var(--primary); display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <div>
+                    <h3 style="margin: 0; color: var(--primary);">👀 Modül Görünürlüğü (Misafirler İçin)</h3>
+                    <p style="margin: 5px 0 0 0; font-size: 0.9em;">Açık olduğunda veliler sınıfın kitap okuma durumunu görebilir.</p>
+                </div>
+                <div>
+                    <button id="toggle-module-btn" class="btn ${btnClass}">${btnText}</button>
+                </div>
             </div>
-            <div>
-                <button id="toggle-module-btn" class="btn ${btnClass}">${btnText}</button>
+
+            <div class="card" style="border-top: 4px solid var(--primary);">
+                <h3>1. Aşama: Sınıf Kitaplığına Kitap Ekle</h3>
+                
+                <div style="display: flex; gap: 10px; margin-top: 15px;">
+                    <input type="text" id="yeni-kitap-ad" placeholder="Tek bir kitap ekle (Örn: Küçük Prens)" style="flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 4px;">
+                    <button id="btn-kitap-ekle" class="btn btn-primary">Tek Ekle</button>
+                </div>
+
+                <div style="margin-top: 15px; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                    <p style="font-size: 0.85em; color: #475569; margin-bottom: 8px; font-weight: bold;">📥 Toplu Kitap Ekleme</p>
+                    <textarea id="toplu-kitap-ad" placeholder="Kitap isimlerini alt alta veya virgülle ayırarak yazın (Excel veya Word'den direkt yapıştırabilirsiniz)" rows="3" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;"></textarea>
+                    <button id="btn-toplu-kitap-ekle" class="btn btn-success" style="margin-top: 8px;">Listeyi Toplu Ekle</button>
+                </div>
+
+                <div id="kitap-basliklari" style="margin-top: 25px; display: flex; flex-wrap: wrap; gap: 10px;"></div>
+            </div>
+
+            <div class="card" style="border-top: 4px solid var(--success);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
+                    <h3 style="margin: 0;">2. Aşama: Öğrenci Takip Listesi</h3>
+                    <button id="btn-kitap-yazdir" class="btn btn-primary" style="padding: 10px 20px; font-size: 1em; font-weight: bold; background-color: #0284c7; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                        🖨️ Rapor Yazdır / PDF Al
+                    </button>
+                </div>
+                <p style="font-size:0.85em; color:#666; margin-bottom: 15px;">
+                    Öğrencilerin okuduğu kitapları işaretlemek için yanlarındaki <strong>"📚 İşaretle"</strong> butonuna tıklayın.
+                </p>
+                <div id="kitap-tablosu-alani" style="overflow-x: auto;"><p>⏳ Liste yükleniyor...</p></div>
             </div>
         </div>
 
-        <div class="card" style="border-top: 4px solid var(--primary);">
-            <h3>1. Aşama: Okunacak Kitapları Ekle</h3>
-            
-            <div style="display: flex; gap: 10px; margin-top: 15px;">
-                <input type="text" id="yeni-kitap-ad" placeholder="Tek bir kitap ekle (Örn: Küçük Prens)" style="flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 4px;">
-                <button id="btn-kitap-ekle" class="btn btn-primary">Tek Ekle</button>
-            </div>
+        <!-- YENİ: ÖĞRENCİ DETAY GÖRÜNÜMÜ (Alt Alta Kitap Listesi) -->
+        <div id="detay-gorunum" style="display: none;">
+            <div class="card" style="border-top: 4px solid var(--primary); min-height: 50vh;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+                    <h2 id="detay-baslik" style="margin: 0; color: var(--primary);">📖 Öğrenci Adı - Kitap Listesi</h2>
+                    <button id="btn-detay-kapat" class="btn btn-secondary" style="font-weight: bold; padding: 10px 20px; font-size: 1.1em; box-shadow: 0 4px 0 #94a3b8;">⬅️ Listeye Dön</button>
+                </div>
+                
+                <div style="background: #e8f4fd; border: 1px dashed var(--primary); padding: 12px; border-radius: 8px; font-size: 0.95em; margin-bottom: 20px; color: #1e293b; text-align: center;">
+                    Kitabın durumunu değiştirmek için sağdaki butona tıklayın: <br>
+                    <strong>Okumadı (Gri) ➔ ⏳ Okuyor (Sarı) ➔ ✔️ Okudu (Yeşil)</strong>
+                </div>
 
-            <div style="margin-top: 15px; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
-                <p style="font-size: 0.85em; color: #475569; margin-bottom: 8px; font-weight: bold;">📥 Toplu Kitap Ekleme</p>
-                <textarea id="toplu-kitap-ad" placeholder="Kitap isimlerini alt alta veya virgülle ayırarak yazın (Excel veya Word'den direkt yapıştırabilirsiniz)" rows="3" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;"></textarea>
-                <button id="btn-toplu-kitap-ekle" class="btn btn-success" style="margin-top: 8px;">Listeyi Toplu Ekle</button>
-            </div>
-
-            <div id="kitap-basliklari" style="margin-top: 25px; display: flex; flex-wrap: wrap; gap: 10px;"></div>
-        </div>
-
-        <div class="card" style="border-top: 4px solid var(--success);">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; flex-wrap: wrap; gap: 10px;">
-                <h3 style="margin: 0;">2. Aşama: Sınıf Kitap Takip Tablosu</h3>
-                <button id="btn-kitap-yazdir" class="btn btn-primary" style="padding: 10px 20px; font-size: 1em; font-weight: bold; background-color: #0284c7; color: white; border: none; border-radius: 5px; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                    🖨️ Listeyi Yazdır / PDF Al
-                </button>
-            </div>
-            <p style="font-size:0.85em; color:#666; margin-bottom: 15px;">
-                Tabloyu sağa sola kaydırabilirsiniz, <strong>öğrenci isimleri sabit kalacaktır</strong>. İlgili hücreye tıklayarak durumu değiştirin: 
-                <strong>1. Tıklama: ⏳ Okuyor (Sarı)</strong> ➔ 
-                <strong>2. Tıklama: ✔️ Okudu (Yeşil)</strong> ➔ 
-                <strong>3. Tıklama: Sil (Boş)</strong>.
-            </p>
-            
-            <!-- KAYDIRILABİLİR ALAN ÇERÇEVESİ: Ekranın taşmasını engeller -->
-            <div id="kitap-tablosu-alani" style="width: 100%; max-height: 65vh; overflow: auto; border: 1px solid #cbd5e1; border-radius: 8px; box-shadow: inset 0 0 10px rgba(0,0,0,0.05); position: relative; display: block;">
-                <p style="padding: 20px;">⏳ Tablo yükleniyor...</p>
+                <div id="detay-kitap-listesi"></div>
             </div>
         </div>
     `;
@@ -102,6 +115,15 @@ export async function render(container) {
         }
     });
 
+    // DETAYDAN ÇIKIŞ BUTONU
+    document.getElementById('btn-detay-kapat').addEventListener('click', async () => {
+        document.getElementById('detay-gorunum').style.display = 'none';
+        document.getElementById('ana-gorunum').style.display = 'block';
+        await arayuzuGuncelle(); // Ana listeyi (toplam sayıları) günceller
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    // YENİLENMİŞ YAZDIRMA (ÇOK KİTAP İÇİN UYGUN FORMAT)
     document.getElementById('btn-kitap-yazdir').addEventListener('click', async () => {
         const [kalemler, tumKullanicilar, matris] = await Promise.all([
             db.getAll('kitaplar_kalemleri'),
@@ -109,10 +131,7 @@ export async function render(container) {
             db.getAll('kitap_matrisi')
         ]);
         
-        if (kalemler.length === 0) {
-            alert("Yazdırılacak herhangi bir kitap sütunu bulunmuyor.");
-            return;
-        }
+        if (kalemler.length === 0) return alert("Sistemde kitap bulunmuyor.");
 
         const ogrenciler = tumKullanicilar.filter(u => u.role === 'student');
         ogrenciler.sort((a, b) => {
@@ -127,33 +146,30 @@ export async function render(container) {
             <html lang="tr">
             <head>
                 <meta charset="UTF-8">
-                <title>Sınıf Kitap Okuma Takip Tablosu</title>
+                <title>Sınıf Kitap Okuma Raporu</title>
                 <style>
-                    @page { margin: 1cm; landscape; }
                     body { font-family: Arial, sans-serif; padding: 20px; color: #000; }
                     h2 { text-align: center; margin: 0 0 10px 0; font-size: 24px; text-transform: uppercase; }
                     .tarih { text-align: center; color: #444; font-size: 14px; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 25px; }
-                    table { width: 100%; border-collapse: collapse; font-size: 13px; }
-                    th, td { border: 1px solid #000; padding: 4px 6px; }
+                    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+                    th, td { border: 1px solid #000; padding: 8px; vertical-align: top; }
                     th { background-color: #f1f5f9; font-weight: bold; }
                     td.merkez { text-align: center; }
-                    .okudu { background-color: #d1fae5 !important; font-weight: bold; -webkit-print-color-adjust: exact; color-adjust: exact; color: #059669; }
-                    .okuyor { background-color: #fef3c7 !important; font-weight: bold; -webkit-print-color-adjust: exact; color-adjust: exact; color: #d97706; }
-                    .dikey-baslik { writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap; margin: 0 auto; }
+                    .kitap-listesi { font-size: 12px; color: #444; margin-top: 5px; font-style: italic; }
                     tr:nth-child(even) { background-color: #f8fafc !important; -webkit-print-color-adjust: exact; color-adjust: exact; }
                 </style>
             </head>
             <body>
-                <h2>SINIF KİTAP OKUMA TAKİP LİSTESİ</h2>
+                <h2>SINIF KİTAP OKUMA RAPORU</h2>
                 <div class="tarih">Güncelleme Tarihi: ${new Date().toLocaleDateString('tr-TR')}</div>
                 <table>
                     <thead>
                         <tr>
-                            <th style="width: 25px; text-align: center; vertical-align: bottom; height: 120px;">SN</th>
-                            <th style="width: 40px; text-align: center; vertical-align: bottom;">Okul No</th>
-                            <th style="text-align: left; width: 140px; vertical-align: bottom;">Öğrenci Adı Soyadı</th>
-                            ${kalemler.map(k => `<th style="width: 25px; vertical-align: bottom; padding-bottom: 10px;"><div class="dikey-baslik">${k.ad}</div></th>`).join('')}
-                            <th style="width: 40px; text-align: center; vertical-align: bottom;"><div class="dikey-baslik" style="font-weight: 900;">TOPLAM</div></th>
+                            <th style="width: 40px;">SN</th>
+                            <th style="width: 60px;">Okul No</th>
+                            <th style="width: 200px; text-align: left;">Öğrenci Adı Soyadı</th>
+                            <th style="width: 80px;">Toplam</th>
+                            <th style="text-align: left;">Okuduğu / Okumakta Olduğu Kitaplar</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -161,33 +177,30 @@ export async function render(container) {
 
         ogrenciler.forEach((ogr, index) => {
             let okunanSayisi = 0;
-            let rowHtml = `
+            let okunanKitapIsimleri = [];
+            let okunanlarVeSari = [];
+
+            kalemler.forEach(k => {
+                let durum = matris.find(m => m.ogrId === ogr.id && m.targetId === k.id)?.deger || '';
+                if (durum === '✔️') {
+                    okunanSayisi++;
+                    okunanlarVeSari.push(`<b>${k.ad}</b>`);
+                } else if (durum === '⏳') {
+                    okunanlarVeSari.push(`${k.ad} (Okuyor)`);
+                }
+            });
+
+            let kitapYazisi = okunanlarVeSari.length > 0 ? okunanlarVeSari.join(', ') : 'Henüz kitap kaydı yok.';
+
+            printContent += `
                 <tr>
                     <td class="merkez">${index + 1}</td>
                     <td class="merkez"><strong>${ogr.okulno || '-'}</strong></td>
-                    <td>${ogr.name}</td>
+                    <td><strong>${ogr.name}</strong></td>
+                    <td class="merkez" style="font-size: 16px;"><strong>${okunanSayisi}</strong></td>
+                    <td class="kitap-listesi">${kitapYazisi}</td>
+                </tr>
             `;
-            
-            kalemler.forEach(k => {
-                let hucreDegeri = matris.find(m => m.ogrId === ogr.id && m.targetId === k.id)?.deger || '';
-                let islemOkudu = hucreDegeri === '✔️';
-                let islemOkuyor = hucreDegeri === '⏳';
-                
-                if (islemOkudu) okunanSayisi++;
-                
-                let cssClass = "merkez";
-                if (islemOkudu) cssClass += " okudu";
-                else if (islemOkuyor) cssClass += " okuyor";
-                
-                let icon = '';
-                if(islemOkudu) icon = '✔️';
-                else if(islemOkuyor) icon = '⏳';
-
-                rowHtml += `<td class="${cssClass}">${icon}</td>`;
-            });
-            
-            rowHtml += `<td class="merkez" style="background:#f8f9fa;"><strong>${okunanSayisi}</strong></td></tr>`;
-            printContent += rowHtml;
         });
 
         printContent += `
@@ -223,6 +236,7 @@ async function arayuzuGuncelle() {
         return noA - noB;
     });
 
+    // 1. KİTAP YÖNETİM ALANI (SİL / DÜZENLE)
     let basliklarHtml = '';
     kalemler.forEach(k => {
         basliklarHtml += `
@@ -263,22 +277,16 @@ async function arayuzuGuncelle() {
         return;
     }
 
-    // TABLOYA "width: max-content" EKLENDİ (Taşmayı önlemek için)
+    // 2. ANA ÖĞRENCİ LİSTESİ (SADECE İSİMLER VE TOPLAM)
     let tabloHtml = `
-        <table style="width: max-content; min-width: 100%; border-collapse: separate; border-spacing: 0; font-size: 0.9em; box-sizing: border-box;">
+        <table style="width: 100%; border-collapse: collapse; min-width: 500px; font-size: 0.95em;">
             <thead>
-                <tr>
-                    <th style="border-bottom: 2px solid #cbd5e1; border-right: 1px solid #e2e8f0; padding: 10px 5px; width: 40px; min-width: 40px; max-width: 40px; text-align: center; vertical-align: bottom; height: 140px; position: sticky; left: 0; top: 0; background: #f8f9fa; z-index: 30;">SN</th>
-                    <th style="border-bottom: 2px solid #cbd5e1; border-right: 1px solid #e2e8f0; padding: 10px 5px; width: 60px; min-width: 60px; max-width: 60px; text-align: center; vertical-align: bottom; position: sticky; left: 40px; top: 0; background: #f8f9fa; z-index: 30;">NO</th>
-                    <th style="border-bottom: 2px solid #cbd5e1; border-right: 3px solid #94a3b8; padding: 10px 5px; text-align: left; width: 160px; min-width: 160px; max-width: 160px; vertical-align: bottom; position: sticky; left: 100px; top: 0; background: #f8f9fa; z-index: 30;">ADI SOYADI</th>
-                    ${kalemler.map(k => `
-                        <th style="border-bottom: 2px solid #cbd5e1; border-right: 1px solid #e2e8f0; padding: 10px 2px; width: 40px; min-width: 40px; vertical-align: bottom; position: sticky; top: 0; background: #f8f9fa; z-index: 20;">
-                            <div style="writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap; margin: 0 auto; font-size: 0.95em;">${k.ad}</div>
-                        </th>
-                    `).join('')}
-                    <th style="border-bottom: 2px solid #cbd5e1; border-left: 3px solid #94a3b8; padding: 10px 5px; width: 60px; min-width: 60px; max-width: 60px; color: var(--primary); vertical-align: bottom; position: sticky; right: 0; top: 0; background: #f1f5f9; z-index: 30;">
-                        <div style="writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap; margin: 0 auto; font-weight: 900;">TOPLAM</div>
-                    </th>
+                <tr style="background: #f8f9fa;">
+                    <th style="border: 1px solid #ddd; padding: 12px; width: 40px;">SN</th>
+                    <th style="border: 1px solid #ddd; padding: 12px; width: 60px;">NO</th>
+                    <th style="border: 1px solid #ddd; padding: 12px; text-align: left;">ADI SOYADI</th>
+                    <th style="border: 1px solid #ddd; padding: 12px; width: 90px; color: var(--primary);">TOPLAM</th>
+                    <th style="border: 1px solid #ddd; padding: 12px; width: 140px; text-align: center;">KİTAP İŞLEMLERİ</th>
                 </tr>
             </thead>
             <tbody>
@@ -286,72 +294,110 @@ async function arayuzuGuncelle() {
 
     ogrenciler.forEach((ogr, index) => {
         let okunanSayisi = 0;
-        let cellsHtml = '';
-
         kalemler.forEach(k => {
-            let hucreDegeri = matris.find(m => m.ogrId === ogr.id && m.targetId === k.id)?.deger || '';
-            if (hucreDegeri === '✔️') okunanSayisi++; 
-            
-            let bgRenk = 'transparent';
-            let textColor = 'transparent';
-            let icon = '·';
-            
-            if (hucreDegeri === '⏳') { bgRenk = '#fef3c7'; textColor = '#d97706'; icon = '⏳'; } 
-            else if (hucreDegeri === '✔️') { bgRenk = '#d1fae5'; textColor = '#059669'; icon = '✔️'; }
-            
-            cellsHtml += `
-                <td style="border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; padding: 0; min-width: 40px; background-color: ${bgRenk};">
-                    <div class="hucre-tikla" data-ogr="${ogr.id}" data-kalem="${k.id}" data-val="${hucreDegeri}"
-                         style="width: 100%; height: 100%; padding: 12px 0; text-align: center; cursor: pointer; user-select: none; transition: 0.2s; 
-                                color: ${textColor}; font-size: 1.1em; font-weight: bold;">
-                        ${icon}
-                    </div>
-                </td>
-            `;
+            if (matris.find(m => m.ogrId === ogr.id && m.targetId === k.id)?.deger === '✔️') okunanSayisi++; 
         });
 
         let satirArkaPlan = index % 2 === 0 ? '#ffffff' : '#f8fafc';
 
-        tabloHtml += `<tr>
-            <td style="border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; padding: 8px; text-align: center; color: #666; position: sticky; left: 0; background: ${satirArkaPlan}; z-index: 10;">${index + 1}</td>
-            <td style="border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; padding: 8px; text-align: center; font-weight: bold; position: sticky; left: 40px; background: ${satirArkaPlan}; z-index: 10;">${ogr.okulno || '-'}</td>
-            <td style="border-bottom: 1px solid #e2e8f0; border-right: 3px solid #94a3b8; padding: 8px; font-weight: bold; color: #333; position: sticky; left: 100px; background: ${satirArkaPlan}; z-index: 10;">${ogr.name}</td>
-            ${cellsHtml}
-            <td style="border-bottom: 1px solid #e2e8f0; border-left: 3px solid #94a3b8; padding: 8px; text-align: center; font-weight: bold; color: var(--primary); font-size: 1.1em; position: sticky; right: 0; background: #f1f5f9; z-index: 10;">${okunanSayisi}</td>
+        tabloHtml += `<tr style="background-color: ${satirArkaPlan}; transition: background-color 0.2s;">
+            <td style="border: 1px solid #ddd; padding: 12px; text-align: center; color: #666;">${index + 1}</td>
+            <td style="border: 1px solid #ddd; padding: 12px; text-align: center; font-weight: bold;">${ogr.okulno || '-'}</td>
+            <td style="border: 1px solid #ddd; padding: 12px; font-weight: bold; color: #333;">${ogr.name}</td>
+            <td style="border: 1px solid #ddd; padding: 12px; text-align: center; font-weight: bold; color: var(--primary); font-size: 1.2em; background: #f1f5f9;">${okunanSayisi}</td>
+            <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">
+                <button class="btn btn-primary btn-detay-ac" data-ogrid="${ogr.id}" data-ogrname="${ogr.name}" style="padding: 8px 15px; font-weight: bold; font-size: 0.9em;">
+                    📚 Kitapları Gör
+                </button>
+            </td>
         </tr>`;
     });
 
     tabloHtml += `</tbody></table>`;
     document.getElementById('kitap-tablosu-alani').innerHTML = tabloHtml;
 
-    document.querySelectorAll('.hucre-tikla').forEach(div => {
-        div.addEventListener('click', async (e) => {
-            const ogrId = e.currentTarget.getAttribute('data-ogr');
-            const kalemId = e.currentTarget.getAttribute('data-kalem');
-            const mevcutDeger = e.currentTarget.getAttribute('data-val');
+    // DETAY BUTONUNA TIKLAMA İŞLEMİ
+    document.querySelectorAll('.btn-detay-ac').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const ogrId = e.currentTarget.getAttribute('data-ogrid');
+            const ogrName = e.currentTarget.getAttribute('data-ogrname');
+            ogrenciDetayiniAc(ogrId, ogrName, kalemler, matris);
+        });
+    });
+}
+
+// 3. YENİ AÇILAN ALT ALTA KİTAP İŞARETLEME EKRANI
+function ogrenciDetayiniAc(ogrId, ogrName, kalemler, matris) {
+    document.getElementById('ana-gorunum').style.display = 'none';
+    document.getElementById('detay-gorunum').style.display = 'block';
+    document.getElementById('detay-baslik').innerText = `📖 ${ogrName} - Kitap Listesi`;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    let listeHtml = '<div style="display: flex; flex-direction: column; gap: 12px;">';
+
+    kalemler.forEach((k, index) => {
+        let mevcutDeger = matris.find(m => m.ogrId === ogrId && m.targetId === k.id)?.deger || '';
+        
+        let btnText = 'Okumadı';
+        let bgRenk = '#f1f5f9';
+        let textColor = '#64748b';
+        let borderRenk = '#cbd5e1';
+
+        if (mevcutDeger === '⏳') {
+            btnText = '⏳ Okuyor';
+            bgRenk = '#fef3c7'; textColor = '#d97706'; borderRenk = '#f59e0b';
+        } else if (mevcutDeger === '✔️') {
+            btnText = '✔️ Okudu';
+            bgRenk = '#d1fae5'; textColor = '#059669'; borderRenk = '#10b981';
+        }
+
+        listeHtml += `
+            <div style="background: white; padding: 15px 20px; border-radius: 12px; border: 2px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+                <div style="font-size: 1.15em; font-weight: bold; color: #334155; flex: 1; min-width: 200px;">
+                    <span style="color: #94a3b8; margin-right: 10px;">${index + 1}.</span>${k.ad}
+                </div>
+                <button class="btn-durum-degistir" data-ogr="${ogrId}" data-kalem="${k.id}" data-val="${mevcutDeger}"
+                    style="padding: 12px 20px; border-radius: 8px; font-weight: bold; font-size: 1.05em; cursor: pointer; border: 2px solid ${borderRenk}; background: ${bgRenk}; color: ${textColor}; min-width: 140px; transition: all 0.2s ease-in-out; user-select: none;">
+                    ${btnText}
+                </button>
+            </div>
+        `;
+    });
+
+    listeHtml += '</div>';
+    document.getElementById('detay-kitap-listesi').innerHTML = listeHtml;
+
+    // DETAY İÇİNDEKİ DURUM DEĞİŞTİRME BUTONLARI (3 AŞAMALI)
+    document.querySelectorAll('.btn-durum-degistir').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            const oId = e.currentTarget.getAttribute('data-ogr');
+            const kId = e.currentTarget.getAttribute('data-kalem');
+            const val = e.currentTarget.getAttribute('data-val');
             
             let newValue = '';
-            let bgRenk = 'transparent';
-            let textColor = 'transparent';
-            let icon = '·';
+            let btnText = 'Okumadı';
+            let bgRenk = '#f1f5f9';
+            let textColor = '#64748b';
+            let borderRenk = '#cbd5e1';
 
-            if (mevcutDeger === '') {
-                newValue = '⏳'; bgRenk = '#fef3c7'; textColor = '#d97706'; icon = '⏳';
-            } else if (mevcutDeger === '⏳') {
-                newValue = '✔️'; bgRenk = '#d1fae5'; textColor = '#059669'; icon = '✔️';
+            // Döngü: Boş -> ⏳ (Okuyor) -> ✔️ (Okudu) -> Boş
+            if (val === '') {
+                newValue = '⏳'; btnText = '⏳ Okuyor'; bgRenk = '#fef3c7'; textColor = '#d97706'; borderRenk = '#f59e0b';
+            } else if (val === '⏳') {
+                newValue = '✔️'; btnText = '✔️ Okudu'; bgRenk = '#d1fae5'; textColor = '#059669'; borderRenk = '#10b981';
             } else {
                 newValue = '';
             }
             
+            // Görseli Anında Güncelle
             e.currentTarget.setAttribute('data-val', newValue);
-            e.currentTarget.innerText = icon;
-            e.currentTarget.parentElement.style.backgroundColor = bgRenk;
+            e.currentTarget.innerText = btnText;
+            e.currentTarget.style.backgroundColor = bgRenk;
             e.currentTarget.style.color = textColor;
-            
-            await db.saveMatrixStatus('kitap_matrisi', ogrId, kalemId, newValue);
-            
-            // Toplam sayısını doğru güncellemek için listeyi arka planda tamamen yenile
-            setTimeout(() => { arayuzuGuncelle(); }, 300);
+            e.currentTarget.style.borderColor = borderRenk;
+
+            // Veritabanına Arka Planda Kaydet (Tıklamayı engellemez)
+            db.saveMatrixStatus('kitap_matrisi', oId, kId, newValue);
         });
     });
 }

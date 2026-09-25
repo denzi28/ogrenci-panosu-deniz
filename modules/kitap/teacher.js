@@ -48,8 +48,9 @@ export async function render(container) {
                 <strong>2. Tıklama: ✔️ Okudu (Yeşil)</strong> ➔ 
                 <strong>3. Tıklama: Sil (Boş)</strong>.
             </p>
-            <!-- YENİ: KAYDIRILABİLİR ALAN ÇERÇEVESİ -->
-            <div id="kitap-tablosu-alani" style="max-height: 65vh; overflow: auto; border: 1px solid #cbd5e1; border-radius: 8px; box-shadow: inset 0 0 10px rgba(0,0,0,0.05);">
+            
+            <!-- KAYDIRILABİLİR ALAN ÇERÇEVESİ: Ekranın taşmasını engeller -->
+            <div id="kitap-tablosu-alani" style="width: 100%; max-height: 65vh; overflow: auto; border: 1px solid #cbd5e1; border-radius: 8px; box-shadow: inset 0 0 10px rgba(0,0,0,0.05); position: relative; display: block;">
                 <p style="padding: 20px;">⏳ Tablo yükleniyor...</p>
             </div>
         </div>
@@ -262,20 +263,20 @@ async function arayuzuGuncelle() {
         return;
     }
 
-    // YENİ: SABİT SÜTUNLU (STICKY) TABLO YAPISI
+    // TABLOYA "width: max-content" EKLENDİ (Taşmayı önlemek için)
     let tabloHtml = `
-        <table style="width: 100%; border-collapse: separate; border-spacing: 0; min-width: 600px; font-size: 0.9em; box-sizing: border-box;">
+        <table style="width: max-content; min-width: 100%; border-collapse: separate; border-spacing: 0; font-size: 0.9em; box-sizing: border-box;">
             <thead>
                 <tr>
-                    <th style="box-sizing: border-box; border-bottom: 2px solid #cbd5e1; border-right: 1px solid #e2e8f0; padding: 10px 5px; width: 40px; min-width: 40px; max-width: 40px; text-align: center; vertical-align: bottom; height: 140px; position: sticky; left: 0; top: 0; background: #f8f9fa; z-index: 20;">SN</th>
-                    <th style="box-sizing: border-box; border-bottom: 2px solid #cbd5e1; border-right: 1px solid #e2e8f0; padding: 10px 5px; width: 60px; min-width: 60px; max-width: 60px; text-align: center; vertical-align: bottom; position: sticky; left: 40px; top: 0; background: #f8f9fa; z-index: 20;">NO</th>
-                    <th style="box-sizing: border-box; border-bottom: 2px solid #cbd5e1; border-right: 3px solid #94a3b8; padding: 10px 5px; text-align: left; width: 160px; min-width: 160px; max-width: 160px; vertical-align: bottom; position: sticky; left: 100px; top: 0; background: #f8f9fa; z-index: 20;">ADI SOYADI</th>
+                    <th style="border-bottom: 2px solid #cbd5e1; border-right: 1px solid #e2e8f0; padding: 10px 5px; width: 40px; min-width: 40px; max-width: 40px; text-align: center; vertical-align: bottom; height: 140px; position: sticky; left: 0; top: 0; background: #f8f9fa; z-index: 30;">SN</th>
+                    <th style="border-bottom: 2px solid #cbd5e1; border-right: 1px solid #e2e8f0; padding: 10px 5px; width: 60px; min-width: 60px; max-width: 60px; text-align: center; vertical-align: bottom; position: sticky; left: 40px; top: 0; background: #f8f9fa; z-index: 30;">NO</th>
+                    <th style="border-bottom: 2px solid #cbd5e1; border-right: 3px solid #94a3b8; padding: 10px 5px; text-align: left; width: 160px; min-width: 160px; max-width: 160px; vertical-align: bottom; position: sticky; left: 100px; top: 0; background: #f8f9fa; z-index: 30;">ADI SOYADI</th>
                     ${kalemler.map(k => `
-                        <th style="box-sizing: border-box; border-bottom: 2px solid #cbd5e1; border-right: 1px solid #e2e8f0; padding: 10px 2px; width: 40px; min-width: 40px; vertical-align: bottom; position: sticky; top: 0; background: #f8f9fa; z-index: 10;">
+                        <th style="border-bottom: 2px solid #cbd5e1; border-right: 1px solid #e2e8f0; padding: 10px 2px; width: 40px; min-width: 40px; vertical-align: bottom; position: sticky; top: 0; background: #f8f9fa; z-index: 20;">
                             <div style="writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap; margin: 0 auto; font-size: 0.95em;">${k.ad}</div>
                         </th>
                     `).join('')}
-                    <th style="box-sizing: border-box; border-bottom: 2px solid #cbd5e1; border-left: 3px solid #94a3b8; padding: 10px 5px; width: 60px; min-width: 60px; max-width: 60px; color: var(--primary); vertical-align: bottom; position: sticky; right: 0; top: 0; background: #f1f5f9; z-index: 20;">
+                    <th style="border-bottom: 2px solid #cbd5e1; border-left: 3px solid #94a3b8; padding: 10px 5px; width: 60px; min-width: 60px; max-width: 60px; color: var(--primary); vertical-align: bottom; position: sticky; right: 0; top: 0; background: #f1f5f9; z-index: 30;">
                         <div style="writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap; margin: 0 auto; font-weight: 900;">TOPLAM</div>
                     </th>
                 </tr>
@@ -299,7 +300,7 @@ async function arayuzuGuncelle() {
             else if (hucreDegeri === '✔️') { bgRenk = '#d1fae5'; textColor = '#059669'; icon = '✔️'; }
             
             cellsHtml += `
-                <td style="box-sizing: border-box; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; padding: 0; min-width: 40px; background-color: ${bgRenk};">
+                <td style="border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; padding: 0; min-width: 40px; background-color: ${bgRenk};">
                     <div class="hucre-tikla" data-ogr="${ogr.id}" data-kalem="${k.id}" data-val="${hucreDegeri}"
                          style="width: 100%; height: 100%; padding: 12px 0; text-align: center; cursor: pointer; user-select: none; transition: 0.2s; 
                                 color: ${textColor}; font-size: 1.1em; font-weight: bold;">
@@ -312,11 +313,11 @@ async function arayuzuGuncelle() {
         let satirArkaPlan = index % 2 === 0 ? '#ffffff' : '#f8fafc';
 
         tabloHtml += `<tr>
-            <td style="box-sizing: border-box; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; padding: 8px; text-align: center; color: #666; position: sticky; left: 0; background: ${satirArkaPlan}; z-index: 5;">${index + 1}</td>
-            <td style="box-sizing: border-box; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; padding: 8px; text-align: center; font-weight: bold; position: sticky; left: 40px; background: ${satirArkaPlan}; z-index: 5;">${ogr.okulno || '-'}</td>
-            <td style="box-sizing: border-box; border-bottom: 1px solid #e2e8f0; border-right: 3px solid #94a3b8; padding: 8px; font-weight: bold; color: #333; position: sticky; left: 100px; background: ${satirArkaPlan}; z-index: 5;">${ogr.name}</td>
+            <td style="border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; padding: 8px; text-align: center; color: #666; position: sticky; left: 0; background: ${satirArkaPlan}; z-index: 10;">${index + 1}</td>
+            <td style="border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; padding: 8px; text-align: center; font-weight: bold; position: sticky; left: 40px; background: ${satirArkaPlan}; z-index: 10;">${ogr.okulno || '-'}</td>
+            <td style="border-bottom: 1px solid #e2e8f0; border-right: 3px solid #94a3b8; padding: 8px; font-weight: bold; color: #333; position: sticky; left: 100px; background: ${satirArkaPlan}; z-index: 10;">${ogr.name}</td>
             ${cellsHtml}
-            <td style="box-sizing: border-box; border-bottom: 1px solid #e2e8f0; border-left: 3px solid #94a3b8; padding: 8px; text-align: center; font-weight: bold; color: var(--primary); font-size: 1.1em; position: sticky; right: 0; background: #f1f5f9; z-index: 5;">${okunanSayisi}</td>
+            <td style="border-bottom: 1px solid #e2e8f0; border-left: 3px solid #94a3b8; padding: 8px; text-align: center; font-weight: bold; color: var(--primary); font-size: 1.1em; position: sticky; right: 0; background: #f1f5f9; z-index: 10;">${okunanSayisi}</td>
         </tr>`;
     });
 

@@ -21,23 +21,21 @@ export async function render(container) {
         <div class="card" style="border-top: 4px solid var(--primary);">
             <h3>1. Aşama: Okunacak Kitapları Ekle</h3>
             
-            <!-- TEKİL EKLEME -->
             <div style="display: flex; gap: 10px; margin-top: 15px;">
                 <input type="text" id="yeni-kitap-ad" placeholder="Tek bir kitap ekle (Örn: Küçük Prens)" style="flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 4px;">
                 <button id="btn-kitap-ekle" class="btn btn-primary">Tek Ekle</button>
             </div>
 
-            <!-- TOPLU EKLEME ALANI -->
             <div style="margin-top: 15px; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
                 <p style="font-size: 0.85em; color: #475569; margin-bottom: 8px; font-weight: bold;">📥 Toplu Kitap Ekleme</p>
-                <textarea id="toplu-kitap-ad" placeholder="Kitap isimlerini alt alta veya virgülle ayırarak yazın (Excel, Word veya Not Defterinden direkt yapıştırabilirsiniz)" rows="3" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;"></textarea>
+                <textarea id="toplu-kitap-ad" placeholder="Kitap isimlerini alt alta veya virgülle ayırarak yazın (Excel veya Word'den direkt yapıştırabilirsiniz)" rows="3" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;"></textarea>
                 <button id="btn-toplu-kitap-ekle" class="btn btn-success" style="margin-top: 8px;">Listeyi Toplu Ekle</button>
             </div>
 
             <div id="kitap-basliklari" style="margin-top: 25px; display: flex; flex-wrap: wrap; gap: 10px;"></div>
         </div>
 
-        <div class="card" style="border-top: 4px solid var(--success); overflow-x: auto;">
+        <div class="card" style="border-top: 4px solid var(--success);">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; flex-wrap: wrap; gap: 10px;">
                 <h3 style="margin: 0;">2. Aşama: Sınıf Kitap Takip Tablosu</h3>
                 <button id="btn-kitap-yazdir" class="btn btn-primary" style="padding: 10px 20px; font-size: 1em; font-weight: bold; background-color: #0284c7; color: white; border: none; border-radius: 5px; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
@@ -45,12 +43,15 @@ export async function render(container) {
                 </button>
             </div>
             <p style="font-size:0.85em; color:#666; margin-bottom: 15px;">
-                İlgili hücreye tıklayarak durumu değiştirebilirsiniz: 
+                Tabloyu sağa sola kaydırabilirsiniz, <strong>öğrenci isimleri sabit kalacaktır</strong>. İlgili hücreye tıklayarak durumu değiştirin: 
                 <strong>1. Tıklama: ⏳ Okuyor (Sarı)</strong> ➔ 
                 <strong>2. Tıklama: ✔️ Okudu (Yeşil)</strong> ➔ 
-                <strong>3. Tıklama: Sil (Boş)</strong>. Otomatik kaydedilir.
+                <strong>3. Tıklama: Sil (Boş)</strong>.
             </p>
-            <div id="kitap-tablosu-alani"><p>⏳ Tablo yükleniyor...</p></div>
+            <!-- YENİ: KAYDIRILABİLİR ALAN ÇERÇEVESİ -->
+            <div id="kitap-tablosu-alani" style="max-height: 65vh; overflow: auto; border: 1px solid #cbd5e1; border-radius: 8px; box-shadow: inset 0 0 10px rgba(0,0,0,0.05);">
+                <p style="padding: 20px;">⏳ Tablo yükleniyor...</p>
+            </div>
         </div>
     `;
 
@@ -62,7 +63,6 @@ export async function render(container) {
         else { btn.className = "btn btn-secondary"; btn.innerText = "Menüde Gizli (Göster)"; }
     });
 
-    // TEKİL KİTAP EKLEME
     document.getElementById('btn-kitap-ekle').addEventListener('click', async () => {
         const ad = document.getElementById('yeni-kitap-ad').value.trim();
         if (ad) {
@@ -75,7 +75,6 @@ export async function render(container) {
         }
     });
 
-    // TOPLU KİTAP EKLEME
     document.getElementById('btn-toplu-kitap-ekle').addEventListener('click', async () => {
         const metin = document.getElementById('toplu-kitap-ad').value;
         if (!metin.trim()) return alert("Lütfen eklenecek kitap isimlerini yazın.");
@@ -137,11 +136,8 @@ export async function render(container) {
                     th, td { border: 1px solid #000; padding: 4px 6px; }
                     th { background-color: #f1f5f9; font-weight: bold; }
                     td.merkez { text-align: center; }
-                    
-                    /* YAZDIRMA RENKLERİ */
                     .okudu { background-color: #d1fae5 !important; font-weight: bold; -webkit-print-color-adjust: exact; color-adjust: exact; color: #059669; }
                     .okuyor { background-color: #fef3c7 !important; font-weight: bold; -webkit-print-color-adjust: exact; color-adjust: exact; color: #d97706; }
-                    
                     .dikey-baslik { writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap; margin: 0 auto; }
                     tr:nth-child(even) { background-color: #f8fafc !important; -webkit-print-color-adjust: exact; color-adjust: exact; }
                 </style>
@@ -262,23 +258,24 @@ async function arayuzuGuncelle() {
     });
 
     if (kalemler.length === 0) {
-        document.getElementById('kitap-tablosu-alani').innerHTML = '<p style="color:var(--secondary);">Lütfen önce yukarıdan en az bir kitap ekleyin.</p>';
+        document.getElementById('kitap-tablosu-alani').innerHTML = '<p style="color:var(--secondary); padding: 20px;">Lütfen önce yukarıdan en az bir kitap ekleyin.</p>';
         return;
     }
 
+    // YENİ: SABİT SÜTUNLU (STICKY) TABLO YAPISI
     let tabloHtml = `
-        <table style="width: 100%; border-collapse: collapse; min-width: 600px; font-size: 0.9em;">
+        <table style="width: 100%; border-collapse: separate; border-spacing: 0; min-width: 600px; font-size: 0.9em; box-sizing: border-box;">
             <thead>
-                <tr style="background: #f8f9fa;">
-                    <th style="border: 1px solid #ddd; padding: 10px 5px; width: 30px; text-align: center; vertical-align: bottom; height: 140px;">SN</th>
-                    <th style="border: 1px solid #ddd; padding: 10px 5px; width: 60px; text-align: center; vertical-align: bottom;">OKUL NO</th>
-                    <th style="border: 1px solid #ddd; padding: 10px 5px; text-align: left; width: 180px; vertical-align: bottom;">ADI SOYADI</th>
+                <tr>
+                    <th style="box-sizing: border-box; border-bottom: 2px solid #cbd5e1; border-right: 1px solid #e2e8f0; padding: 10px 5px; width: 40px; min-width: 40px; max-width: 40px; text-align: center; vertical-align: bottom; height: 140px; position: sticky; left: 0; top: 0; background: #f8f9fa; z-index: 20;">SN</th>
+                    <th style="box-sizing: border-box; border-bottom: 2px solid #cbd5e1; border-right: 1px solid #e2e8f0; padding: 10px 5px; width: 60px; min-width: 60px; max-width: 60px; text-align: center; vertical-align: bottom; position: sticky; left: 40px; top: 0; background: #f8f9fa; z-index: 20;">NO</th>
+                    <th style="box-sizing: border-box; border-bottom: 2px solid #cbd5e1; border-right: 3px solid #94a3b8; padding: 10px 5px; text-align: left; width: 160px; min-width: 160px; max-width: 160px; vertical-align: bottom; position: sticky; left: 100px; top: 0; background: #f8f9fa; z-index: 20;">ADI SOYADI</th>
                     ${kalemler.map(k => `
-                        <th style="border: 1px solid #ddd; padding: 10px 2px; width: 35px; vertical-align: bottom;">
+                        <th style="box-sizing: border-box; border-bottom: 2px solid #cbd5e1; border-right: 1px solid #e2e8f0; padding: 10px 2px; width: 40px; min-width: 40px; vertical-align: bottom; position: sticky; top: 0; background: #f8f9fa; z-index: 10;">
                             <div style="writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap; margin: 0 auto; font-size: 0.95em;">${k.ad}</div>
                         </th>
                     `).join('')}
-                    <th style="border: 1px solid #ddd; padding: 10px 5px; width: 50px; color: var(--primary); vertical-align: bottom;">
+                    <th style="box-sizing: border-box; border-bottom: 2px solid #cbd5e1; border-left: 3px solid #94a3b8; padding: 10px 5px; width: 60px; min-width: 60px; max-width: 60px; color: var(--primary); vertical-align: bottom; position: sticky; right: 0; top: 0; background: #f1f5f9; z-index: 20;">
                         <div style="writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap; margin: 0 auto; font-weight: 900;">TOPLAM</div>
                     </th>
                 </tr>
@@ -292,29 +289,19 @@ async function arayuzuGuncelle() {
 
         kalemler.forEach(k => {
             let hucreDegeri = matris.find(m => m.ogrId === ogr.id && m.targetId === k.id)?.deger || '';
+            if (hucreDegeri === '✔️') okunanSayisi++; 
             
-            if (hucreDegeri === '✔️') okunanSayisi++; // Sadece bitirilenleri (✔️) toplama dahil et
-            
-            // Hücre Renk ve İkon Mantığı
             let bgRenk = 'transparent';
             let textColor = 'transparent';
             let icon = '·';
             
-            if (hucreDegeri === '⏳') {
-                bgRenk = '#fef3c7'; // Sarımsı Arka Plan
-                textColor = '#d97706'; // Turuncu/Sarı Metin
-                icon = '⏳';
-            } else if (hucreDegeri === '✔️') {
-                bgRenk = '#d1fae5'; // Yeşilimsi Arka Plan
-                textColor = '#059669'; // Koyu Yeşil Metin
-                icon = '✔️';
-            }
+            if (hucreDegeri === '⏳') { bgRenk = '#fef3c7'; textColor = '#d97706'; icon = '⏳'; } 
+            else if (hucreDegeri === '✔️') { bgRenk = '#d1fae5'; textColor = '#059669'; icon = '✔️'; }
             
             cellsHtml += `
-                <td style="border: 1px solid #ddd; padding: 0;">
+                <td style="box-sizing: border-box; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; padding: 0; min-width: 40px; background-color: ${bgRenk};">
                     <div class="hucre-tikla" data-ogr="${ogr.id}" data-kalem="${k.id}" data-val="${hucreDegeri}"
-                         style="width: 100%; height: 100%; padding: 10px 0; text-align: center; cursor: pointer; user-select: none; transition: 0.2s; 
-                                background-color: ${bgRenk}; 
+                         style="width: 100%; height: 100%; padding: 12px 0; text-align: center; cursor: pointer; user-select: none; transition: 0.2s; 
                                 color: ${textColor}; font-size: 1.1em; font-weight: bold;">
                         ${icon}
                     </div>
@@ -322,21 +309,20 @@ async function arayuzuGuncelle() {
             `;
         });
 
-        let satirArkaPlan = index % 2 === 0 ? '#ffffff' : '#f1f5f9';
+        let satirArkaPlan = index % 2 === 0 ? '#ffffff' : '#f8fafc';
 
-        tabloHtml += `<tr style="background-color: ${satirArkaPlan}; transition: background-color 0.2s;">
-            <td style="border: 1px solid #ddd; padding: 8px; text-align: center; color: #666;">${index + 1}</td>
-            <td style="border: 1px solid #ddd; padding: 8px; text-align: center; font-weight: bold;">${ogr.okulno || '-'}</td>
-            <td style="border: 1px solid #ddd; padding: 8px; font-weight: bold; color: #333;">${ogr.name}</td>
+        tabloHtml += `<tr>
+            <td style="box-sizing: border-box; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; padding: 8px; text-align: center; color: #666; position: sticky; left: 0; background: ${satirArkaPlan}; z-index: 5;">${index + 1}</td>
+            <td style="box-sizing: border-box; border-bottom: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; padding: 8px; text-align: center; font-weight: bold; position: sticky; left: 40px; background: ${satirArkaPlan}; z-index: 5;">${ogr.okulno || '-'}</td>
+            <td style="box-sizing: border-box; border-bottom: 1px solid #e2e8f0; border-right: 3px solid #94a3b8; padding: 8px; font-weight: bold; color: #333; position: sticky; left: 100px; background: ${satirArkaPlan}; z-index: 5;">${ogr.name}</td>
             ${cellsHtml}
-            <td style="border: 1px solid #ddd; padding: 8px; text-align: center; font-weight: bold; color: var(--primary); font-size: 1.1em; background: #f8f9fa;">${okunanSayisi}</td>
+            <td style="box-sizing: border-box; border-bottom: 1px solid #e2e8f0; border-left: 3px solid #94a3b8; padding: 8px; text-align: center; font-weight: bold; color: var(--primary); font-size: 1.1em; position: sticky; right: 0; background: #f1f5f9; z-index: 5;">${okunanSayisi}</td>
         </tr>`;
     });
 
     tabloHtml += `</tbody></table>`;
     document.getElementById('kitap-tablosu-alani').innerHTML = tabloHtml;
 
-    // 3 AŞAMALI TIKLAMA DÖNGÜSÜ
     document.querySelectorAll('.hucre-tikla').forEach(div => {
         div.addEventListener('click', async (e) => {
             const ogrId = e.currentTarget.getAttribute('data-ogr');
@@ -348,31 +334,22 @@ async function arayuzuGuncelle() {
             let textColor = 'transparent';
             let icon = '·';
 
-            // Döngü: Boş -> ⏳ (Okuyor) -> ✔️ (Okudu) -> Boş
             if (mevcutDeger === '') {
-                newValue = '⏳';
-                bgRenk = '#fef3c7';
-                textColor = '#d97706';
-                icon = '⏳';
+                newValue = '⏳'; bgRenk = '#fef3c7'; textColor = '#d97706'; icon = '⏳';
             } else if (mevcutDeger === '⏳') {
-                newValue = '✔️';
-                bgRenk = '#d1fae5';
-                textColor = '#059669';
-                icon = '✔️';
+                newValue = '✔️'; bgRenk = '#d1fae5'; textColor = '#059669'; icon = '✔️';
             } else {
                 newValue = '';
             }
             
-            // Görseli anında güncelle (Kullanıcı bekleme hissi yaşamasın)
             e.currentTarget.setAttribute('data-val', newValue);
             e.currentTarget.innerText = icon;
-            e.currentTarget.style.backgroundColor = bgRenk;
+            e.currentTarget.parentElement.style.backgroundColor = bgRenk;
             e.currentTarget.style.color = textColor;
             
-            // Veritabanına kaydet
             await db.saveMatrixStatus('kitap_matrisi', ogrId, kalemId, newValue);
             
-            // Toplamları ve tabloyu güncellemek için arka planda yeniden yükle
+            // Toplam sayısını doğru güncellemek için listeyi arka planda tamamen yenile
             setTimeout(() => { arayuzuGuncelle(); }, 300);
         });
     });

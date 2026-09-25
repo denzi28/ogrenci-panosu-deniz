@@ -27,7 +27,7 @@ export async function render(container) {
                 <button id="btn-kitap-ekle" class="btn btn-primary">Tek Ekle</button>
             </div>
 
-            <!-- YENİ: TOPLU EKLEME ALANI -->
+            <!-- TOPLU EKLEME ALANI -->
             <div style="margin-top: 15px; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
                 <p style="font-size: 0.85em; color: #475569; margin-bottom: 8px; font-weight: bold;">📥 Toplu Kitap Ekleme</p>
                 <textarea id="toplu-kitap-ad" placeholder="Kitap isimlerini alt alta veya virgülle ayırarak yazın (Excel, Word veya Not Defterinden direkt yapıştırabilirsiniz)" rows="3" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;"></textarea>
@@ -44,7 +44,12 @@ export async function render(container) {
                     🖨️ Listeyi Yazdır / PDF Al
                 </button>
             </div>
-            <p style="font-size:0.85em; color:#666; margin-bottom: 15px;">Öğrenci kitabı okuduğunda ilgili hücreye <strong>bir kez tıklamanız</strong> yeterlidir (✔️ atılır). Tekrar tıklayarak iptal edebilirsiniz. Otomatik kaydedilir.</p>
+            <p style="font-size:0.85em; color:#666; margin-bottom: 15px;">
+                İlgili hücreye tıklayarak durumu değiştirebilirsiniz: 
+                <strong>1. Tıklama: ⏳ Okuyor (Sarı)</strong> ➔ 
+                <strong>2. Tıklama: ✔️ Okudu (Yeşil)</strong> ➔ 
+                <strong>3. Tıklama: Sil (Boş)</strong>. Otomatik kaydedilir.
+            </p>
             <div id="kitap-tablosu-alani"><p>⏳ Tablo yükleniyor...</p></div>
         </div>
     `;
@@ -70,7 +75,7 @@ export async function render(container) {
         }
     });
 
-    // YENİ: TOPLU KİTAP EKLEME
+    // TOPLU KİTAP EKLEME
     document.getElementById('btn-toplu-kitap-ekle').addEventListener('click', async () => {
         const metin = document.getElementById('toplu-kitap-ad').value;
         if (!metin.trim()) return alert("Lütfen eklenecek kitap isimlerini yazın.");
@@ -79,7 +84,6 @@ export async function render(container) {
         btn.disabled = true;
         btn.innerText = "⏳ Ekleniyor...";
 
-        // Alt satıra (\n) veya virgüle (,) göre böl, boşlukları temizle ve boş olanları ele
         const kitaplar = metin.split(/[\n,]+/).map(k => k.trim()).filter(k => k !== "");
         
         let eklenenSayisi = 0;
@@ -133,7 +137,11 @@ export async function render(container) {
                     th, td { border: 1px solid #000; padding: 4px 6px; }
                     th { background-color: #f1f5f9; font-weight: bold; }
                     td.merkez { text-align: center; }
-                    .dolu { background-color: #d1fae5 !important; font-weight: bold; -webkit-print-color-adjust: exact; color-adjust: exact; color: #059669; }
+                    
+                    /* YAZDIRMA RENKLERİ */
+                    .okudu { background-color: #d1fae5 !important; font-weight: bold; -webkit-print-color-adjust: exact; color-adjust: exact; color: #059669; }
+                    .okuyor { background-color: #fef3c7 !important; font-weight: bold; -webkit-print-color-adjust: exact; color-adjust: exact; color: #d97706; }
+                    
                     .dikey-baslik { writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap; margin: 0 auto; }
                     tr:nth-child(even) { background-color: #f8fafc !important; -webkit-print-color-adjust: exact; color-adjust: exact; }
                 </style>
@@ -165,13 +173,20 @@ export async function render(container) {
             
             kalemler.forEach(k => {
                 let hucreDegeri = matris.find(m => m.ogrId === ogr.id && m.targetId === k.id)?.deger || '';
-                let islemGorduMu = hucreDegeri === '✔️';
-                if (islemGorduMu) okunanSayisi++;
+                let islemOkudu = hucreDegeri === '✔️';
+                let islemOkuyor = hucreDegeri === '⏳';
+                
+                if (islemOkudu) okunanSayisi++;
                 
                 let cssClass = "merkez";
-                if (islemGorduMu) cssClass += " dolu";
+                if (islemOkudu) cssClass += " okudu";
+                else if (islemOkuyor) cssClass += " okuyor";
                 
-                rowHtml += `<td class="${cssClass}">${islemGorduMu ? '✔️' : ''}</td>`;
+                let icon = '';
+                if(islemOkudu) icon = '✔️';
+                else if(islemOkuyor) icon = '⏳';
+
+                rowHtml += `<td class="${cssClass}">${icon}</td>`;
             });
             
             rowHtml += `<td class="merkez" style="background:#f8f9fa;"><strong>${okunanSayisi}</strong></td></tr>`;
@@ -277,16 +292,31 @@ async function arayuzuGuncelle() {
 
         kalemler.forEach(k => {
             let hucreDegeri = matris.find(m => m.ogrId === ogr.id && m.targetId === k.id)?.deger || '';
-            let doluMu = hucreDegeri === '✔️';
-            if (doluMu) okunanSayisi++;
+            
+            if (hucreDegeri === '✔️') okunanSayisi++; // Sadece bitirilenleri (✔️) toplama dahil et
+            
+            // Hücre Renk ve İkon Mantığı
+            let bgRenk = 'transparent';
+            let textColor = 'transparent';
+            let icon = '·';
+            
+            if (hucreDegeri === '⏳') {
+                bgRenk = '#fef3c7'; // Sarımsı Arka Plan
+                textColor = '#d97706'; // Turuncu/Sarı Metin
+                icon = '⏳';
+            } else if (hucreDegeri === '✔️') {
+                bgRenk = '#d1fae5'; // Yeşilimsi Arka Plan
+                textColor = '#059669'; // Koyu Yeşil Metin
+                icon = '✔️';
+            }
             
             cellsHtml += `
                 <td style="border: 1px solid #ddd; padding: 0;">
-                    <div class="hucre-tikla" data-ogr="${ogr.id}" data-kalem="${k.id}" 
+                    <div class="hucre-tikla" data-ogr="${ogr.id}" data-kalem="${k.id}" data-val="${hucreDegeri}"
                          style="width: 100%; height: 100%; padding: 10px 0; text-align: center; cursor: pointer; user-select: none; transition: 0.2s; 
-                                background-color: ${doluMu ? '#d1fae5' : 'transparent'}; 
-                                color: ${doluMu ? '#059669' : 'transparent'}; font-size: 1.1em; font-weight: bold;">
-                        ${doluMu ? '✔️' : '·'}
+                                background-color: ${bgRenk}; 
+                                color: ${textColor}; font-size: 1.1em; font-weight: bold;">
+                        ${icon}
                     </div>
                 </td>
             `;
@@ -306,19 +336,43 @@ async function arayuzuGuncelle() {
     tabloHtml += `</tbody></table>`;
     document.getElementById('kitap-tablosu-alani').innerHTML = tabloHtml;
 
+    // 3 AŞAMALI TIKLAMA DÖNGÜSÜ
     document.querySelectorAll('.hucre-tikla').forEach(div => {
         div.addEventListener('click', async (e) => {
             const ogrId = e.currentTarget.getAttribute('data-ogr');
             const kalemId = e.currentTarget.getAttribute('data-kalem');
+            const mevcutDeger = e.currentTarget.getAttribute('data-val');
             
-            let isChecked = e.currentTarget.innerText === '✔️';
-            let newValue = isChecked ? '' : '✔️';
+            let newValue = '';
+            let bgRenk = 'transparent';
+            let textColor = 'transparent';
+            let icon = '·';
+
+            // Döngü: Boş -> ⏳ (Okuyor) -> ✔️ (Okudu) -> Boş
+            if (mevcutDeger === '') {
+                newValue = '⏳';
+                bgRenk = '#fef3c7';
+                textColor = '#d97706';
+                icon = '⏳';
+            } else if (mevcutDeger === '⏳') {
+                newValue = '✔️';
+                bgRenk = '#d1fae5';
+                textColor = '#059669';
+                icon = '✔️';
+            } else {
+                newValue = '';
+            }
             
-            e.currentTarget.innerText = newValue ? '✔️' : '·';
-            e.currentTarget.style.backgroundColor = newValue ? '#d1fae5' : '#fff3cd';
-            e.currentTarget.style.color = newValue ? '#059669' : 'transparent';
+            // Görseli anında güncelle (Kullanıcı bekleme hissi yaşamasın)
+            e.currentTarget.setAttribute('data-val', newValue);
+            e.currentTarget.innerText = icon;
+            e.currentTarget.style.backgroundColor = bgRenk;
+            e.currentTarget.style.color = textColor;
             
+            // Veritabanına kaydet
             await db.saveMatrixStatus('kitap_matrisi', ogrId, kalemId, newValue);
+            
+            // Toplamları ve tabloyu güncellemek için arka planda yeniden yükle
             setTimeout(() => { arayuzuGuncelle(); }, 300);
         });
     });

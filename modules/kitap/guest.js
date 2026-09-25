@@ -15,6 +15,38 @@ export async function render(container) {
         return;
     }
 
+    container.innerHTML = `
+        <!-- ANA LİSTE GÖRÜNÜMÜ -->
+        <div id="ana-gorunum" style="display: block;">
+            <div class="card" style="border-top: 4px solid var(--primary);">
+                <h3 style="margin-top: 0; color: var(--primary); margin-bottom: 20px;">📚 Sınıf Kitap Okuma Tablosu</h3>
+                <p style="font-size:0.85em; color:#666; margin-bottom: 15px;">Öğrencilerin okudukları detaylı kitap listesini görmek için yanlarındaki <strong>"📚 Kitapları Gör"</strong> butonuna tıklayın.</p>
+                <div id="kitap-tablosu-alani" style="overflow-x: auto;"><p>⏳ Liste yükleniyor...</p></div>
+            </div>
+        </div>
+
+        <!-- YENİ: ÖĞRENCİ DETAY GÖRÜNÜMÜ (Alt Alta Kitap Listesi) -->
+        <div id="detay-gorunum" style="display: none;">
+            <div class="card" style="border-top: 4px solid var(--success); min-height: 50vh;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+                    <h2 id="detay-baslik" style="margin: 0; color: var(--primary);">📖 Öğrenci Adı - Kitap Listesi</h2>
+                    <button id="btn-detay-kapat" class="btn btn-secondary" style="font-weight: bold; padding: 10px 20px; font-size: 1.1em; box-shadow: 0 4px 0 #94a3b8;">⬅️ Listeye Dön</button>
+                </div>
+                <div id="detay-kitap-listesi"></div>
+            </div>
+        </div>
+    `;
+
+    document.getElementById('btn-detay-kapat').addEventListener('click', () => {
+        document.getElementById('detay-gorunum').style.display = 'none';
+        document.getElementById('ana-gorunum').style.display = 'block';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    await listeyiYukle();
+}
+
+async function listeyiYukle() {
     // HIZLANDIRMA: Veriler paralel çekilir
     const [kalemler, tumKullanicilar, matris] = await Promise.all([
         db.getAll('kitaplar_kalemleri'),
@@ -22,13 +54,15 @@ export async function render(container) {
         db.getAll('kitap_matrisi')
     ]);
 
-    const ogrenciler = tumKullanicilar.filter(u => u.role === 'student');
-
     if (kalemler.length === 0) {
-        container.innerHTML = '<div class="card"><p style="color:#888;">Henüz listeye kitap eklenmemiş.</p></div>';
+        document.getElementById('kitap-tablosu-alani').innerHTML = '<p style="color:#888;">Henüz listeye kitap eklenmemiş.</p>';
         return;
     }
 
+    // KİTAPLARI ALFABETİK SIRALA
+    kalemler.sort((a, b) => a.ad.localeCompare(b.ad, 'tr-TR'));
+
+    const ogrenciler = tumKullanicilar.filter(u => u.role === 'student');
     ogrenciler.sort((a, b) => {
         const noA = parseInt(a.okulno) || 999999;
         const noB = parseInt(b.okulno) || 999999;
@@ -37,50 +71,88 @@ export async function render(container) {
     });
 
     let tabloHtml = `
-        <div class="card" style="border-top: 4px solid var(--primary); overflow-x: auto;">
-            <h3 style="margin-top: 0; color: var(--primary); margin-bottom: 20px;">📚 Sınıf Kitap Okuma Tablosu</h3>
-            <table style="width: 100%; border-collapse: collapse; min-width: 600px; font-size: 0.9em;">
-                <thead>
-                    <tr style="background: #f8f9fa;">
-                        <th style="border: 1px solid #ddd; padding: 10px 5px; width: 30px; text-align: center; vertical-align: bottom; height: 140px;">SN</th>
-                        <th style="border: 1px solid #ddd; padding: 10px 5px; text-align: left; width: 180px; vertical-align: bottom;">ADI SOYADI</th>
-                        ${kalemler.map(k => `
-                            <th style="border: 1px solid #ddd; padding: 10px 2px; width: 35px; vertical-align: bottom;">
-                                <div style="writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap; margin: 0 auto; font-size: 0.95em;">${k.ad}</div>
-                            </th>
-                        `).join('')}
-                        <th style="border: 1px solid #ddd; padding: 10px 5px; width: 50px; color: var(--primary); vertical-align: bottom;">
-                            <div style="writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap; margin: 0 auto; font-weight: 900;">TOPLAM</div>
-                        </th>
-                    </tr>
-                </thead>
-                <tbody>
+        <table style="width: 100%; border-collapse: collapse; min-width: 500px; font-size: 0.95em;">
+            <thead>
+                <tr style="background: #f8f9fa;">
+                    <th style="border: 1px solid #ddd; padding: 12px; width: 40px; text-align: center;">SN</th>
+                    <th style="border: 1px solid #ddd; padding: 12px; text-align: left;">ADI SOYADI</th>
+                    <th style="border: 1px solid #ddd; padding: 12px; width: 90px; color: var(--primary); text-align: center;">TOPLAM</th>
+                    <th style="border: 1px solid #ddd; padding: 12px; width: 140px; text-align: center;">DETAY</th>
+                </tr>
+            </thead>
+            <tbody>
     `;
 
     ogrenciler.forEach((ogr, index) => {
         let okunanSayisi = 0;
-        let cellsHtml = '';
-
         kalemler.forEach(k => {
-            let hucreDegeri = matris.find(m => m.ogrId === ogr.id && m.targetId === k.id)?.deger || '';
-            let doluMu = hucreDegeri === '✔️';
-            if (doluMu) okunanSayisi++;
-            
-            cellsHtml += `
-                <td style="border: 1px solid #ddd; padding: 8px 0; text-align: center; background-color: ${doluMu ? '#d1fae5' : 'transparent'}; color: ${doluMu ? '#059669' : 'transparent'}; font-size: 1.1em; font-weight: bold;">
-                    ${doluMu ? '✔️' : ''}
-                </td>
-            `;
+            if (matris.find(m => m.ogrId === ogr.id && m.targetId === k.id)?.deger === '✔️') okunanSayisi++;
         });
 
-        tabloHtml += `<tr>
-            <td style="border: 1px solid #ddd; padding: 10px; text-align: center; color: #666;">${index + 1}</td>
-            <td style="border: 1px solid #ddd; padding: 10px; font-weight: bold; color: #333;">${ogr.name}</td>
-            ${cellsHtml}
-            <td style="border: 1px solid #ddd; padding: 10px; text-align: center; font-weight: bold; color: var(--primary); font-size: 1.1em; background: #f8f9fa;">${okunanSayisi}</td>
-        </tr>`;
+        let satirArkaPlan = index % 2 === 0 ? '#ffffff' : '#f8fafc';
+
+        tabloHtml += `
+            <tr style="background-color: ${satirArkaPlan};">
+                <td style="border: 1px solid #ddd; padding: 10px; text-align: center; color: #666;">${index + 1}</td>
+                <td style="border: 1px solid #ddd; padding: 10px; font-weight: bold; color: #333;">${ogr.name}</td>
+                <td style="border: 1px solid #ddd; padding: 10px; text-align: center; font-weight: bold; color: var(--primary); font-size: 1.2em; background: #f1f5f9;">${okunanSayisi}</td>
+                <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">
+                    <button class="btn btn-primary btn-detay-ac" data-ogrid="${ogr.id}" data-ogrname="${ogr.name}" style="padding: 8px 15px; font-weight: bold; font-size: 0.9em;">
+                        📚 Kitapları Gör
+                    </button>
+                </td>
+            </tr>
+        `;
     });
 
-    tabloHtml += `</tbody></table></div>`;
-    container.innerHTML = tabloHtml;
+    tabloHtml += `</tbody></table>`;
+    document.getElementById('kitap-tablosu-alani').innerHTML = tabloHtml;
+
+    document.querySelectorAll('.btn-detay-ac').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const ogrId = e.currentTarget.getAttribute('data-ogrid');
+            const ogrName = e.currentTarget.getAttribute('data-ogrname');
+            ogrenciDetayiniAc(ogrId, ogrName, kalemler, matris);
+        });
+    });
+}
+
+function ogrenciDetayiniAc(ogrId, ogrName, kalemler, matris) {
+    document.getElementById('ana-gorunum').style.display = 'none';
+    document.getElementById('detay-gorunum').style.display = 'block';
+    document.getElementById('detay-baslik').innerText = `📖 ${ogrName} - Kitap Listesi`;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    let listeHtml = '<div style="display: flex; flex-direction: column; gap: 12px;">';
+
+    kalemler.forEach((k, index) => {
+        let mevcutDeger = matris.find(m => m.ogrId === ogrId && m.targetId === k.id)?.deger || '';
+        
+        let durumText = 'Okumadı';
+        let bgRenk = '#f1f5f9';
+        let textColor = '#64748b';
+        let borderRenk = '#cbd5e1';
+
+        if (mevcutDeger === '⏳') {
+            durumText = '⏳ Okuyor';
+            bgRenk = '#fef3c7'; textColor = '#d97706'; borderRenk = '#f59e0b';
+        } else if (mevcutDeger === '✔️') {
+            durumText = '✔️ Okudu';
+            bgRenk = '#d1fae5'; textColor = '#059669'; borderRenk = '#10b981';
+        }
+
+        listeHtml += `
+            <div style="background: white; padding: 15px 20px; border-radius: 12px; border: 2px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+                <div style="font-size: 1.1em; font-weight: bold; color: #334155; flex: 1; min-width: 200px;">
+                    <span style="color: #94a3b8; margin-right: 10px;">${index + 1}.</span>${k.ad}
+                </div>
+                <div style="padding: 8px 15px; border-radius: 8px; font-weight: bold; font-size: 0.95em; border: 2px solid ${borderRenk}; background: ${bgRenk}; color: ${textColor}; min-width: 100px; text-align: center;">
+                    ${durumText}
+                </div>
+            </div>
+        `;
+    });
+
+    listeHtml += '</div>';
+    document.getElementById('detay-kitap-listesi').innerHTML = listeHtml;
 }

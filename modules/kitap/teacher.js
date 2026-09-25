@@ -133,6 +133,9 @@ export async function render(container) {
         
         if (kalemler.length === 0) return alert("Sistemde kitap bulunmuyor.");
 
+        // KİTAPLARI ALFABETİK SIRALA (Türkçe karakter uyumlu)
+        kalemler.sort((a, b) => a.ad.localeCompare(b.ad, 'tr-TR'));
+
         const ogrenciler = tumKullanicilar.filter(u => u.role === 'student');
         ogrenciler.sort((a, b) => {
             const noA = parseInt(a.okulno) || 999999;
@@ -227,6 +230,9 @@ async function arayuzuGuncelle() {
         db.getAll('users'),
         db.getAll('kitap_matrisi')
     ]);
+
+    // KİTAPLARI ALFABETİK SIRALA (Türkçe karakter uyumlu)
+    kalemler.sort((a, b) => a.ad.localeCompare(b.ad, 'tr-TR'));
 
     const ogrenciler = tumKullanicilar.filter(u => u.role === 'student');
     ogrenciler.sort((a, b) => {

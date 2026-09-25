@@ -20,11 +20,21 @@ export async function render(container) {
 
         <div class="card" style="border-top: 4px solid var(--primary);">
             <h3>1. Aşama: Okunacak Kitapları Ekle</h3>
+            
+            <!-- TEKİL EKLEME -->
             <div style="display: flex; gap: 10px; margin-top: 15px;">
-                <input type="text" id="yeni-kitap-ad" placeholder="Örn: Küçük Prens, Şeker Portakalı..." style="flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 4px;">
-                <button id="btn-kitap-ekle" class="btn btn-primary">Kitap Ekle</button>
+                <input type="text" id="yeni-kitap-ad" placeholder="Tek bir kitap ekle (Örn: Küçük Prens)" style="flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 4px;">
+                <button id="btn-kitap-ekle" class="btn btn-primary">Tek Ekle</button>
             </div>
-            <div id="kitap-basliklari" style="margin-top: 15px; display: flex; flex-wrap: wrap; gap: 10px;"></div>
+
+            <!-- YENİ: TOPLU EKLEME ALANI -->
+            <div style="margin-top: 15px; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                <p style="font-size: 0.85em; color: #475569; margin-bottom: 8px; font-weight: bold;">📥 Toplu Kitap Ekleme</p>
+                <textarea id="toplu-kitap-ad" placeholder="Kitap isimlerini alt alta veya virgülle ayırarak yazın (Excel, Word veya Not Defterinden direkt yapıştırabilirsiniz)" rows="3" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;"></textarea>
+                <button id="btn-toplu-kitap-ekle" class="btn btn-success" style="margin-top: 8px;">Listeyi Toplu Ekle</button>
+            </div>
+
+            <div id="kitap-basliklari" style="margin-top: 25px; display: flex; flex-wrap: wrap; gap: 10px;"></div>
         </div>
 
         <div class="card" style="border-top: 4px solid var(--success); overflow-x: auto;">
@@ -47,6 +57,7 @@ export async function render(container) {
         else { btn.className = "btn btn-secondary"; btn.innerText = "Menüde Gizli (Göster)"; }
     });
 
+    // TEKİL KİTAP EKLEME
     document.getElementById('btn-kitap-ekle').addEventListener('click', async () => {
         const ad = document.getElementById('yeni-kitap-ad').value.trim();
         if (ad) {
@@ -54,13 +65,40 @@ export async function render(container) {
             btn.disabled = true; btn.innerText = "...";
             await db.add('kitaplar_kalemleri', { ad: ad });
             document.getElementById('yeni-kitap-ad').value = '';
-            btn.disabled = false; btn.innerText = "Kitap Ekle";
+            btn.disabled = false; btn.innerText = "Tek Ekle";
+            await arayuzuGuncelle();
+        }
+    });
+
+    // YENİ: TOPLU KİTAP EKLEME
+    document.getElementById('btn-toplu-kitap-ekle').addEventListener('click', async () => {
+        const metin = document.getElementById('toplu-kitap-ad').value;
+        if (!metin.trim()) return alert("Lütfen eklenecek kitap isimlerini yazın.");
+
+        const btn = document.getElementById('btn-toplu-kitap-ekle');
+        btn.disabled = true;
+        btn.innerText = "⏳ Ekleniyor...";
+
+        // Alt satıra (\n) veya virgüle (,) göre böl, boşlukları temizle ve boş olanları ele
+        const kitaplar = metin.split(/[\n,]+/).map(k => k.trim()).filter(k => k !== "");
+        
+        let eklenenSayisi = 0;
+        for (const kitap of kitaplar) {
+            await db.add('kitaplar_kalemleri', { ad: kitap });
+            eklenenSayisi++;
+        }
+
+        document.getElementById('toplu-kitap-ad').value = '';
+        btn.disabled = false;
+        btn.innerText = "Listeyi Toplu Ekle";
+        
+        if(eklenenSayisi > 0) {
+            alert(eklenenSayisi + " adet kitap başarıyla eklendi!");
             await arayuzuGuncelle();
         }
     });
 
     document.getElementById('btn-kitap-yazdir').addEventListener('click', async () => {
-        // HIZLANDIRMA: Yazdırırken veriler aynı anda (paralel) çekilir
         const [kalemler, tumKullanicilar, matris] = await Promise.all([
             db.getAll('kitaplar_kalemleri'),
             db.getAll('users'),
@@ -97,7 +135,6 @@ export async function render(container) {
                     td.merkez { text-align: center; }
                     .dolu { background-color: #d1fae5 !important; font-weight: bold; -webkit-print-color-adjust: exact; color-adjust: exact; color: #059669; }
                     .dikey-baslik { writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap; margin: 0 auto; }
-                    /* Yazıcıda da zebra deseninin çıkması için */
                     tr:nth-child(even) { background-color: #f8fafc !important; -webkit-print-color-adjust: exact; color-adjust: exact; }
                 </style>
             </head>
@@ -160,7 +197,6 @@ export async function render(container) {
 }
 
 async function arayuzuGuncelle() {
-    // HIZLANDIRMA: Tüm tablolar buluttan aynı anda çekilir
     const [kalemler, tumKullanicilar, matris] = await Promise.all([
         db.getAll('kitaplar_kalemleri'),
         db.getAll('users'),
@@ -256,7 +292,6 @@ async function arayuzuGuncelle() {
             `;
         });
 
-        // ZEBRA DESENİ İÇİN SATIR RENGİ: Çift sayılar beyaz, tek sayılar çok hafif gri-mavi
         let satirArkaPlan = index % 2 === 0 ? '#ffffff' : '#f1f5f9';
 
         tabloHtml += `<tr style="background-color: ${satirArkaPlan}; transition: background-color 0.2s;">

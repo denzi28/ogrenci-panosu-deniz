@@ -1,6 +1,7 @@
 import { db } from '../../js/db.js';
 
 let seciliGorevId = null; 
+let aktifGorevSiralama = 'yeni'; // Varsayılan sıralama: Önce yeni eklenenler
 
 export async function render(container) {
     container.innerHTML = '<div class="card"><p>⚡ Görevler hızla yükleniyor...</p></div>';
@@ -49,7 +50,17 @@ export async function render(container) {
                 </div>
             </div>
             
-            <h3 style="border-bottom: 1px solid #eee; padding-bottom: 10px; margin-top: 25px;">📋 Eklenen Görevler <span style="font-size: 0.6em; color: #888; font-weight: normal;">(Test etmek için oyun adına tıklayın)</span></h3>
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; margin-top: 30px;">
+                <h3 style="margin: 0; color: #334155;">📋 Eklenen Görevler <span style="font-size: 0.6em; color: #888; font-weight: normal;">(Test etmek için oyun ikonuna tıklayın)</span></h3>
+                
+                <select id="siralama-secim" style="padding: 6px 12px; border-radius: 6px; border: 2px solid #cbd5e1; font-weight: bold; color: #475569; outline: none; cursor: pointer; background: #f8fafc;">
+                    <option value="yeni" ${aktifGorevSiralama === 'yeni' ? 'selected' : ''}>🔽 Önce Yeni Eklenenler</option>
+                    <option value="varsayilan" ${aktifGorevSiralama === 'varsayilan' ? 'selected' : ''}>🔼 Eklenme Sırası (Eskiler Üstte)</option>
+                    <option value="alfabetik" ${aktifGorevSiralama === 'alfabetik' ? 'selected' : ''}>🔤 Alfabetik (A-Z)</option>
+                    <option value="yayinda" ${aktifGorevSiralama === 'yayinda' ? 'selected' : ''}>🟢 Önce Yayında Olanlar</option>
+                </select>
+            </div>
+            
             <div id="gorev-listesi" style="margin-top: 15px; display: flex; flex-direction: column; gap: 8px;"></div>
         </div>
 
@@ -72,6 +83,12 @@ export async function render(container) {
             <iframe id="oyun-iframe" style="width: 100%; flex: 1; border: none; background: #f0fdf4;"></iframe>
         </div>
     `;
+
+    // Sıralama Değişimi
+    document.getElementById('siralama-secim').addEventListener('change', (e) => {
+        aktifGorevSiralama = e.target.value;
+        arayuzuGuncelle();
+    });
 
     document.getElementById('toggle-module-btn').addEventListener('click', async (e) => {
         const newStatus = !(await db.getModuleVisibility('uygulamalar'));
@@ -99,6 +116,9 @@ export async function render(container) {
                 await db.update('uygulama_kalemleri', id, veri);
             } else {
                 await db.add('uygulama_kalemleri', veri);
+                // Yeni kayıt eklenince rahat görünsün diye sıralamayı "yeni" yapalım
+                aktifGorevSiralama = 'yeni'; 
+                document.getElementById('siralama-secim').value = 'yeni';
             }
             
             formuTemizle();
@@ -159,7 +179,6 @@ export async function render(container) {
                     td.merkez { text-align: center; }
                     .yesil { background-color: #d1fae5 !important; font-weight: bold; -webkit-print-color-adjust: exact; color-adjust: exact; }
                     .gri { color: #64748b; font-style: italic; }
-                    /* Yazıcıda da zebra deseninin çıkması için */
                     tr:nth-child(even) { background-color: #f8fafc !important; -webkit-print-color-adjust: exact; color-adjust: exact; }
                 </style>
             </head>
@@ -232,7 +251,7 @@ function tarihFormatla(tarihStr) {
 }
 
 async function arayuzuGuncelle() {
-    const [kalemler, tumKullanicilar, matris] = await Promise.all([
+    const [kalemlerHam, tumKullanicilar, matris] = await Promise.all([
         db.getAll('uygulama_kalemleri'),
         db.getAll('users'),
         db.getAll('uygulama_matrisi')
@@ -246,22 +265,38 @@ async function arayuzuGuncelle() {
     const dd = String(bugunObj.getDate()).padStart(2, '0');
     const bugun = `${yyyy}-${mm}-${dd}`;
 
+    // SIRALAMA İŞLEMİ
+    let siraliGorevler = [...kalemlerHam];
+    if (aktifGorevSiralama === 'yeni') {
+        siraliGorevler.reverse(); // Listeyi ters çevir (en son eklenen üste)
+    } else if (aktifGorevSiralama === 'alfabetik') {
+        siraliGorevler.sort((a, b) => (a.ad || '').localeCompare(b.ad || '', 'tr-TR'));
+    } else if (aktifGorevSiralama === 'yayinda') {
+        siraliGorevler.sort((a, b) => {
+            let aYayinda = (!a.baslangic || bugun >= a.baslangic) && (!a.bitis || bugun <= a.bitis) ? 1 : 0;
+            let bYayinda = (!b.baslangic || bugun >= b.baslangic) && (!b.bitis || bugun <= b.bitis) ? 1 : 0;
+            if (aYayinda !== bYayinda) return bYayinda - aYayinda;
+            return (a.ad || '').localeCompare(b.ad || '', 'tr-TR');
+        });
+    }
+
     const toplamOgrenciSayisi = ogrenciler.length;
     let listHtml = '';
     
-    if (kalemler.length === 0) {
-        listHtml = '<p style="color:#888;">Henüz görev eklenmemiş.</p>';
+    if (siraliGorevler.length === 0) {
+        listHtml = '<div style="color:#64748b; padding: 15px; text-align: center; background: #f8fafc; border-radius: 8px; font-style: italic;">Henüz sisteme bir görev/oyun eklenmemiş.</div>';
     } else {
-        kalemler.forEach(k => {
+        siraliGorevler.forEach(k => {
             const isSelected = k.id === seciliGorevId;
-            const bgRenk = isSelected ? '#e8f4fd' : '#f9f9f9';
-            const borderStil = isSelected ? 'border: 2px solid var(--primary);' : 'border: 1px solid #ddd;';
+            const borderStil = isSelected ? 'border: 2px solid var(--primary);' : 'border: 1px solid #cbd5e1;';
+            const displayDurum = isSelected ? 'block' : 'none';
+            const okYon = isSelected ? 'rotate(180deg)' : 'rotate(0deg)';
 
             const tamamlayanSayisi = matris.filter(m => m.targetId === k.id && m.deger && m.deger !== '').length;
             const tamamlandiMi = (tamamlayanSayisi === toplamOgrenciSayisi && toplamOgrenciSayisi > 0);
             const rozetBg = tamamlandiMi ? '#d1fae5' : '#e2e8f0';
             const rozetText = tamamlandiMi ? '#065f46' : '#475569';
-            const katilimRozeti = `<span style="display: inline-block; margin-top: 8px; background: ${rozetBg}; color: ${rozetText}; padding: 4px 10px; border-radius: 12px; font-size: 0.85em; font-weight: bold;">📊 Katılım: ${tamamlayanSayisi} / ${toplamOgrenciSayisi} Öğrenci</span>`;
+            const katilimRozeti = `<span style="background: ${rozetBg}; color: ${rozetText}; padding: 4px 10px; border-radius: 12px; font-size: 0.85em; font-weight: bold;">📊 Katılım: ${tamamlayanSayisi} / ${toplamOgrenciSayisi} Öğrenci</span>`;
 
             let durumText = "🟢 Yayında";
             let durumBg = "#dcfce7"; 
@@ -277,23 +312,36 @@ async function arayuzuGuncelle() {
                 durumColor = "#991b1b"; 
             }
 
-            const durumRozeti = `<span style="display: inline-block; margin-top: 8px; margin-right: 5px; background: ${durumBg}; color: ${durumColor}; padding: 4px 10px; border-radius: 12px; font-size: 0.85em; font-weight: bold;">${durumText}</span>`;
+            const durumRozeti = `<span style="background: ${durumBg}; color: ${durumColor}; padding: 4px 10px; border-radius: 12px; font-size: 0.85em; font-weight: bold;">${durumText}</span>`;
 
             listHtml += `
-                <div style="background: ${bgRenk}; padding: 10px 15px; border-radius: 8px; display: flex; justify-content: space-between; align-items: flex-start; ${borderStil} transition: all 0.2s; flex-wrap: wrap; gap: 10px;">
-                    <div style="flex: 1; min-width: 200px;">
-                        <span class="btn-oyun-dene" data-link="${k.link}" style="font-weight: bold; color: var(--primary); font-size: 1.2em; cursor: pointer; display: inline-block; padding: 2px 5px; border-radius: 4px; border: 1px solid transparent;" onmouseover="this.style.background='#dbeafe'; this.style.borderColor='var(--primary)';" onmouseout="this.style.background='transparent'; this.style.borderColor='transparent';" title="Oyunu Test Et">🎮 ${k.ad}</span><br>
-                        ${k.aciklama ? `<div style="font-size: 0.85em; color: #444; margin: 4px 0; font-style: italic;">📝 ${k.aciklama}</div>` : ''}
-                        <span style="font-size: 0.8em; color: #888;">Yol: ${k.link}</span><br>
-                        <span style="font-size: 0.8em; color: #555;">📅 Tarih: ${tarihFormatla(k.baslangic)} - ${tarihFormatla(k.bitis)}</span><br>
-                        ${durumRozeti} ${katilimRozeti}
+                <div style="background: white; border-radius: 8px; margin-bottom: 5px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05); ${borderStil} transition: all 0.2s;">
+                    
+                    <div class="gorev-baslik-tikla" data-hedef="detay-${k.id}" data-ok="ok-${k.id}" 
+                         style="padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; background: ${isSelected ? '#e8f4fd' : '#f8fafc'}; border-bottom: 1px solid ${isSelected ? '#cbd5e1' : 'transparent'};">
+                        <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                            <span class="btn-oyun-dene" data-link="${k.link}" style="font-size: 1.4em; cursor: pointer; padding: 2px 5px; border-radius: 4px; transition: 0.2s;" onmouseover="this.style.background='#dbeafe';" onmouseout="this.style.background='transparent';" title="Oyunu Test Et">🎮</span>
+                            <h4 style="margin: 0; color: #0284c7; font-size: 1.1em;">${k.ad}</h4>
+                            ${durumRozeti}
+                        </div>
+                        <div id="ok-${k.id}" style="font-size: 1em; color: #64748b; font-weight: bold; transition: transform 0.3s; transform: ${okYon};">▼</div>
                     </div>
-                    <div style="display: flex; gap: 8px; align-items: center; margin-top: 5px;">
-                        <button class="btn btn-primary btn-incele" data-id="${k.id}" style="padding: 6px 12px; font-size: 0.85em; font-weight: bold;">
-                            ${isSelected ? '👀 İnceleniyor' : '🔍 İncele'}
-                        </button>
-                        <button class="btn btn-secondary btn-gorev-duzenle" data-id="${k.id}" style="padding: 6px 12px; font-size: 0.85em;">Düzenle</button>
-                        <button class="btn btn-danger btn-gorev-sil" data-id="${k.id}" style="padding: 6px 12px; font-size: 0.85em;">Sil</button>
+
+                    <div id="detay-${k.id}" style="display: ${displayDurum}; padding: 15px; background: #ffffff;">
+                        ${k.aciklama ? `<p style="margin: 0 0 10px 0; color: #475569; font-style: italic;">📝 ${k.aciklama}</p>` : ''}
+                        <p style="margin: 0 0 5px 0; color: #64748b; font-size: 0.9em;">📂 Yol: ${k.link}</p>
+                        <p style="margin: 0 0 15px 0; color: #64748b; font-size: 0.9em;">📅 Tarih: ${tarihFormatla(k.baslangic)} - ${tarihFormatla(k.bitis)}</p>
+                        
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                            <div>${katilimRozeti}</div>
+                            <div style="display: flex; gap: 8px;">
+                                <button class="btn btn-primary btn-incele" data-id="${k.id}" style="padding: 6px 12px; font-size: 0.9em;">
+                                    ${isSelected ? '👀 İnceleniyor' : '🔍 İncele'}
+                                </button>
+                                <button class="btn btn-secondary btn-gorev-duzenle" data-id="${k.id}" style="padding: 6px 12px; font-size: 0.9em;">Düzenle</button>
+                                <button class="btn btn-danger btn-gorev-sil" data-id="${k.id}" style="padding: 6px 12px; font-size: 0.9em;">Sil</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             `;
@@ -301,8 +349,32 @@ async function arayuzuGuncelle() {
     }
     document.getElementById('gorev-listesi').innerHTML = listHtml;
 
+    // AKORDEON TIKLAMA OLAYI
+    document.querySelectorAll('.gorev-baslik-tikla').forEach(baslik => {
+        baslik.addEventListener('click', (e) => {
+            if(e.target.classList.contains('btn-oyun-dene')) return;
+
+            const hedefId = e.currentTarget.getAttribute('data-hedef');
+            const okId = e.currentTarget.getAttribute('data-ok');
+            
+            const detayPaneli = document.getElementById(hedefId);
+            const okIkonu = document.getElementById(okId);
+
+            if (detayPaneli.style.display === 'none') {
+                detayPaneli.style.display = 'block';
+                e.currentTarget.style.borderBottomColor = '#e2e8f0'; 
+                okIkonu.style.transform = 'rotate(180deg)'; 
+            } else {
+                detayPaneli.style.display = 'none';
+                e.currentTarget.style.borderBottomColor = 'transparent';
+                okIkonu.style.transform = 'rotate(0deg)'; 
+            }
+        });
+    });
+
     document.querySelectorAll('.btn-oyun-dene').forEach(btn => {
         btn.addEventListener('click', (e) => {
+            e.stopPropagation(); 
             const link = e.currentTarget.getAttribute('data-link');
             document.getElementById('oyun-iframe').src = link;
             document.getElementById('oyun-modal').style.display = 'flex';
@@ -322,7 +394,7 @@ async function arayuzuGuncelle() {
     document.querySelectorAll('.btn-gorev-duzenle').forEach(btn => {
         btn.addEventListener('click', async (e) => {
             const id = e.target.getAttribute('data-id');
-            const gorev = kalemler.find(k => k.id === id);
+            const gorev = kalemlerHam.find(k => k.id === id);
             
             if (gorev) {
                 document.getElementById('gorev-id').value = gorev.id;
@@ -362,7 +434,7 @@ async function arayuzuGuncelle() {
         return;
     }
 
-    const aktifGorev = kalemler.find(k => k.id === seciliGorevId);
+    const aktifGorev = kalemlerHam.find(k => k.id === seciliGorevId);
     if (!aktifGorev) {
         seciliGorevId = null;
         takipKarti.style.display = 'none';
@@ -411,7 +483,6 @@ async function arayuzuGuncelle() {
             }
         }
         
-        // ZEBRA DESENİ İÇİN SATIR RENGİ: Çift sayılar beyaz, tek sayılar çok hafif gri-mavi
         let satirArkaPlan = index % 2 === 0 ? '#ffffff' : '#f1f5f9';
         
         tabloHtml += `<tr style="background-color: ${satirArkaPlan}; transition: background-color 0.2s;">
@@ -441,7 +512,6 @@ async function arayuzuGuncelle() {
             const deger = e.target.value.trim();
             
             await db.saveMatrixStatus('uygulama_matrisi', ogrId, gorevId, deger);
-            
             setTimeout(() => { arayuzuGuncelle(); }, 300);
         });
     });
@@ -454,7 +524,6 @@ async function arayuzuGuncelle() {
                 
                 e.target.innerText = "...";
                 await db.saveMatrixStatus('uygulama_matrisi', ogrId, gorevId, ''); 
-                
                 setTimeout(() => { arayuzuGuncelle(); }, 300);
             }
         });

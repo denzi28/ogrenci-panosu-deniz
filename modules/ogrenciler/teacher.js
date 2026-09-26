@@ -49,10 +49,18 @@ export async function render(container) {
             <button id="btn-iptal" class="btn btn-secondary" style="display:none;">Düzenlemeyi İptal Et</button>
         </div>
         
-        <div class="card" style="overflow-x: auto;" id="ogrenci-listesi"><p>⏳ Liste yükleniyor...</p></div>
+        <!-- YAZDIRMA BUTONLU LİSTE ALANI -->
+        <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
+                <h3 style="margin: 0; color: #333;">📋 Sınıf Listesi</h3>
+                <button id="btn-liste-yazdir" class="btn btn-primary" style="padding: 10px 20px; font-size: 1em; font-weight: bold; background-color: #0284c7; color: white; border: none; border-radius: 5px; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                    🖨️ Yoklama/Boş Liste Yazdır
+                </button>
+            </div>
+            <div style="overflow-x: auto;" id="ogrenci-listesi"><p>⏳ Liste yükleniyor...</p></div>
+        </div>
     `;
 
-    // Modül Aç/Kapa Butonu
     document.getElementById('toggle-module-btn').addEventListener('click', async (e) => {
         const currentStatus = await db.getModuleVisibility('ogrenciler');
         const newStatus = !currentStatus;
@@ -63,7 +71,6 @@ export async function render(container) {
         else { btn.className = "btn btn-secondary"; btn.innerText = "Menüde Gizli (Göster)"; }
     });
 
-    // TOPLU KAYDETME İŞLEMİ
     document.getElementById('btn-bulk-kaydet').addEventListener('click', async () => {
         const text = document.getElementById('bulk-input').value.trim();
         if(!text) return alert("Lütfen kaydetmeden önce Excel'den verileri kopyalayıp kutuya yapıştırın.");
@@ -120,7 +127,6 @@ export async function render(container) {
         await listeyiGuncelle();
     });
 
-    // Tekil Kaydetme İşlemi
     document.getElementById('btn-kaydet').addEventListener('click', async () => {
         const id = document.getElementById('ogr-id').value;
         const ad = document.getElementById('ogr-ad').value;
@@ -155,6 +161,86 @@ export async function render(container) {
     });
 
     document.getElementById('btn-iptal').addEventListener('click', formuTemizle);
+
+    // YAZDIRMA İŞLEMİ (FONT VE BOŞLUKLAR KÜÇÜLTÜLDÜ)
+    document.getElementById('btn-liste-yazdir').addEventListener('click', async () => {
+        const tumKullanicilar = await db.getAll('users');
+        const ogrenciler = tumKullanicilar.filter(u => u.role === 'student');
+
+        if(ogrenciler.length === 0) {
+            return alert("Yazdırılacak öğrenci bulunmuyor!");
+        }
+
+        ogrenciler.sort((a, b) => {
+            const noA = parseInt(a.okulno) || 999999;
+            const noB = parseInt(b.okulno) || 999999;
+            if (noA === noB) return (a.name || '').localeCompare(b.name || '');
+            return noA - noB;
+        });
+
+        let printContent = `
+            <!DOCTYPE html>
+            <html lang="tr">
+            <head>
+                <meta charset="UTF-8">
+                <title>Sınıf Öğrenci Listesi</title>
+                <style>
+                    @page { margin: 1cm; }
+                    body { font-family: Arial, sans-serif; padding: 10px; color: #000; }
+                    h2 { text-align: center; margin: 0 0 8px 0; font-size: 16px; text-transform: uppercase; }
+                    .tarih-alan { display: flex; justify-content: space-between; border-bottom: 2px solid #000; padding-bottom: 8px; margin-bottom: 15px; font-size: 11px; font-weight: bold; }
+                    table { width: 100%; border-collapse: collapse; font-size: 10px; } /* FONT 10PX'E DÜŞÜRÜLDÜ */
+                    th, td { border: 1px solid #000; padding: 4px 6px; text-align: left; } /* PADDING DARALTILDI */
+                    th { background-color: #f1f5f9; font-weight: bold; text-align: center; -webkit-print-color-adjust: exact; color-adjust: exact; }
+                    td.merkez { text-align: center; }
+                    .bos-kutu { width: 50%; } 
+                    tr:nth-child(even) { background-color: #f8fafc !important; -webkit-print-color-adjust: exact; color-adjust: exact; }
+                </style>
+            </head>
+            <body>
+                <h2>SINIF ÖĞRENCİ LİSTESİ</h2>
+                <div class="tarih-alan">
+                    <span>Öğretmen: ...........................................</span>
+                    <span>Tarih: ...... / ...... / 20....</span>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 30px;">SN</th>
+                            <th style="width: 60px;">Okul No</th>
+                            <th>Öğrenci Adı Soyadı</th>
+                            <th class="bos-kutu">Açıklama / Not (Boş Alan)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+
+        ogrenciler.forEach((ogr, index) => {
+            printContent += `
+                <tr>
+                    <td class="merkez">${index + 1}</td>
+                    <td class="merkez"><strong>${ogr.okulno || '-'}</strong></td>
+                    <td><strong>${ogr.name}</strong></td>
+                    <td></td>
+                </tr>
+            `;
+        });
+
+        printContent += `
+                    </tbody>
+                </table>
+                <script>
+                    window.onload = function() { window.print(); setTimeout(() => window.close(), 500); };
+                </script>
+            </body>
+            </html>
+        `;
+
+        const printWindow = window.open('', '_blank');
+        printWindow.document.write(printContent);
+        printWindow.document.close();
+    });
+
     await listeyiGuncelle();
 }
 
@@ -173,7 +259,6 @@ async function listeyiGuncelle() {
     const tumKullanicilar = await db.getAll('users');
     const ogrenciler = tumKullanicilar.filter(u => u.role === 'student');
     
-    // OKUL NUMARASINA GÖRE SIRALAMA
     ogrenciler.sort((a, b) => {
         const noA = parseInt(a.okulno) || 999999;
         const noB = parseInt(b.okulno) || 999999;
@@ -181,11 +266,11 @@ async function listeyiGuncelle() {
         return noA - noB;
     });
 
-    let html = `<h3>Sınıf Listesi (${ogrenciler.length} Öğrenci)</h3>`;
+    let html = `<p style="font-weight:bold; color: #666; margin-bottom:10px;">Toplam: ${ogrenciler.length} Öğrenci</p>`;
     
     if (ogrenciler.length === 0) { html += `<p>Sınıfa henüz öğrenci eklenmemiş.</p>`; } 
     else {
-        html += `<table style="width: 100%; border-collapse: collapse; min-width: 800px; font-size: 0.9em; margin-top: 15px;">
+        html += `<table style="width: 100%; border-collapse: collapse; min-width: 800px; font-size: 0.9em;">
             <thead><tr style="background: #f8f9fa;">
                 <th style="border: 1px solid #ddd; padding: 10px; width: 40px;">SN</th>
                 <th style="border: 1px solid #ddd; padding: 10px; width: 80px;">Okul No</th>
@@ -198,7 +283,6 @@ async function listeyiGuncelle() {
             </tr></thead><tbody>`;
 
         ogrenciler.forEach((ogr, index) => {
-            // ZEBRA DESENİ İÇİN SATIR RENGİ: Çift sayılar beyaz, tek sayılar çok hafif gri-mavi
             let satirArkaPlan = index % 2 === 0 ? '#ffffff' : '#f1f5f9';
 
             html += `<tr style="background-color: ${satirArkaPlan}; transition: background-color 0.2s;">

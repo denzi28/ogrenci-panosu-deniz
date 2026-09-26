@@ -8,8 +8,9 @@ export async function render(container) {
     const btnText = isModuleVisible ? 'Menüde Görünüyor (Gizle)' : 'Menüde Gizli (Göster)';
 
     container.innerHTML = `
-        <!-- ANA GÖRÜNÜM (Sınıf Listesi ve Kitap Ekleme) -->
+        <!-- ANA GÖRÜNÜM (Sekmeli Yapı) -->
         <div id="ana-gorunum" style="display: block;">
+            
             <div class="card" style="background: #e8f4fd; border: 1px solid var(--primary); display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                 <div>
                     <h3 style="margin: 0; color: var(--primary);">👀 Modül Görünürlüğü (Misafirler İçin)</h3>
@@ -21,43 +22,47 @@ export async function render(container) {
             </div>
 
             <div class="card" style="border-top: 4px solid var(--primary);">
-                <h3>1. Aşama: Sınıf Kitaplığına Kitap Ekle</h3>
-                
-                <div style="display: flex; gap: 10px; margin-top: 15px;">
-                    <input type="text" id="yeni-kitap-ad" placeholder="Tek bir kitap ekle (Örn: Küçük Prens)" style="flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 4px;">
-                    <button id="btn-kitap-ekle" class="btn btn-primary">Tek Ekle</button>
+                <!-- SEKMELER -->
+                <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
+                    <button id="tab-ogrenciler" class="btn btn-primary" style="flex: 1; min-width: 200px; font-size: 1.05em; font-weight: bold;">👥 Öğrenci Takip Listesi</button>
+                    <button id="tab-kitap-yonetimi" class="btn btn-secondary" style="flex: 1; min-width: 200px; font-size: 1.05em; font-weight: bold;">📚 Kitap Yönetimi (Ekle/Sil)</button>
                 </div>
 
-                <div style="margin-top: 15px; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
-                    <p style="font-size: 0.85em; color: #475569; margin-bottom: 8px; font-weight: bold;">📥 Toplu Kitap Ekleme</p>
-                    <textarea id="toplu-kitap-ad" placeholder="Kitap isimlerini alt alta veya virgülle ayırarak yazın (Excel veya Word'den direkt yapıştırabilirsiniz)" rows="3" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;"></textarea>
-                    <button id="btn-toplu-kitap-ekle" class="btn btn-success" style="margin-top: 8px;">Listeyi Toplu Ekle</button>
+                <!-- 1. SEKME: ÖĞRENCİ LİSTESİ -->
+                <div id="view-ogrenciler" style="display: block;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
+                        <h3 style="margin: 0; color: var(--success);">Öğrenci Okuma Durumları</h3>
+                        <button id="btn-kitap-yazdir" class="btn btn-primary" style="padding: 10px 20px; font-size: 1em; font-weight: bold; background-color: #0284c7; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                            🖨️ Rapor Yazdır / PDF Al
+                        </button>
+                    </div>
+                    <p style="font-size:0.85em; color:#666; margin-bottom: 15px;">
+                        Öğrencilerin okuduğu kitapları işaretlemek için yanlarındaki <strong>"📚 İşaretle"</strong> butonuna tıklayın.
+                    </p>
+                    <div id="kitap-tablosu-alani" style="overflow-x: auto;"><p>⏳ Liste yükleniyor...</p></div>
                 </div>
 
-                <!-- YENİ: GİZLENEBİLİR KİTAP YÖNETİM ALANI -->
-                <div style="margin-top: 20px;">
-                    <button id="btn-kitap-yonetimi-ac" style="width: 100%; background: #f8fafc; border: 2px solid #e2e8f0; padding: 12px 15px; border-radius: 8px; font-weight: bold; color: #334155; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: all 0.2s;">
-                        <span style="font-size: 1.1em;">📚 Sınıf Kitaplığını Yönet / Düzenle (<span id="kitap-sayaci">0</span> Kitap)</span>
-                        <span id="kitap-yonetim-ikon" style="font-size: 1.2em;">▼</span>
-                    </button>
+                <!-- 2. SEKME: KİTAP YÖNETİMİ -->
+                <div id="view-kitap-yonetimi" style="display: none;">
+                    <h3 style="color: var(--primary);">Sınıf Kitaplığına Yeni Kitap Ekle</h3>
                     
-                    <div id="kitap-yonetim-alani" style="display: none; margin-top: 10px; max-height: 250px; overflow-y: auto; padding: 15px; border: 2px solid #e2e8f0; border-radius: 8px; background: #ffffff; box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);">
-                        <div id="kitap-basliklari" style="display: flex; flex-wrap: wrap; gap: 8px;"></div>
+                    <div style="display: flex; gap: 10px; margin-top: 15px;">
+                        <input type="text" id="yeni-kitap-ad" placeholder="Tek bir kitap ekle (Örn: Küçük Prens)" style="flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 4px;">
+                        <button id="btn-kitap-ekle" class="btn btn-primary">Tek Ekle</button>
+                    </div>
+
+                    <div style="margin-top: 15px; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                        <p style="font-size: 0.85em; color: #475569; margin-bottom: 8px; font-weight: bold;">📥 Toplu Kitap Ekleme</p>
+                        <textarea id="toplu-kitap-ad" placeholder="Kitap isimlerini alt alta veya virgülle ayırarak yazın (Excel veya Word'den direkt yapıştırabilirsiniz)" rows="3" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;"></textarea>
+                        <button id="btn-toplu-kitap-ekle" class="btn btn-success" style="margin-top: 8px;">Listeyi Toplu Ekle</button>
+                    </div>
+
+                    <div style="margin-top: 30px;">
+                        <h3 style="margin-bottom: 15px; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px;">Mevcut Kitaplar (<span id="kitap-sayaci">0</span>)</h3>
+                        <div id="kitap-basliklari"></div>
                     </div>
                 </div>
-            </div>
 
-            <div class="card" style="border-top: 4px solid var(--success);">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
-                    <h3 style="margin: 0;">2. Aşama: Öğrenci Takip Listesi</h3>
-                    <button id="btn-kitap-yazdir" class="btn btn-primary" style="padding: 10px 20px; font-size: 1em; font-weight: bold; background-color: #0284c7; color: white; border: none; border-radius: 5px; cursor: pointer;">
-                        🖨️ Rapor Yazdır / PDF Al
-                    </button>
-                </div>
-                <p style="font-size:0.85em; color:#666; margin-bottom: 15px;">
-                    Öğrencilerin okuduğu kitapları işaretlemek için yanlarındaki <strong>"📚 İşaretle"</strong> butonuna tıklayın.
-                </p>
-                <div id="kitap-tablosu-alani" style="overflow-x: auto;"><p>⏳ Liste yükleniyor...</p></div>
             </div>
         </div>
 
@@ -79,25 +84,27 @@ export async function render(container) {
         </div>
     `;
 
+    // Sekme Tıklama Olayları
+    document.getElementById('tab-ogrenciler').addEventListener('click', () => {
+        document.getElementById('view-ogrenciler').style.display = 'block';
+        document.getElementById('view-kitap-yonetimi').style.display = 'none';
+        document.getElementById('tab-ogrenciler').className = 'btn btn-primary';
+        document.getElementById('tab-kitap-yonetimi').className = 'btn btn-secondary';
+    });
+
+    document.getElementById('tab-kitap-yonetimi').addEventListener('click', () => {
+        document.getElementById('view-ogrenciler').style.display = 'none';
+        document.getElementById('view-kitap-yonetimi').style.display = 'block';
+        document.getElementById('tab-ogrenciler').className = 'btn btn-secondary';
+        document.getElementById('tab-kitap-yonetimi').className = 'btn btn-primary';
+    });
+
     document.getElementById('toggle-module-btn').addEventListener('click', async (e) => {
         const newStatus = !(await db.getModuleVisibility('kitap'));
         await db.toggleModuleVisibility('kitap', newStatus);
         const btn = e.target;
         if(newStatus) { btn.className = "btn btn-success"; btn.innerText = "Menüde Görünüyor (Gizle)"; } 
         else { btn.className = "btn btn-secondary"; btn.innerText = "Menüde Gizli (Göster)"; }
-    });
-
-    // KİTAP YÖNETİM ALANINI AÇ/KAPA İŞLEMİ
-    document.getElementById('btn-kitap-yonetimi-ac').addEventListener('click', () => {
-        const alan = document.getElementById('kitap-yonetim-alani');
-        const ikon = document.getElementById('kitap-yonetim-ikon');
-        if(alan.style.display === 'none') {
-            alan.style.display = 'block';
-            ikon.innerText = '▲';
-        } else {
-            alan.style.display = 'none';
-            ikon.innerText = '▼';
-        }
     });
 
     document.getElementById('btn-kitap-ekle').addEventListener('click', async () => {
@@ -250,9 +257,9 @@ async function arayuzuGuncelle() {
         db.getAll('kitap_matrisi')
     ]);
 
+    // KİTAPLARI ALFABETİK SIRALA
     kalemler.sort((a, b) => a.ad.localeCompare(b.ad, 'tr-TR'));
 
-    // GÜNCELLEME: KİTAP SAYICISINI YENİLE
     document.getElementById('kitap-sayaci').innerText = kalemler.length;
 
     const ogrenciler = tumKullanicilar.filter(u => u.role === 'student');
@@ -263,20 +270,27 @@ async function arayuzuGuncelle() {
         return noA - noB;
     });
 
-    let basliklarHtml = '';
-    kalemler.forEach(k => {
+    // ===============================================
+    // 1. KİTAP YÖNETİM ALANI (ALT ALTA LİSTE)
+    // ===============================================
+    let basliklarHtml = '<div style="display: flex; flex-direction: column; gap: 10px;">';
+    kalemler.forEach((k, index) => {
         basliklarHtml += `
-            <div style="background: #f1f1f1; padding: 5px 10px; border-radius: 15px; display: flex; align-items: center; gap: 8px; border: 1px solid #ddd;">
-                <span style="font-size: 0.9em; font-weight: bold;">📚 ${k.ad}</span>
-                <button class="btn-kalem-duzenle" data-id="${k.id}" data-ad="${k.ad}" style="background: none; border: none; padding: 0; margin-left: 5px; color: var(--primary); cursor: pointer; font-size: 1.1em;" title="Adını Değiştir">✏️</button>
-                <button class="btn-kalem-sil" data-id="${k.id}" style="background: none; border: none; padding: 0; color: var(--danger); cursor: pointer; font-weight: bold; font-size: 1.1em;" title="Sil">✕</button>
+            <div style="background: white; border: 1px solid #e2e8f0; padding: 12px 15px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
+                <div style="font-size: 1.05em; font-weight: bold; color: #334155;">
+                    <span style="color: #94a3b8; margin-right: 10px;">${index + 1}.</span> 📚 ${k.ad}
+                </div>
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn-kalem-duzenle btn btn-secondary" data-id="${k.id}" data-ad="${k.ad}" style="padding: 6px 12px; font-size: 0.85em;">✏️ Düzenle</button>
+                    <button class="btn-kalem-sil btn btn-danger" data-id="${k.id}" style="padding: 6px 12px; font-size: 0.85em;">✕ Sil</button>
+                </div>
             </div>
         `;
     });
+    basliklarHtml += '</div>';
     
-    // Eğer kitap yoksa uyarı yazısı koy
     if(kalemler.length === 0) {
-        basliklarHtml = '<span style="color:#64748b; font-size: 0.9em; font-style: italic;">Henüz sınıf kitaplığına eklenmiş kitap bulunmuyor.</span>';
+        basliklarHtml = '<div style="color:#64748b; padding: 15px; text-align: center; background: #f8fafc; border-radius: 8px; font-style: italic;">Henüz sınıf kitaplığına eklenmiş kitap bulunmuyor.</div>';
     }
     
     document.getElementById('kitap-basliklari').innerHTML = basliklarHtml;
@@ -304,6 +318,15 @@ async function arayuzuGuncelle() {
         });
     });
 
+
+    // ===============================================
+    // 2. ANA ÖĞRENCİ LİSTESİ 
+    // ===============================================
+    if (kalemler.length === 0) {
+        document.getElementById('kitap-tablosu-alani').innerHTML = '<p style="color:var(--secondary); padding: 20px;">Lütfen önce "Kitap Yönetimi" sekmesinden en az bir kitap ekleyin.</p>';
+        return;
+    }
+
     let tabloHtml = `
         <table style="width: 100%; border-collapse: collapse; min-width: 500px; font-size: 0.95em;">
             <thead>
@@ -320,16 +343,27 @@ async function arayuzuGuncelle() {
 
     ogrenciler.forEach((ogr, index) => {
         let okunanSayisi = 0;
+        let suAnOkuduguKitaplar = [];
+
         kalemler.forEach(k => {
-            if (matris.find(m => m.ogrId === ogr.id && m.targetId === k.id)?.deger === '✔️') okunanSayisi++; 
+            let durum = matris.find(m => m.ogrId === ogr.id && m.targetId === k.id)?.deger;
+            if (durum === '✔️') okunanSayisi++; 
+            if (durum === '⏳') suAnOkuduguKitaplar.push(k.ad);
         });
+
+        let durumText = suAnOkuduguKitaplar.length > 0
+            ? `<div style="font-size: 0.85em; color: #d97706; margin-top: 5px; font-weight: normal;">⏳ <strong>Okuyor:</strong> ${suAnOkuduguKitaplar.join(', ')}</div>`
+            : `<div style="font-size: 0.85em; color: #94a3b8; margin-top: 5px; font-weight: normal; font-style: italic;">Şu an kitap okumuyor</div>`;
 
         let satirArkaPlan = index % 2 === 0 ? '#ffffff' : '#f8fafc';
 
         tabloHtml += `<tr style="background-color: ${satirArkaPlan}; transition: background-color 0.2s;">
             <td style="border: 1px solid #ddd; padding: 12px; text-align: center; color: #666;">${index + 1}</td>
             <td style="border: 1px solid #ddd; padding: 12px; text-align: center; font-weight: bold;">${ogr.okulno || '-'}</td>
-            <td style="border: 1px solid #ddd; padding: 12px; font-weight: bold; color: #333;">${ogr.name}</td>
+            <td style="border: 1px solid #ddd; padding: 12px; color: #333;">
+                <div style="font-weight: bold; font-size: 1.05em;">${ogr.name}</div>
+                ${durumText}
+            </td>
             <td style="border: 1px solid #ddd; padding: 12px; text-align: center; font-weight: bold; color: var(--primary); font-size: 1.2em; background: #f1f5f9;">${okunanSayisi}</td>
             <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">
                 <button class="btn btn-primary btn-detay-ac" data-ogrid="${ogr.id}" data-ogrname="${ogr.name}" style="padding: 8px 15px; font-weight: bold; font-size: 0.9em;">
@@ -351,6 +385,9 @@ async function arayuzuGuncelle() {
     });
 }
 
+// -----------------------------------------------------------------
+// 3. ALT ALTA KİTAP İŞARETLEME EKRANI (DETAY GÖRÜNÜMÜ)
+// -----------------------------------------------------------------
 function ogrenciDetayiniAc(ogrId, ogrName, kalemler, matris) {
     document.getElementById('ana-gorunum').style.display = 'none';
     document.getElementById('detay-gorunum').style.display = 'block';

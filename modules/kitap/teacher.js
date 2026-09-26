@@ -153,7 +153,6 @@ export async function render(container) {
 
         const ogrenciler = tumKullanicilar.filter(u => u.role === 'student');
         
-        // Ekranda görünen sıralamayı aynen yazdırma işlemine de uygula
         ogrenciler.forEach(ogr => {
             ogr.okunanSayisi = 0;
             ogr.suAnOkuduguKitaplar = [];
@@ -164,11 +163,20 @@ export async function render(container) {
             });
         });
 
+        // YAZDIRIRKEN GEÇERLİ OLAN SIRALAMA MANTIĞI
         if (aktifSiralama === 'alfabetik') {
             ogrenciler.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'tr-TR'));
         } else if (aktifSiralama === 'encok') {
             ogrenciler.sort((a, b) => {
+                // 1. Kriter: En çok okuyan
                 if (b.okunanSayisi !== a.okunanSayisi) return b.okunanSayisi - a.okunanSayisi;
+                
+                // 2. Kriter (Eşitlik bozucu): Şu an kitap okuyan öne geçer
+                let aOkuyor = a.suAnOkuduguKitaplar.length > 0 ? 1 : 0;
+                let bOkuyor = b.suAnOkuduguKitaplar.length > 0 ? 1 : 0;
+                if (bOkuyor !== aOkuyor) return bOkuyor - aOkuyor;
+                
+                // 3. Kriter: İkisi de aynı durumdaysa alfabetik
                 return (a.name || '').localeCompare(b.name || '', 'tr-TR');
             });
         } else if (aktifSiralama === 'okuyan') {
@@ -259,7 +267,6 @@ async function arayuzuGuncelle() {
 
     const ogrenciler = tumKullanicilar.filter(u => u.role === 'student');
 
-    // 1. Önce her öğrencinin okuduğu kitapları hesapla
     ogrenciler.forEach(ogr => {
         ogr.okunanSayisi = 0;
         ogr.suAnOkuduguKitaplar = [];
@@ -270,12 +277,20 @@ async function arayuzuGuncelle() {
         });
     });
 
-    // 2. Belirlenen aktif moda göre sıralamayı yap
+    // EKRANDAKİ TABLO İÇİN SIRALAMA MANTIĞI
     if (aktifSiralama === 'alfabetik') {
         ogrenciler.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'tr-TR'));
     } else if (aktifSiralama === 'encok') {
         ogrenciler.sort((a, b) => {
+            // 1. Kriter: En çok okuyan
             if (b.okunanSayisi !== a.okunanSayisi) return b.okunanSayisi - a.okunanSayisi;
+            
+            // 2. Kriter (Eşitlik bozucu): Şu an kitap okuyan öne geçer
+            let aOkuyor = a.suAnOkuduguKitaplar.length > 0 ? 1 : 0;
+            let bOkuyor = b.suAnOkuduguKitaplar.length > 0 ? 1 : 0;
+            if (bOkuyor !== aOkuyor) return bOkuyor - aOkuyor;
+            
+            // 3. Kriter: İkisi de aynı durumdaysa alfabetik
             return (a.name || '').localeCompare(b.name || '', 'tr-TR');
         });
     } else if (aktifSiralama === 'okuyan') {
@@ -410,7 +425,6 @@ async function arayuzuGuncelle() {
     tabloHtml += `</tbody></table>`;
     document.getElementById('kitap-tablosu-alani').innerHTML = tabloHtml;
 
-    // Sıralama Butonu Tıklama Olayı
     document.getElementById('btn-sirala').addEventListener('click', () => {
         if (aktifSiralama === 'alfabetik') aktifSiralama = 'encok';
         else if (aktifSiralama === 'encok') aktifSiralama = 'okuyan';

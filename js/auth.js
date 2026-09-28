@@ -10,7 +10,7 @@ class Auth {
         try {
             const users = await db.getAll('users');
             if (!users.find(u => u.role === 'teacher')) {
-                await db.add('users', { name: 'Sınıf Öğretmeni', username: 'ogretmen', password: '123', role: 'teacher' });
+                await db.add('users', { name: 'Sınıf Öğretmeni', username: 'ogretmen', password: 'recep', role: 'teacher' });
                 console.log("Varsayılan öğretmen hesabı oluşturuldu.");
             }
         } catch (error) {

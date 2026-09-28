@@ -1,5 +1,8 @@
 import { db } from '../../js/db.js';
 
+// Varsayılan sıralama okul numarası
+let aktifSiralama = 'okulno'; 
+
 export async function render(container) {
     container.innerHTML = '<div class="card"><p>⏳ Öğrenci verileri buluttan getiriliyor...</p></div>';
     
@@ -49,18 +52,33 @@ export async function render(container) {
             <button id="btn-iptal" class="btn btn-secondary" style="display:none;">Düzenlemeyi İptal Et</button>
         </div>
         
-        <!-- YAZDIRMA BUTONLU LİSTE ALANI -->
+        <!-- YAZDIRMA VE SIRALAMA BUTONLU LİSTE ALANI -->
         <div class="card">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
                 <h3 style="margin: 0; color: #333;">📋 Sınıf Listesi</h3>
-                <button id="btn-liste-yazdir" class="btn btn-primary" style="padding: 10px 20px; font-size: 1em; font-weight: bold; background-color: #0284c7; color: white; border: none; border-radius: 5px; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                    🖨️ Yoklama/Boş Liste Yazdır
-                </button>
+                
+                <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                    <select id="siralama-secim" style="padding: 10px 12px; border-radius: 5px; border: 2px solid #cbd5e1; font-weight: bold; color: #475569; outline: none; cursor: pointer; background: #f8fafc;">
+                        <option value="okulno" ${aktifSiralama === 'okulno' ? 'selected' : ''}>🔢 Okul Numarasına Göre</option>
+                        <option value="alfabetik" ${aktifSiralama === 'alfabetik' ? 'selected' : ''}>🔤 Alfabetik (A-Z)</option>
+                    </select>
+                    
+                    <button id="btn-liste-yazdir" class="btn btn-primary" style="padding: 10px 20px; font-size: 1em; font-weight: bold; background-color: #0284c7; color: white; border: none; border-radius: 5px; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                        🖨️ Yoklama/Boş Liste Yazdır
+                    </button>
+                </div>
             </div>
             <div style="overflow-x: auto;" id="ogrenci-listesi"><p>⏳ Liste yükleniyor...</p></div>
         </div>
     `;
 
+    // Sıralama Değiştiğinde Listeyi Güncelle
+    document.getElementById('siralama-secim').addEventListener('change', async (e) => {
+        aktifSiralama = e.target.value;
+        await listeyiGuncelle();
+    });
+
+    // Modül Aç/Kapa Butonu
     document.getElementById('toggle-module-btn').addEventListener('click', async (e) => {
         const currentStatus = await db.getModuleVisibility('ogrenciler');
         const newStatus = !currentStatus;
@@ -71,6 +89,7 @@ export async function render(container) {
         else { btn.className = "btn btn-secondary"; btn.innerText = "Menüde Gizli (Göster)"; }
     });
 
+    // TOPLU KAYDETME İŞLEMİ
     document.getElementById('btn-bulk-kaydet').addEventListener('click', async () => {
         const text = document.getElementById('bulk-input').value.trim();
         if(!text) return alert("Lütfen kaydetmeden önce Excel'den verileri kopyalayıp kutuya yapıştırın.");
@@ -127,6 +146,7 @@ export async function render(container) {
         await listeyiGuncelle();
     });
 
+    // Tekil Kaydetme İşlemi
     document.getElementById('btn-kaydet').addEventListener('click', async () => {
         const id = document.getElementById('ogr-id').value;
         const ad = document.getElementById('ogr-ad').value;
@@ -162,7 +182,7 @@ export async function render(container) {
 
     document.getElementById('btn-iptal').addEventListener('click', formuTemizle);
 
-    // YAZDIRMA İŞLEMİ (FONT VE BOŞLUKLAR KÜÇÜLTÜLDÜ)
+    // YAZDIRMA İŞLEMİ
     document.getElementById('btn-liste-yazdir').addEventListener('click', async () => {
         const tumKullanicilar = await db.getAll('users');
         const ogrenciler = tumKullanicilar.filter(u => u.role === 'student');
@@ -171,12 +191,17 @@ export async function render(container) {
             return alert("Yazdırılacak öğrenci bulunmuyor!");
         }
 
-        ogrenciler.sort((a, b) => {
-            const noA = parseInt(a.okulno) || 999999;
-            const noB = parseInt(b.okulno) || 999999;
-            if (noA === noB) return (a.name || '').localeCompare(b.name || '');
-            return noA - noB;
-        });
+        // Aktif sıralamaya göre diz
+        if (aktifSiralama === 'alfabetik') {
+            ogrenciler.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'tr-TR'));
+        } else {
+            ogrenciler.sort((a, b) => {
+                const noA = parseInt(a.okulno) || 999999;
+                const noB = parseInt(b.okulno) || 999999;
+                if (noA === noB) return (a.name || '').localeCompare(b.name || '', 'tr-TR');
+                return noA - noB;
+            });
+        }
 
         let printContent = `
             <!DOCTYPE html>
@@ -189,8 +214,8 @@ export async function render(container) {
                     body { font-family: Arial, sans-serif; padding: 10px; color: #000; }
                     h2 { text-align: center; margin: 0 0 8px 0; font-size: 16px; text-transform: uppercase; }
                     .tarih-alan { display: flex; justify-content: space-between; border-bottom: 2px solid #000; padding-bottom: 8px; margin-bottom: 15px; font-size: 11px; font-weight: bold; }
-                    table { width: 100%; border-collapse: collapse; font-size: 10px; } /* FONT 10PX'E DÜŞÜRÜLDÜ */
-                    th, td { border: 1px solid #000; padding: 4px 6px; text-align: left; } /* PADDING DARALTILDI */
+                    table { width: 100%; border-collapse: collapse; font-size: 10px; } 
+                    th, td { border: 1px solid #000; padding: 4px 6px; text-align: left; } 
                     th { background-color: #f1f5f9; font-weight: bold; text-align: center; -webkit-print-color-adjust: exact; color-adjust: exact; }
                     td.merkez { text-align: center; }
                     .bos-kutu { width: 50%; } 
@@ -200,7 +225,7 @@ export async function render(container) {
             <body>
                 <h2>SINIF ÖĞRENCİ LİSTESİ</h2>
                 <div class="tarih-alan">
-                    <span>Öğretmen: ...........................................</span>
+                    <span>Sıralama: ${aktifSiralama === 'alfabetik' ? 'Alfabetik' : 'Okul Numarası'}</span>
                     <span>Tarih: ...... / ...... / 20....</span>
                 </div>
                 <table>
@@ -259,12 +284,17 @@ async function listeyiGuncelle() {
     const tumKullanicilar = await db.getAll('users');
     const ogrenciler = tumKullanicilar.filter(u => u.role === 'student');
     
-    ogrenciler.sort((a, b) => {
-        const noA = parseInt(a.okulno) || 999999;
-        const noB = parseInt(b.okulno) || 999999;
-        if (noA === noB) return (a.name || '').localeCompare(b.name || '');
-        return noA - noB;
-    });
+    // AKTİF SIRALAMAYA GÖRE LİSTEYİ DİZ
+    if (aktifSiralama === 'alfabetik') {
+        ogrenciler.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'tr-TR'));
+    } else {
+        ogrenciler.sort((a, b) => {
+            const noA = parseInt(a.okulno) || 999999;
+            const noB = parseInt(b.okulno) || 999999;
+            if (noA === noB) return (a.name || '').localeCompare(b.name || '', 'tr-TR');
+            return noA - noB;
+        });
+    }
 
     let html = `<p style="font-weight:bold; color: #666; margin-bottom:10px;">Toplam: ${ogrenciler.length} Öğrenci</p>`;
     

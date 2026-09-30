@@ -90,7 +90,7 @@ export async function render(container) {
             <iframe id="oyun-iframe" style="width: 100%; flex: 1; border: none; background: #f0fdf4;"></iframe>
         </div>
 
-        <!-- 🌟 YENİ: AKILLI TAHTA / SINIF MODU MODALI -->
+        <!-- 🌟 SINIF MODU MODALI -->
         <div id="sinif-modu-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #f8fafc; z-index: 10000; flex-direction: column; overflow-y: auto;">
             
             <div style="padding: 15px 20px; background: #fff; display: flex; justify-content: space-between; align-items: center; border-bottom: 4px solid var(--success); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 10001;">
@@ -100,17 +100,12 @@ export async function render(container) {
                 <button id="btn-sinif-modu-cikis" class="btn btn-danger" style="padding: 10px 25px; font-size: 1.1em; font-weight: bold; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">🚪 Öğretmen Paneline Dön</button>
             </div>
 
-            <!-- 1. Aşama: Öğrenci Seçim Ekranı -->
             <div id="sinif-modu-liste-ekrani" style="flex: 1; padding: 30px 20px; text-align: center;">
                 <h2 style="color: #334155; margin-bottom: 10px; font-size: 2em;">👋 Tahtaya Kim Geliyor?</h2>
                 <p style="color: #64748b; font-size: 1.2em; margin-bottom: 30px;">Oyuna başlamak için kendi ismine tıkla.</p>
-                
-                <div id="sinif-modu-ogrenciler" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 20px; max-width: 1400px; margin: 0 auto; padding-bottom: 50px;">
-                    <!-- Öğrenci Butonları Buraya Gelecek -->
-                </div>
+                <div id="sinif-modu-ogrenciler" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 20px; max-width: 1400px; margin: 0 auto; padding-bottom: 50px;"></div>
             </div>
 
-            <!-- 2. Aşama: Oyun Oynama Ekranı -->
             <div id="sinif-modu-oyun-ekrani" style="display: none; flex: 1; flex-direction: column;">
                  <div style="background: #1e293b; color: #f8fafc; padding: 12px 25px; display: flex; justify-content: space-between; align-items: center;">
                      <span id="sinif-modu-oynayan-isim" style="font-weight: bold; font-size: 1.3em;">🎮 Oynayan: ...</span>
@@ -164,31 +159,52 @@ export async function render(container) {
         document.getElementById('oyun-modal').style.display = 'none';
     });
 
-    // 🌟 OYUNLARDAN GELEN BİTİŞ SİNYALİNİ YAKALAYAN KISIM
+    // 🌟 PUAN KAYDETME EKLENMİŞ OYUN DİNLEYİCİSİ
     if (!window.ogretmenOyunDinleyiciEklendi) {
-        window.addEventListener('message', (event) => {
+        window.addEventListener('message', async (event) => {
             if (event.data && event.data.islem === 'gorev_bitti') {
                 
-                // Eğer Sınıf Modundayken oyun bittiyse:
+                // Eğer Sınıf Modundayken oyun bittiyse (PUAN KAYDEDİLİR)
                 if (sinifModuAktif) {
+                    
+                    // 1. O AN OYNAYAN ÖĞRENCİYİ VE PUANINI BUL
+                    const aktifOgrenci = JSON.parse(localStorage.getItem('currentUser') || '{}');
+                    
+                    if (aktifOgrenci.id && sinifModuAktifGorevId) {
+                        let kaydedilecekPuan = '✔️'; // Oyun skor yollamazsa varsayılan
+                        
+                        if (event.data.deger !== undefined) {
+                            kaydedilecekPuan = event.data.deger;
+                        } else if (event.data.puan !== undefined) {
+                            if (event.data.limit !== undefined) {
+                                kaydedilecekPuan = `${event.data.puan}/${event.data.limit}`;
+                            } else {
+                                kaydedilecekPuan = event.data.puan;
+                            }
+                        }
+                        
+                        // ANINDA VERİTABANINA YAZ
+                        await db.saveMatrixStatus('uygulama_matrisi', aktifOgrenci.id, sinifModuAktifGorevId, String(kaydedilecekPuan));
+                    }
+
                     setTimeout(() => {
-                        // 1. İframe'i boşalt ve kapat
+                        // 2. İframe'i boşalt ve kapat
                         document.getElementById('sinif-oyun-iframe').src = '';
                         document.getElementById('sinif-modu-oyun-ekrani').style.display = 'none';
                         
-                        // 2. ÖĞRETMEN HESABINI GERİ YÜKLE (GÜVENLİK)
+                        // 3. ÖĞRETMEN HESABINI GERİ YÜKLE (GÜVENLİK)
                         if(gercekOgretmenVerisi) {
                             localStorage.setItem('currentUser', gercekOgretmenVerisi);
                         }
                         
-                        // 3. Öğrenci listesine geri dön (Ekranı güncelle ki yeni puan görünsün)
+                        // 4. Öğrenci listesine geri dön ve tabloları güncelle
                         document.getElementById('sinif-modu-liste-ekrani').style.display = 'block';
                         sinifModuArayuzunuCiz(); 
-                        arayuzuGuncelle(); // Arka plandaki öğretmen tablosunu da gizlice güncelleyelim
+                        arayuzuGuncelle(); 
                         
                     }, 1500); // Oyunda "Tebrikler" yazısı görünmesi için 1.5 sn bekle
                 } 
-                // Normal öğretmen testindeyse
+                // Normal öğretmen testindeyse (PUAN KAYDEDİLMEZ, SADECE KAPATILIR)
                 else {
                     setTimeout(() => {
                         const modal = document.getElementById('oyun-modal');
@@ -201,7 +217,6 @@ export async function render(container) {
             }
         });
         
-        // Kazaara sayfa yenilenirse öğretmeni geri yüklemek için güvenlik önlemi
         window.addEventListener('beforeunload', () => {
             if (sinifModuAktif && gercekOgretmenVerisi) {
                 localStorage.setItem('currentUser', gercekOgretmenVerisi);
@@ -212,27 +227,23 @@ export async function render(container) {
     }
 
     // --- SINIF MODU BUTONLARI ---
-    
-    // Öğrenci oyundan vazgeçerse manuel iptal
     document.getElementById('btn-sinif-oyun-iptal').addEventListener('click', () => {
         document.getElementById('sinif-oyun-iframe').src = '';
         document.getElementById('sinif-modu-oyun-ekrani').style.display = 'none';
-        if(gercekOgretmenVerisi) localStorage.setItem('currentUser', gercekOgretmenVerisi); // Öğretmene dön
+        if(gercekOgretmenVerisi) localStorage.setItem('currentUser', gercekOgretmenVerisi); 
         document.getElementById('sinif-modu-liste-ekrani').style.display = 'block';
     });
 
-    // Sınıf Modunu tamamen kapatıp öğretmen paneline dön
     document.getElementById('btn-sinif-modu-cikis').addEventListener('click', () => {
         sinifModuAktif = false;
-        if(gercekOgretmenVerisi) localStorage.setItem('currentUser', gercekOgretmenVerisi); // Güvence altına al
+        if(gercekOgretmenVerisi) localStorage.setItem('currentUser', gercekOgretmenVerisi); 
         document.getElementById('sinif-modu-modal').style.display = 'none';
         document.getElementById('sinif-oyun-iframe').src = '';
         document.getElementById('sinif-modu-oyun-ekrani').style.display = 'none';
         document.getElementById('sinif-modu-liste-ekrani').style.display = 'block';
-        arayuzuGuncelle(); // Ana tabloyu tazele
+        arayuzuGuncelle(); 
     });
 
-    // Yazdır butonu
     document.getElementById('btn-yazdir').addEventListener('click', async () => {
         if (!seciliGorevId) return;
         
@@ -317,7 +328,6 @@ function tarihFormatla(tarihStr) {
     return tarihStr.split('-').reverse().join('.');
 }
 
-// 🌟 YENİ: SINIF MODU ÖĞRENCİ LİSTESİNİ ÇİZEN FONKSİYON
 async function sinifModuArayuzunuCiz() {
     const [tumKullanicilar, matris] = await Promise.all([
         db.getAll('users'),
@@ -329,7 +339,6 @@ async function sinifModuArayuzunuCiz() {
     let html = '';
 
     ogrenciler.forEach(ogr => {
-        // Öğrenci bu oyunu daha önce oynamış mı / puanı var mı?
         let puanDurumu = matris.find(m => m.ogrId === ogr.id && m.targetId === sinifModuAktifGorevId)?.deger || '';
         
         let bgRenk = '#ffffff';
@@ -337,12 +346,11 @@ async function sinifModuArayuzunuCiz() {
         let ekYazi = '<span style="font-size: 0.7em; color: #94a3b8; font-weight: normal; margin-top: 5px;">Oynamadı</span>';
 
         if (puanDurumu !== '') {
-            bgRenk = '#f0fdf4'; // Uçuk yeşil
-            borderRenk = '#22c55e'; // Yeşil çerçeve
+            bgRenk = '#f0fdf4'; 
+            borderRenk = '#22c55e'; 
             ekYazi = `<span style="font-size: 0.8em; color: #16a34a; font-weight: bold; margin-top: 5px;">✅ Puan: ${puanDurumu}</span>`;
         }
 
-        // Objeyi string'e çevirip butona gömüyoruz ki tıklayınca bilelim
         const ogrDataStr = encodeURIComponent(JSON.stringify(ogr));
 
         html += `
@@ -361,26 +369,18 @@ async function sinifModuArayuzunuCiz() {
 
     container.innerHTML = html;
 
-    // Öğrenci butonlarına tıklama olayı
     document.querySelectorAll('.btn-sinif-ogrenci').forEach(btn => {
         btn.addEventListener('click', (e) => {
             const ogrObj = JSON.parse(decodeURIComponent(e.currentTarget.getAttribute('data-ogr')));
             
-            // 🌟 SİHİRLİ KISIM: Sisteme o an bu öğrenci giriş yapmış gibi kandırıyoruz
             localStorage.setItem('currentUser', JSON.stringify(ogrObj));
-            
             document.getElementById('sinif-modu-oynayan-isim').innerText = `🎮 Oynayan: ${ogrObj.name}`;
-            
-            // İframe'i yükle
             document.getElementById('sinif-oyun-iframe').src = sinifModuAktifGorevLink;
-            
-            // Ekranı değiştir
             document.getElementById('sinif-modu-liste-ekrani').style.display = 'none';
             document.getElementById('sinif-modu-oyun-ekrani').style.display = 'flex';
         });
     });
 }
-
 
 async function arayuzuGuncelle() {
     const [kalemlerHam, tumKullanicilar, matris] = await Promise.all([
@@ -453,7 +453,6 @@ async function arayuzuGuncelle() {
                         <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
                             <div>${katilimRozeti}</div>
                             <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                                <!-- YENİ BUTON BURADA -->
                                 <button class="btn btn-success btn-sinif-oynat" data-id="${k.id}" data-link="${k.link}" data-ad="${k.ad}" style="padding: 6px 12px; font-size: 0.9em; font-weight: bold;">
                                     🏫 Sınıfta Oynat
                                 </button>
@@ -472,7 +471,6 @@ async function arayuzuGuncelle() {
     }
     document.getElementById('gorev-listesi').innerHTML = listHtml;
 
-    // AKORDEON TIKLAMA OLAYI
     document.querySelectorAll('.gorev-baslik-tikla').forEach(baslik => {
         baslik.addEventListener('click', (e) => {
             if(e.target.classList.contains('btn-oyun-dene')) return;
@@ -494,7 +492,6 @@ async function arayuzuGuncelle() {
         });
     });
 
-    // ÖĞRETMEN MANUEL TEST
     document.querySelectorAll('.btn-oyun-dene').forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.stopPropagation(); 
@@ -504,7 +501,6 @@ async function arayuzuGuncelle() {
         });
     });
 
-    // 🌟 YENİ: SINIFTA OYNAT BUTONU OLAYI
     document.querySelectorAll('.btn-sinif-oynat').forEach(btn => {
         btn.addEventListener('click', (e) => {
             sinifModuAktif = true;
@@ -512,12 +508,8 @@ async function arayuzuGuncelle() {
             sinifModuAktifGorevLink = e.currentTarget.getAttribute('data-link');
             const oyunAd = e.currentTarget.getAttribute('data-ad');
             
-            // Öğretmenin oturum verisini yedekle
             gercekOgretmenVerisi = localStorage.getItem('currentUser');
-            
             document.getElementById('sinif-modu-baslik').innerText = `🏫 Sınıf Modu: ${oyunAd}`;
-            
-            // Öğrenci listesini hazırla ve ekranı aç
             sinifModuArayuzunuCiz();
             document.getElementById('sinif-modu-modal').style.display = 'flex';
         });
@@ -559,7 +551,6 @@ async function arayuzuGuncelle() {
         });
     });
 
-    // -- TABLO ÇİZİMİ --
     const takipKarti = document.getElementById('takip-karti');
     const yazdirButonu = document.getElementById('btn-yazdir');
     

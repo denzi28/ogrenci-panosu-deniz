@@ -1,5 +1,5 @@
 import { db } from '../../js/db.js';
-
+//deneme
 export async function render(container) {
     container.innerHTML = '<div class="card"><p>⚡ Davranış modülü yükleniyor...</p></div>';
 

@@ -28,7 +28,10 @@ export async function render(container) {
             <!-- PANO SEKMESİ -->
             <div id="view-pano" style="display: block;">
                 <div class="card" style="border-top: 4px solid var(--success);">
-                    <h2 style="text-align: center; color: var(--primary); margin-bottom: 20px;">🏆 Sınıf Liderlik Panosu</h2>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap;">
+                        <h2 style="color: var(--primary); margin: 0;">🏆 Sınıf Liderlik Panosu</h2>
+                        <p style="font-size: 0.85em; color: #64748b; margin: 0;">Öğrencileri listeden anında puanlamak için "➕" butonunu kullanın.</p>
+                    </div>
                     <div id="pano-alani"><p>⏳ Pano yükleniyor...</p></div>
                 </div>
             </div>
@@ -44,8 +47,8 @@ export async function render(container) {
                 </div>
 
                 <div class="card">
-                    <h3>2. Davranışlar ve Sınıfı Puanlama</h3>
-                    <p style="font-size:0.85em; color:#666; margin-bottom: 15px;">Öğrencilere yıldız vermek için değerlendirmek istediğiniz davranışın yanındaki <strong>"⭐ Puanla"</strong> butonuna tıklayın.</p>
+                    <h3>2. Davranışlar ve Sınıfı Toplu Puanlama</h3>
+                    <p style="font-size:0.85em; color:#666; margin-bottom: 15px;">Tüm sınıfa aynı anda tek bir davranış üzerinden yıldız vermek isterseniz <strong>"⭐ Sınıfı Puanla"</strong> butonunu kullanın.</p>
                     <div id="kriter-listesi-alani"><p>⏳ Kriterler yükleniyor...</p></div>
                 </div>
             </div>
@@ -173,11 +176,10 @@ async function arayuzuGuncelle() {
         });
     }
 
-    // 2. PANO (LİDERLİK) GÖRÜNÜMÜNÜ ÇİZ - EŞİTLİK (BERABERLİK) SİSTEMİ
+    // 🌟 2. PANO (LİDERLİK) GÖRÜNÜMÜ - HIZLI DEĞERLENDİRME PANELİ EKLENDİ
     const panoAlani = document.getElementById('pano-alani');
     const panoOgrenciler = [...ogrenciler].sort((a, b) => b.score - a.score);
 
-    // Eşit puanlılara aynı madalyayı vermek için sadece benzersiz ve sıfırdan büyük puanları bul
     const benzersizPuanlar = [...new Set(panoOgrenciler.map(o => o.score))].filter(p => p > 0).sort((a, b) => b - a);
     const birinciPuan = benzersizPuanlar[0] || -1;
     const ikinciPuan = benzersizPuanlar[1] || -1;
@@ -202,30 +204,127 @@ async function arayuzuGuncelle() {
                 } else if (ogr.score === ucuncuPuan) { 
                     madalya = '🥉'; bgRenk = '#fff7ed'; borderRenk = '#fb923c'; 
                 }
-                // Madalyası varsa madalya görünsün, yoksa listedeki kendi sırası görünsün
                 gosterilecekSira = madalya || (benzersizPuanlar.indexOf(ogr.score) + 1);
             } else {
-                gosterilecekSira = '-'; // 0 puanlılara sıra verme
+                gosterilecekSira = '-'; 
             }
 
             panoHtml += `
-            <div style="background: ${bgRenk}; padding: 15px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; border: 1px solid ${borderRenk}; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-                <div style="display: flex; align-items: center; gap: 15px;">
-                    <span style="font-size: 1.8em; width: 40px; text-align: center; font-weight: bold; color: #555;">${gosterilecekSira}</span>
-                    <span style="font-size: 1.2em; font-weight: bold; color: var(--primary);">${ogr.name}</span>
+            <div style="background: ${bgRenk}; border-radius: 8px; border: 1px solid ${borderRenk}; box-shadow: 0 2px 4px rgba(0,0,0,0.05); overflow: hidden;">
+                
+                <!-- ÖĞRENCİ KARTI (ÜST KISIM) -->
+                <div style="padding: 15px; display: flex; justify-content: space-between; align-items: center;">
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <span style="font-size: 1.8em; width: 40px; text-align: center; font-weight: bold; color: #555;">${gosterilecekSira}</span>
+                        <div style="display: flex; flex-direction: column;">
+                            <span style="font-size: 1.2em; font-weight: bold; color: var(--primary);">${ogr.name}</span>
+                            <button class="btn-hizli-panel-ac" data-ogr="${ogr.id}" style="text-align: left; background: none; border: none; padding: 0; color: #0ea5e9; font-size: 0.85em; font-weight: bold; cursor: pointer; display: inline-block; margin-top: 5px;">➕ Hızlı Değerlendir</button>
+                        </div>
+                    </div>
+                    <div style="text-align: right;">
+                        <span style="font-size: 2em; font-weight: 900; color: var(--danger);">${ogr.score} <span style="font-size:0.6em;">⭐</span></span>
+                        <span style="font-size: 0.8em; font-weight: bold; color: #888; display: block; margin-top: -5px;">TOPLAM YILDIZ</span>
+                    </div>
                 </div>
-                <div style="text-align: right;">
-                    <span style="font-size: 2em; font-weight: 900; color: var(--danger);">${ogr.score} <span style="font-size:0.6em;">⭐</span></span>
-                    <span style="font-size: 0.8em; font-weight: bold; color: #888; display: block; margin-top: -5px;">TOPLAM YILDIZ</span>
+
+                <!-- 🌟 YENİ: AÇILIR HIZLI DEĞERLENDİRME ÇEKMECESİ -->
+                <div id="hizli-panel-${ogr.id}" style="display: none; background: #ffffff; border-top: 1px dashed ${borderRenk}; padding: 15px;">
+                    <p style="margin: 0 0 10px 0; font-size: 0.85em; color: #64748b; font-weight: bold;">Davranışlara Puan Ver (Değişiklikler anında panoya yansır):</p>
+                    <div style="display: flex; flex-direction: column; gap: 8px;">`;
+                        
+                        if (kriterler.length === 0) {
+                            panoHtml += `<div style="font-size: 0.85em; color: #ef4444;">Önce Yönetim sekmesinden kriter ekleyin.</div>`;
+                        } else {
+                            kriterler.forEach(k => {
+                                let mevcutDeger = parseInt(matris.find(m => m.ogrId === ogr.id && m.targetId === k.id)?.deger || '0');
+                                
+                                let starsHtml = '';
+                                for(let i = 1; i <= 5; i++) {
+                                    let renk = i <= mevcutDeger ? '#fbbf24' : '#e2e8f0'; 
+                                    starsHtml += `<span class="hizli-star-btn" data-ogr="${ogr.id}" data-kriter="${k.id}" data-val="${i}" style="cursor:pointer; font-size: 1.6em; color: ${renk}; transition: 0.2s; user-select: none;">★</span>`;
+                                }
+
+                                panoHtml += `
+                                <div style="display: flex; justify-content: space-between; align-items: center; background: #f8fafc; padding: 6px 12px; border-radius: 6px; border: 1px solid #e2e8f0;">
+                                    <span style="font-size: 0.95em; color: #334155; font-weight: 500;">${k.ad}</span>
+                                    <div style="display: flex; align-items: center; gap: 5px;">
+                                        <button class="btn-hizli-sifirla" data-ogr="${ogr.id}" data-kriter="${k.id}" style="background: none; border: none; cursor: pointer; color: #ef4444; font-size: 1em; padding: 2px 5px; display: ${mevcutDeger > 0 ? 'block' : 'none'};" title="Sıfırla">✖</button>
+                                        <div class="hizli-stars-container" data-ogr="${ogr.id}" data-kriter="${k.id}" style="display: flex; gap: 1px;">
+                                            ${starsHtml}
+                                        </div>
+                                    </div>
+                                </div>`;
+                            });
+                        }
+                    
+            panoHtml += `
+                    </div>
                 </div>
             </div>`;
         });
         panoHtml += '</div>';
         panoAlani.innerHTML = panoHtml;
+
+        // HIZLI PANELİ AÇ/KAPAT OLAYI
+        document.querySelectorAll('.btn-hizli-panel-ac').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const ogrId = e.target.getAttribute('data-ogr');
+                const panel = document.getElementById(`hizli-panel-${ogrId}`);
+                if (panel.style.display === 'none') {
+                    panel.style.display = 'block';
+                    e.target.innerText = '➖ Kapat';
+                } else {
+                    panel.style.display = 'none';
+                    e.target.innerText = '➕ Hızlı Değerlendir';
+                }
+            });
+        });
+
+        // HIZLI YILDIZ VERME OLAYI
+        document.querySelectorAll('.hizli-star-btn').forEach(star => {
+            star.addEventListener('click', async (e) => {
+                const val = parseInt(e.target.getAttribute('data-val'));
+                const oId = e.target.getAttribute('data-ogr');
+                const kId = e.target.getAttribute('data-kriter');
+                
+                const container = document.querySelector(`.hizli-stars-container[data-ogr="${oId}"][data-kriter="${kId}"]`);
+                container.querySelectorAll('.hizli-star-btn').forEach((s, idx) => {
+                    s.style.color = (idx < val) ? '#fbbf24' : '#e2e8f0';
+                });
+                
+                document.querySelector(`.btn-hizli-sifirla[data-ogr="${oId}"][data-kriter="${kId}"]`).style.display = 'block';
+                
+                // Veritabanına kaydet
+                await db.saveMatrixStatus('davranis_matrisi', oId, kId, val.toString());
+                
+                // Puanı güncellemek için arayüzü tazele, ama panelleri açık tutmayı denemek zor olduğu için komple tazeliyoruz
+                // Kısa bir bekleme süresi verelim ki yıldızın boyandığını görsün
+                setTimeout(() => { arayuzuGuncelle(); }, 300);
+            });
+        });
+
+        // HIZLI SIFIRLAMA OLAYI
+        document.querySelectorAll('.btn-hizli-sifirla').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const oId = e.target.getAttribute('data-ogr');
+                const kId = e.target.getAttribute('data-kriter');
+                
+                const container = document.querySelector(`.hizli-stars-container[data-ogr="${oId}"][data-kriter="${kId}"]`);
+                container.querySelectorAll('.hizli-star-btn').forEach(s => {
+                    s.style.color = '#e2e8f0';
+                });
+                
+                e.target.style.display = 'none';
+
+                await db.saveMatrixStatus('davranis_matrisi', oId, kId, '0');
+                
+                setTimeout(() => { arayuzuGuncelle(); }, 300);
+            });
+        });
     }
 }
 
-// 5 YILDIZLI İNTERAKTİF TAM SAYFA PUANLAMA EKRANI
+// 5 YILDIZLI İNTERAKTİF TAM SAYFA PUANLAMA EKRANI (Aynı kaldı)
 function tamSayfaPuanlamayiAc(kriterId, kriterName, ogrenciler, matris) {
     document.getElementById('puanlama-criteria-name').innerText = `⭐ ${kriterName}`;
     const siraliOgrenciler = [...ogrenciler].sort((a, b) => (a.name || '').localeCompare(b.name || ''));

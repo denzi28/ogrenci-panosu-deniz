@@ -1,5 +1,3 @@
-// Firebase SDK modüllerini internet üzerinden (CDN) projeye dahil ediyoruz
-// DİKKAT: arrayUnion komutu eklendi!
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getFirestore, collection, getDocs, addDoc, updateDoc, deleteDoc, doc, setDoc, getDoc, query, where, arrayUnion } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
@@ -18,36 +16,27 @@ const firestore = getFirestore(app);
 
 class Database {
     constructor() {
-        // Hafızada tutulan tablo listesi (veritabanını yormamak için)
         this.kayitliKoleksiyonlar = new Set();
     }
 
-    // --- YENİ: OTOMATİK TABLO DEDEKTİFİ ---
-    // Her işlemde tablonun adını "koleksiyon_listesi"ne kaydeder
     async registerCollection(collectionName) {
-        // Sistem ayar tablolarını veya zaten kaydettiğimiz tabloları atla
         if (this.kayitliKoleksiyonlar.has(collectionName) || collectionName.includes('setting')) return;
-        
         try {
             const docRef = doc(firestore, "system_settings", "koleksiyon_listesi");
-            // arrayUnion: Listede yoksa ekler, varsa dokunmaz
             await setDoc(docRef, { isimler: arrayUnion(collectionName) }, { merge: true });
             this.kayitliKoleksiyonlar.add(collectionName);
         } catch(e) { console.error("Tablo listeye eklenemedi:", e); }
     }
 
-    // --- YENİ: YEDEKLEME İÇİN TÜM TABLOLARIN İSİMLERİNİ GETİRİR ---
     async getCollectionList() {
         const docRef = doc(firestore, "system_settings", "koleksiyon_listesi");
         const docSnap = await getDoc(docRef);
-        if (docSnap.exists() && docSnap.data().isimler) {
-            return docSnap.data().isimler;
-        }
+        if (docSnap.exists() && docSnap.data().isimler) return docSnap.data().isimler;
         return [];
     }
 
     async getAll(collectionName) {
-        this.registerCollection(collectionName); // Okuğunda listeye ekle
+        this.registerCollection(collectionName);
         const querySnapshot = await getDocs(collection(firestore, collectionName));
         const data = [];
         querySnapshot.forEach((doc) => {
@@ -68,11 +57,8 @@ class Database {
     }
 
     async add(collectionName, itemData) {
-        this.registerCollection(collectionName); // Yazdığında listeye ekle
-        const newItem = { 
-            createdAt: new Date().toISOString(), 
-            ...itemData 
-        };
+        this.registerCollection(collectionName);
+        const newItem = { createdAt: new Date().toISOString(), ...itemData };
         const docRef = await addDoc(collection(firestore, collectionName), newItem);
         return { id: docRef.id, ...newItem };
     }
@@ -104,18 +90,13 @@ class Database {
             const docRef = doc(firestore, collectionName, id);
             await setDoc(docRef, itemData);
             return true;
-        } catch (error) {
-            console.error("Yedek yükleme hatası:", error);
-            return false;
-        }
+        } catch (error) { return false; }
     }
 
     async getModuleVisibility(moduleId) {
         const docRef = doc(firestore, "module_settings", moduleId);
         const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-            return docSnap.data().guestVisible;
-        }
+        if (docSnap.exists()) return docSnap.data().guestVisible;
         return true; 
     }
 
@@ -124,11 +105,13 @@ class Database {
         await setDoc(docRef, { guestVisible: isVisible }, { merge: true });
     }
 
+    // 🌟 KİTAP SÜRE KONTROLÜ İÇİN TARİH BİLGİSİNİN KAYDEDİLDİĞİ YER
     async saveMatrixStatus(collectionName, ogrId, targetId, value) {
         this.registerCollection(collectionName);
         const docId = `${ogrId}_${targetId}`; 
         const docRef = doc(firestore, collectionName, docId);
-        await setDoc(docRef, { ogrId, targetId, deger: value }, { merge: true });
+        const islemTarihi = new Date().toISOString(); 
+        await setDoc(docRef, { ogrId, targetId, deger: value, tarih: islemTarihi }, { merge: true });
     }
 }
 

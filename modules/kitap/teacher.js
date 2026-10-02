@@ -1,7 +1,7 @@
 import { db } from '../../js/db.js';
 
-// Sıralama durumu hafızada tutulur (Varsayılan: Alfabetik)
 let aktifSiralama = 'alfabetik'; 
+let minimumOkumaGunu = 1; 
 
 export async function render(container) {
     container.innerHTML = '<div class="card"><p>⚡ Kitap okuma modülü yükleniyor...</p></div>';
@@ -9,6 +9,14 @@ export async function render(container) {
     const isModuleVisible = await db.getModuleVisibility('kitap');
     const btnClass = isModuleVisible ? 'btn-success' : 'btn-secondary';
     const btnText = isModuleVisible ? 'Menüde Görünüyor (Gizle)' : 'Menüde Gizli (Göster)';
+
+    try {
+        const ayarlar = await db.getAll('system_settings');
+        const kitapAyari = ayarlar.find(a => a.id === 'kitap_ayarlari');
+        if (kitapAyari && kitapAyari.minGun !== undefined) {
+            minimumOkumaGunu = parseInt(kitapAyari.minGun);
+        }
+    } catch (e) { console.error("Ayar çekilemedi", e); }
 
     container.innerHTML = `
         <div id="ana-gorunum" style="display: block;">
@@ -29,25 +37,37 @@ export async function render(container) {
                     <button id="tab-kitap-yonetimi" class="btn btn-secondary" style="flex: 1; min-width: 200px; font-size: 1.05em; font-weight: bold;">📚 Kitap Yönetimi (Ekle/Sil)</button>
                 </div>
 
-                <!-- 1. SEKME: ÖĞRENCİ LİSTESİ -->
                 <div id="view-ogrenciler" style="display: block;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
-                        <h3 style="margin: 0; color: var(--success);">Öğrenci Okuma Durumları</h3>
-                        <button id="btn-kitap-yazdir" class="btn btn-primary" style="padding: 10px 20px; font-size: 1em; font-weight: bold; background-color: #0284c7; color: white; border: none; border-radius: 5px; cursor: pointer;">
-                            🖨️ Rapor Yazdır / PDF Al
-                        </button>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 15px; background: #f8fafc; padding: 15px; border-radius: 12px; border: 1px solid #e2e8f0;">
+                        <div>
+                            <h3 style="margin: 0 0 5px 0; color: var(--success);">Öğrenci Okuma Durumları</h3>
+                            <p style="font-size:0.85em; color:#64748b; margin: 0;">Kartlar üzerinden hızlıca kitap verebilir veya teslim alabilirsiniz.</p>
+                        </div>
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                            <button id="btn-sirala" class="btn btn-secondary" style="padding: 10px 15px; font-size: 0.95em; font-weight: bold; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); display: flex; align-items: center; gap: 8px;" title="Sıralamayı Değiştir">
+                                <span id="siralama-ikon">🔤</span> <span id="siralama-metin">Alfabetik Sıralama</span> <span>🔄</span>
+                            </button>
+                            <button id="btn-kitap-yazdir" class="btn btn-primary" style="padding: 10px 15px; font-size: 0.95em; font-weight: bold; background-color: #0284c7; color: white; border: none; border-radius: 6px; cursor: pointer;">
+                                🖨️ Rapor Yazdır / PDF Al
+                            </button>
+                        </div>
                     </div>
-                    <p style="font-size:0.85em; color:#666; margin-bottom: 15px;">
-                        Kitapları hızlıca vermek/teslim almak için listedeki <strong>Hızlı İşlem Kutucuklarını</strong> kullanabilirsiniz.<br>
-                        <em>Not: Bir öğrenci elindeki kitabı teslim etmeden (Bitirdi/Bırak) yeni kitap alamaz.</em>
-                    </p>
-                    <div id="kitap-tablosu-alani" style="overflow-x: auto;"><p>⏳ Liste yükleniyor...</p></div>
+                    <div id="kitap-tablosu-alani"><p>⏳ Öğrenci kartları yükleniyor...</p></div>
                 </div>
 
-                <!-- 2. SEKME: KİTAP YÖNETİMİ -->
                 <div id="view-kitap-yonetimi" style="display: none;">
-                    <h3 style="color: var(--primary);">Sınıf Kitaplığına Yeni Kitap Ekle</h3>
                     
+                    <div style="background: #fff8f1; padding: 15px 20px; border-radius: 8px; border: 1px solid #fed7aa; margin-bottom: 25px; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+                        <h4 style="margin: 0 0 8px 0; color: #ea580c; font-size: 1.1em;">⏱️ Kitap Değiştirme Süresi Kuralı</h4>
+                        <p style="font-size: 0.9em; color: #9a3412; margin: 0 0 12px 0;">Öğrenci kitabı aldıktan sonra <strong>en az kaç gün</strong> elinde tutmalı? (Aynı gün hemen iade etmelerini engellemek için en az 1 yapın).</p>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <input type="number" id="ayar-min-gun" value="${minimumOkumaGunu}" min="0" style="width: 80px; padding: 10px; border: 2px solid #fdba74; border-radius: 6px; font-weight: bold; font-size: 1.1em; color: #ea580c; outline: none;"> 
+                            <span style="font-weight: bold; color: #ea580c;">Gün</span>
+                            <button id="btn-ayar-kaydet" class="btn" style="background: #f97316; color: white; border: none; font-weight: bold; padding: 10px 20px; border-radius: 6px; cursor: pointer; transition: 0.2s;" onmouseover="this.style.background='#ea580c';" onmouseout="this.style.background='#f97316';">Kuralı Kaydet</button>
+                        </div>
+                    </div>
+
+                    <h3 style="color: var(--primary);">Sınıf Kitaplığına Yeni Kitap Ekle</h3>
                     <div style="display: flex; gap: 10px; margin-top: 15px;">
                         <input type="number" id="yeni-kitap-no" placeholder="No (Örn: 1)" style="width: 100px; padding: 10px; border: 1px solid #ccc; border-radius: 4px;">
                         <input type="text" id="yeni-kitap-ad" placeholder="Kitap Adı (Örn: Küçük Prens)" style="flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 4px;">
@@ -69,12 +89,11 @@ export async function render(container) {
             </div>
         </div>
 
-        <!-- ÖĞRENCİ DETAY GÖRÜNÜMÜ -->
         <div id="detay-gorunum" style="display: none;">
             <div class="card" style="border-top: 4px solid var(--primary); min-height: 50vh;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
                     <h2 id="detay-baslik" style="margin: 0; color: var(--primary);">📖 Öğrenci Adı - Kitap Listesi</h2>
-                    <button id="btn-detay-kapat" class="btn btn-secondary" style="font-weight: bold; padding: 10px 20px; font-size: 1.1em; box-shadow: 0 4px 0 #94a3b8;">⬅️ Listeye Dön</button>
+                    <button id="btn-detay-kapat" class="btn btn-secondary" style="font-weight: bold; padding: 10px 20px; font-size: 1.1em; box-shadow: 0 4px 0 #94a3b8;">⬅️️ Listeye Dön</button>
                 </div>
                 
                 <div style="background: #e8f4fd; border: 1px dashed var(--primary); padding: 12px; border-radius: 8px; font-size: 0.95em; margin-bottom: 20px; color: #1e293b; text-align: center;">
@@ -85,6 +104,18 @@ export async function render(container) {
             </div>
         </div>
     `;
+
+    document.getElementById('btn-ayar-kaydet').addEventListener('click', async (e) => {
+        const val = document.getElementById('ayar-min-gun').value;
+        if(val !== "" && val >= 0) {
+            e.target.innerText = "⏳ Kaydediliyor...";
+            minimumOkumaGunu = parseInt(val);
+            if (db.setWithId) {
+                await db.setWithId('system_settings', 'kitap_ayarlari', { minGun: minimumOkumaGunu });
+            }
+            setTimeout(() => { e.target.innerText = "✅ Kaydedildi"; setTimeout(() => e.target.innerText = "Kuralı Kaydet", 2000); }, 500);
+        }
+    });
 
     document.getElementById('tab-ogrenciler').addEventListener('click', () => {
         document.getElementById('view-ogrenciler').style.display = 'block';
@@ -180,10 +211,12 @@ export async function render(container) {
             ogr.okunanSayisi = 0;
             ogr.suAnOkuduguKitaplar = [];
             kalemler.forEach(k => {
-                let durum = matris.find(m => m.ogrId === ogr.id && m.targetId === k.id)?.deger;
-                let kNoStr = (k.no && k.no !== 999) ? `#${k.no} ` : '';
-                if (durum === '✔️') ogr.okunanSayisi++;
-                if (durum === '⏳') ogr.suAnOkuduguKitaplar.push(`${kNoStr}${k.ad}`);
+                let m = matris.find(m => m.ogrId === ogr.id && m.targetId === k.id);
+                if (m) {
+                    let kNoStr = (k.no && k.no !== 999) ? `#${k.no} ` : '';
+                    if (m.deger === '✔️') ogr.okunanSayisi++;
+                    if (m.deger === '⏳') ogr.suAnOkuduguKitaplar.push(`${kNoStr}${k.ad}`);
+                }
             });
         });
 
@@ -243,10 +276,15 @@ export async function render(container) {
         ogrenciler.forEach((ogr, index) => {
             let okunanlarVeSari = [];
             kalemler.forEach(k => {
-                let durum = matris.find(m => m.ogrId === ogr.id && m.targetId === k.id)?.deger;
-                let kNoStr = (k.no && k.no !== 999) ? `#${k.no} ` : '';
-                if (durum === '✔️') okunanlarVeSari.push(`<b>${kNoStr}${k.ad}</b>`);
-                else if (durum === '⏳') okunanlarVeSari.push(`${kNoStr}${k.ad} (Okuyor)`);
+                let m = matris.find(m => m.ogrId === ogr.id && m.targetId === k.id);
+                if (m) {
+                    let kNoStr = (k.no && k.no !== 999) ? `#${k.no} ` : '';
+                    if (m.deger === '✔️') okunanlarVeSari.push(`<b>${kNoStr}${k.ad}</b>`);
+                    else if (m.deger === '⏳') {
+                        let sureMetni = m.tarih ? (gunFarkiHesapla(m.tarih) === 0 ? "Bugün aldı" : `${gunFarkiHesapla(m.tarih)} gündür`) : "Eski kayıt";
+                        okunanlarVeSari.push(`${kNoStr}${k.ad} (Okuyor: ${sureMetni})`);
+                    }
+                }
             });
 
             let kitapYazisi = okunanlarVeSari.length > 0 ? okunanlarVeSari.join(', ') : 'Henüz kitap kaydı yok.';
@@ -271,7 +309,23 @@ export async function render(container) {
         printWindow.document.close();
     });
 
+    document.getElementById('btn-sirala').addEventListener('click', () => {
+        if (aktifSiralama === 'alfabetik') aktifSiralama = 'encok';
+        else if (aktifSiralama === 'encok') aktifSiralama = 'okuyan';
+        else aktifSiralama = 'alfabetik';
+        arayuzuGuncelle();
+    });
+
     await arayuzuGuncelle();
+}
+
+function gunFarkiHesapla(verilisTarihiStr) {
+    if (!verilisTarihiStr) return 999; 
+    const alis = new Date(verilisTarihiStr);
+    const bugun = new Date();
+    alis.setHours(0,0,0,0); 
+    bugun.setHours(0,0,0,0);
+    return Math.floor((bugun - alis) / (1000 * 60 * 60 * 24));
 }
 
 async function arayuzuGuncelle() {
@@ -292,15 +346,16 @@ async function arayuzuGuncelle() {
 
     const ogrenciler = tumKullanicilar.filter(u => u.role === 'student');
 
-    // Her öğrenci için detaylı veri topla
     ogrenciler.forEach(ogr => {
         let okunanSayisi = 0;
         let suAnOkuyanlarDetay = []; 
         
         kalemler.forEach(k => {
-            let durum = matris.find(m => m.ogrId === ogr.id && m.targetId === k.id)?.deger;
-            if (durum === '✔️') okunanSayisi++;
-            if (durum === '⏳') suAnOkuyanlarDetay.push(k);
+            let m = matris.find(m => m.ogrId === ogr.id && m.targetId === k.id);
+            if (m) {
+                if (m.deger === '✔️') okunanSayisi++;
+                if (m.deger === '⏳') suAnOkuyanlarDetay.push({ ...k, tarih: m.tarih }); 
+            }
         });
         
         ogr.okunanSayisi = okunanSayisi;
@@ -308,9 +363,12 @@ async function arayuzuGuncelle() {
         ogr.suAnOkuyanlarDetay = suAnOkuyanlarDetay; 
     });
 
-    // EKRANDAKİ TABLO İÇİN SIRALAMA MANTIĞI
+    const ikonSpan = document.getElementById('siralama-ikon');
+    const metinSpan = document.getElementById('siralama-metin');
+    
     if (aktifSiralama === 'alfabetik') {
         ogrenciler.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'tr-TR'));
+        if(ikonSpan) { ikonSpan.innerText = '🔤'; metinSpan.innerText = 'Alfabetik Sıralama'; }
     } else if (aktifSiralama === 'encok') {
         ogrenciler.sort((a, b) => {
             if (b.okunanSayisi !== a.okunanSayisi) return b.okunanSayisi - a.okunanSayisi;
@@ -319,6 +377,7 @@ async function arayuzuGuncelle() {
             if (bOkuyor !== aOkuyor) return bOkuyor - aOkuyor;
             return (a.name || '').localeCompare(b.name || '', 'tr-TR');
         });
+        if(ikonSpan) { ikonSpan.innerText = '🏆'; metinSpan.innerText = 'En Çok Okuyanlar'; }
     } else if (aktifSiralama === 'okuyan') {
         ogrenciler.sort((a, b) => {
             let aOkuyor = a.suAnOkuduguKitaplar.length > 0 ? 1 : 0;
@@ -326,9 +385,9 @@ async function arayuzuGuncelle() {
             if (bOkuyor !== aOkuyor) return bOkuyor - aOkuyor;
             return (a.name || '').localeCompare(b.name || '', 'tr-TR');
         });
+        if(ikonSpan) { ikonSpan.innerText = '⏳'; metinSpan.innerText = 'Şu An Okuyanlar'; }
     }
 
-    // --- KİTAP YÖNETİM ALANI ---
     let basliklarHtml = '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 15px;">';
     kalemler.forEach(k => {
         let okuyanSayisi = 0;
@@ -348,7 +407,7 @@ async function arayuzuGuncelle() {
         let suAnText = suAnOkuyanlar.length > 0 
             ? `<span style="color: #d97706; font-weight: bold;">Şu an ${suAnOkuyanlar.join(', ')} okuyor.</span>`
             : `<span style="color: #059669; font-weight: bold;">Şu an okunmayı bekliyor (Rafta).</span>`;
-        let ikon = suAnOkuyanlar.length > 0 ? '⏳' : '✔️';
+        let ikon = suAnOkuyanlar.length > 0 ? '⏳' : '✔';
         let bgRenk = suAnOkuyanlar.length > 0 ? '#fef3c7' : '#ffffff';
         let borderRenk = suAnOkuyanlar.length > 0 ? '#f59e0b' : 'var(--primary)';
         let noGosterimi = (k.no && k.no !== 999) ? `<span style="color:#94a3b8; margin-right:5px; font-size: 0.9em;">#${k.no}</span>` : '';
@@ -376,88 +435,84 @@ async function arayuzuGuncelle() {
     if(kalemler.length === 0) basliklarHtml = '<div style="color:#64748b; padding: 15px; text-align: center; background: #f8fafc; border-radius: 8px; font-style: italic;">Henüz sınıf kitaplığına eklenmiş kitap bulunmuyor.</div>';
     document.getElementById('kitap-basliklari').innerHTML = basliklarHtml;
 
-    // --- ANA ÖĞRENCİ LİSTESİ ---
     if (kalemler.length === 0) {
         document.getElementById('kitap-tablosu-alani').innerHTML = '<p style="color:var(--secondary); padding: 20px;">Lütfen önce "Kitap Yönetimi" sekmesinden en az bir kitap ekleyin.</p>';
         return;
     }
 
-    let btnTextSiralama = aktifSiralama === 'alfabetik' ? '🔤 Alfabetik' : (aktifSiralama === 'encok' ? '🏆 En Çok Okuyan' : '⏳ Okuyanlar');
-
-    let tabloHtml = `
-        <table style="width: 100%; border-collapse: collapse; min-width: 600px; font-size: 0.95em;">
-            <thead>
-                <tr style="background: #f8f9fa;">
-                    <th style="border: 1px solid #ddd; padding: 12px; width: 40px;">SN</th>
-                    <th style="border: 1px solid #ddd; padding: 12px; text-align: left; width: 250px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <span>ADI SOYADI VE KİTAP DURUMU</span>
-                            <button id="btn-sirala" style="background: var(--primary); color: white; border: none; padding: 6px 10px; border-radius: 6px; font-size: 0.85em; cursor: pointer; display: flex; align-items: center; gap: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" title="Sıralamayı Değiştir">
-                                ${btnTextSiralama} <span>🔄</span>
-                            </button>
-                        </div>
-                    </th>
-                    <th style="border: 1px solid #ddd; padding: 12px; width: 90px; color: var(--primary); text-align: center;">TOPLAM</th>
-                    <th style="border: 1px solid #ddd; padding: 12px; text-align: center; width: 100px;">TÜM LİSTE</th>
-                </tr>
-            </thead>
-            <tbody>
-    `;
+    let kartlarHtml = `<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px;">`;
 
     ogrenciler.forEach((ogr, index) => {
-        let satirArkaPlan = index % 2 === 0 ? '#ffffff' : '#f8fafc';
-
-        // 🌟 HIZLI KİTAP İŞLEMLERİ MANTIĞI
-        let hizliIslemHtml = `<div style="margin-top: 8px; display: flex; flex-direction: column; gap: 6px;">`;
+        let hizliIslemHtml = `<div style="margin-top: auto; display: flex; flex-direction: column; gap: 8px; border-top: 1px dashed #cbd5e1; padding-top: 15px;">`;
 
         if (ogr.suAnOkuyanlarDetay.length > 0) {
-            // ÖĞRENCİNİN ELİNDE KİTAP VARSA -> "Ver" Kutusu Gizlenir, Sadece Bitirdi/Bırak görünür
             ogr.suAnOkuyanlarDetay.forEach(k => {
                 let kNoStr = (k.no && k.no !== 999) ? `#${k.no} ` : '';
+                
+                // 🌟 YENİ: OKUMA SÜRESİ HESAPLAMA VE EKRANA YAZDIRMA
+                let sureMetni = "";
+                if (k.tarih) {
+                    let gunFarki = gunFarkiHesapla(k.tarih);
+                    sureMetni = gunFarki === 0 ? " (Bugün aldı)" : ` (${gunFarki} gündür okuyor)`;
+                } else {
+                    sureMetni = " (Eski kayıt)";
+                }
+
                 hizliIslemHtml += `
-                    <div style="display: flex; align-items: center; gap: 5px; background: #fef3c7; padding: 4px 8px; border-radius: 4px; border: 1px solid #f59e0b;">
-                        <span style="color: #d97706; font-size: 0.85em; flex: 1;">⏳ <strong>Okuyor:</strong> ${kNoStr}${k.ad}</span>
-                        <button class="btn-hizli-bitir" data-ogr="${ogr.id}" data-kitap="${k.id}" style="background: #10b981; color: white; border: none; padding: 3px 8px; border-radius: 4px; font-size: 0.8em; cursor: pointer; font-weight: bold;" title="Kitabı Okudu Olarak İşaretle">✔️ Bitirdi</button>
-                        <button class="btn-hizli-iade" data-ogr="${ogr.id}" data-kitap="${k.id}" style="background: #ef4444; color: white; border: none; padding: 3px 8px; border-radius: 4px; font-size: 0.8em; cursor: pointer; font-weight: bold;" title="Okumadan Geri Verdi">❌ Bırak</button>
+                    <div style="display: flex; flex-direction: column; gap: 6px; background: #fef3c7; padding: 10px; border-radius: 8px; border: 1px solid #f59e0b;">
+                        <span style="color: #d97706; font-size: 0.9em; font-weight: bold; line-height: 1.3;">
+                            ⏳ Okuyor: ${kNoStr}${k.ad}<br>
+                            <span style="font-size: 0.85em; color: #b45309;">${sureMetni}</span>
+                        </span>
+                        <div style="display: flex; gap: 8px;">
+                            <button class="btn-hizli-bitir" data-ogr="${ogr.id}" data-kitap="${k.id}" style="flex: 1; background: #10b981; color: white; border: none; padding: 6px; border-radius: 6px; font-size: 0.85em; cursor: pointer; font-weight: bold; box-shadow: 0 2px 0 #059669;" title="Kitabı Okudu Olarak İşaretle">✔️ Bitirdi</button>
+                            <button class="btn-hizli-iade" data-ogr="${ogr.id}" data-kitap="${k.id}" style="flex: 1; background: #ef4444; color: white; border: none; padding: 6px; border-radius: 6px; font-size: 0.85em; cursor: pointer; font-weight: bold; box-shadow: 0 2px 0 #dc2626;" title="Okumadan Geri Verdi">❌ Bırak</button>
+                        </div>
                     </div>
                 `;
             });
         } else {
-            // ÖĞRENCİNİN ELİNDE KİTAP YOKSA -> Yan Yana Kırmızı Arka Planlı Ver Kutusu
             hizliIslemHtml += `
-                <div style="display: flex; align-items: center; gap: 5px; background: #fee2e2; padding: 4px 8px; border-radius: 4px; border: 1px solid #fca5a5;">
-                    <span style="color: #b91c1c; font-size: 0.85em; font-style: italic; flex: 1;">Şu an elinde kitap yok.</span>
-                    <div style="display: flex; align-items: center; gap: 4px;">
-                        <input type="number" id="hizli-no-${ogr.id}" placeholder="No" style="width: 50px; padding: 3px 5px; border: 1px solid #fca5a5; border-radius: 4px; font-size: 0.8em; outline: none;" onkeypress="if(event.key === 'Enter'){ document.getElementById('btn-ver-${ogr.id}').click(); }">
-                        <button class="btn-hizli-ver" id="btn-ver-${ogr.id}" data-ogr="${ogr.id}" style="background: #ef4444; color: white; border: none; padding: 3px 8px; border-radius: 4px; font-size: 0.8em; cursor: pointer; font-weight: bold;">📥 Ver</button>
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                    <div style="background: #fee2e2; padding: 6px 10px; border-radius: 6px; border: 1px solid #fca5a5; text-align: center;">
+                        <span style="color: #b91c1c; font-size: 0.85em; font-weight: bold;">Şu an elinde kitap yok.</span>
+                    </div>
+                    <div style="display: flex; gap: 5px;">
+                        <input type="number" id="hizli-no-${ogr.id}" placeholder="Kitap No Gir..." style="flex: 1; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.9em; outline: none;" onkeypress="if(event.key === 'Enter'){ document.getElementById('btn-ver-${ogr.id}').click(); }">
+                        <button class="btn-hizli-ver" id="btn-ver-${ogr.id}" data-ogr="${ogr.id}" style="background: #0ea5e9; color: white; border: none; padding: 8px 15px; border-radius: 6px; font-size: 0.95em; cursor: pointer; font-weight: bold; box-shadow: 0 2px 0 #0284c7;">📥 Ver</button>
                     </div>
                 </div>
             `;
         }
         
-        hizliIslemHtml += `</div>`; // İç div kapatma
+        hizliIslemHtml += `</div>`;
 
-        tabloHtml += `<tr style="background-color: ${satirArkaPlan}; transition: background-color 0.2s;">
-            <td style="border: 1px solid #ddd; padding: 12px; text-align: center; color: #666;">${index + 1}</td>
-            <td style="border: 1px solid #ddd; padding: 12px; color: #333;">
-                <div style="font-weight: bold; font-size: 1.05em; color: #1e293b;">${ogr.name} <span style="font-size: 0.75em; color: #94a3b8; font-weight: normal;">(No: ${ogr.okulno || '-'})</span></div>
+        kartlarHtml += `
+            <div style="background: white; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); padding: 20px; display: flex; flex-direction: column; gap: 15px; transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)';" onmouseout="this.style.transform='translateY(0)';">
+                
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px;">
+                    <div>
+                        <div style="font-size: 0.8em; color: #94a3b8; font-weight: bold; margin-bottom: 5px;">#${index + 1} | No: ${ogr.okulno || '-'}</div>
+                        <div style="font-weight: bold; font-size: 1.15em; color: #1e293b; line-height: 1.2;">${ogr.name}</div>
+                    </div>
+                    <div style="background: #f0fdf4; border: 2px solid #22c55e; color: #16a34a; border-radius: 10px; padding: 5px 12px; text-align: center; min-width: 60px;">
+                        <span style="font-size: 1.4em; font-weight: 900; display: block; line-height: 1;">${ogr.okunanSayisi}</span>
+                        <span style="font-size: 0.65em; font-weight: bold;">KİTAP</span>
+                    </div>
+                </div>
+
                 ${hizliIslemHtml}
-            </td>
-            <td style="border: 1px solid #ddd; padding: 12px; text-align: center; font-weight: bold; color: var(--primary); font-size: 1.3em; background: #f1f5f9;">${ogr.okunanSayisi}</td>
-            <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">
-                <button class="btn btn-secondary btn-detay-ac" data-ogrid="${ogr.id}" data-ogrname="${ogr.name}" style="padding: 6px 12px; font-weight: bold; font-size: 0.85em; border: 1px solid #cbd5e1;">
-                    📚 Tüm Listesi
+
+                <button class="btn btn-secondary btn-detay-ac" data-ogrid="${ogr.id}" data-ogrname="${ogr.name}" style="width: 100%; padding: 10px; font-weight: bold; font-size: 0.9em; border-radius: 8px; border: 1px solid #cbd5e1; background: #f8fafc; color: #475569; transition: 0.2s; cursor: pointer;" onmouseover="this.style.background='#e2e8f0';" onmouseout="this.style.background='#f8fafc';">
+                    📚 Tüm Listeyi Gör
                 </button>
-            </td>
-        </tr>`;
+            </div>
+        `;
     });
 
-    tabloHtml += `</tbody></table>`;
-    document.getElementById('kitap-tablosu-alani').innerHTML = tabloHtml;
+    kartlarHtml += `</div>`;
+    document.getElementById('kitap-tablosu-alani').innerHTML = kartlarHtml;
 
-    // --- ETKİLEŞİMLER (EVENT LİSTENER'LAR) ---
-
-    // 1. Düzenle ve Sil (Kitap Yönetimi)
     document.querySelectorAll('.btn-kalem-duzenle').forEach(btn => {
         btn.addEventListener('click', async (e) => {
             const id = e.currentTarget.getAttribute('data-id');
@@ -492,15 +547,6 @@ async function arayuzuGuncelle() {
         });
     });
 
-    // 2. Tablo Sıralaması
-    document.getElementById('btn-sirala').addEventListener('click', () => {
-        if (aktifSiralama === 'alfabetik') aktifSiralama = 'encok';
-        else if (aktifSiralama === 'encok') aktifSiralama = 'okuyan';
-        else aktifSiralama = 'alfabetik';
-        arayuzuGuncelle();
-    });
-
-    // 3. Detay Ekranı
     document.querySelectorAll('.btn-detay-ac').forEach(btn => {
         btn.addEventListener('click', (e) => {
             const ogrId = e.currentTarget.getAttribute('data-ogrid');
@@ -509,29 +555,46 @@ async function arayuzuGuncelle() {
         });
     });
 
-    // 🌟 4. HIZLI İŞLEMLER: Bitirdi
     document.querySelectorAll('.btn-hizli-bitir').forEach(btn => {
         btn.addEventListener('click', async (e) => {
             const ogrId = e.currentTarget.getAttribute('data-ogr');
             const kitapId = e.currentTarget.getAttribute('data-kitap');
+            
+            const kayit = matris.find(m => m.ogrId === ogrId && m.targetId === kitapId && m.deger === '⏳');
+            if (kayit && kayit.tarih) {
+                const farkGun = gunFarkiHesapla(kayit.tarih);
+                if (farkGun < minimumOkumaGunu) {
+                    const mesaj = `⚠️ KİTAP DEĞİŞTİRME SÜRESİ UYARISI\n\nBu kitap öğrenciye henüz ${farkGun === 0 ? 'BUGÜN' : farkGun + ' gün önce'} verilmiş! Kurala göre bir kitap en az ${minimumOkumaGunu} gün okunmalıdır.\n\n(Not: Eğer kitabı az önce yanlışlıkla verdiyseniz 'Tamam' diyerek işlemi zorla yapabilirsiniz. İptal etmek istiyor musunuz?)`;
+                    if(!confirm(mesaj)) return; 
+                }
+            }
+
             e.currentTarget.innerText = "...";
             await db.saveMatrixStatus('kitap_matrisi', ogrId, kitapId, '✔️');
             arayuzuGuncelle();
         });
     });
 
-    // 🌟 5. HIZLI İŞLEMLER: Bırak / İade (Okumadı)
     document.querySelectorAll('.btn-hizli-iade').forEach(btn => {
         btn.addEventListener('click', async (e) => {
             const ogrId = e.currentTarget.getAttribute('data-ogr');
             const kitapId = e.currentTarget.getAttribute('data-kitap');
+            
+            const kayit = matris.find(m => m.ogrId === ogrId && m.targetId === kitapId && m.deger === '⏳');
+            if (kayit && kayit.tarih) {
+                const farkGun = gunFarkiHesapla(kayit.tarih);
+                if (farkGun < minimumOkumaGunu) {
+                    const mesaj = `⚠️ DİKKAT: Bu kitap ${farkGun === 0 ? 'BUGÜN' : farkGun + ' gün önce'} verilmiş.\nKitabı okumadan iade almak/silmek istediğinize emin misiniz?`;
+                    if(!confirm(mesaj)) return; 
+                }
+            }
+
             e.currentTarget.innerText = "...";
             await db.saveMatrixStatus('kitap_matrisi', ogrId, kitapId, '');
             arayuzuGuncelle();
         });
     });
 
-    // 🌟 6. HIZLI İŞLEMLER: Kitap Ver (Numaradan bulup atama)
     document.querySelectorAll('.btn-hizli-ver').forEach(btn => {
         btn.addEventListener('click', async (e) => {
             const ogrId = e.currentTarget.getAttribute('data-ogr');
@@ -544,7 +607,6 @@ async function arayuzuGuncelle() {
             
             if (!kitap) return alert(`${kNo} numaralı kitap kütüphanede bulunamadı! Lütfen numarayı kontrol edin.`);
 
-            // Kitap başka birindeyse öğretmeni uyar
             const baskasiOkuyorMu = matris.find(m => m.targetId === kitap.id && m.deger === '⏳' && m.ogrId !== ogrId);
             if (baskasiOkuyorMu) {
                 const baskasi = tumKullanicilar.find(u => u.id === baskasiOkuyorMu.ogrId);
@@ -552,7 +614,6 @@ async function arayuzuGuncelle() {
                 if (!confirm(`Bu kitap şu an "${isim}" üzerinde görünüyor. Yine de zorla alıp bu öğrenciye vermek istiyor musunuz?`)) {
                     return;
                 }
-                // Eski öğrenciden kitabı sil
                 await db.saveMatrixStatus('kitap_matrisi', baskasiOkuyorMu.ogrId, kitap.id, '');
             }
 
@@ -572,15 +633,25 @@ function ogrenciDetayiniAc(ogrId, ogrName, kalemler, matris) {
     let listeHtml = '<div style="display: flex; flex-direction: column; gap: 12px;">';
 
     kalemler.forEach((k, index) => {
-        let mevcutDeger = matris.find(m => m.ogrId === ogrId && m.targetId === k.id)?.deger || '';
+        let kayit = matris.find(m => m.ogrId === ogrId && m.targetId === k.id);
+        let mevcutDeger = kayit ? kayit.deger : '';
+        let tarih = kayit ? kayit.tarih : null;
         
         let btnText = 'Okumadı';
         let bgRenk = '#f1f5f9';
         let textColor = '#64748b';
         let borderRenk = '#cbd5e1';
 
+        // 🌟 DETAY EKRANINDA DA SÜREYİ EKLİYORUZ
         if (mevcutDeger === '⏳') {
-            btnText = '⏳ Okuyor';
+            let sureMetni = "";
+            if(tarih) {
+                let gunFarki = gunFarkiHesapla(tarih);
+                sureMetni = gunFarki === 0 ? " (Bugün aldı)" : ` (${gunFarki} gün)`;
+            } else {
+                sureMetni = " (Eski)";
+            }
+            btnText = '⏳ Okuyor' + sureMetni;
             bgRenk = '#fef3c7'; textColor = '#d97706'; borderRenk = '#f59e0b';
         } else if (mevcutDeger === '✔️') {
             btnText = '✔️ Okudu';
@@ -611,6 +682,17 @@ function ogrenciDetayiniAc(ogrId, ogrName, kalemler, matris) {
             const kId = e.currentTarget.getAttribute('data-kalem');
             const val = e.currentTarget.getAttribute('data-val');
             
+            if (val === '⏳') {
+                const kayit = matris.find(m => m.ogrId === oId && m.targetId === kId && m.deger === '⏳');
+                if (kayit && kayit.tarih) {
+                    const farkGun = gunFarkiHesapla(kayit.tarih);
+                    if (farkGun < minimumOkumaGunu) {
+                        const mesaj = `⚠️️ KİTAP DEĞİŞTİRME SÜRESİ UYARISI\n\nBu kitap öğrenciye henüz ${farkGun === 0 ? 'BUGÜN' : farkGun + ' gün önce'} verilmiş! Kurala göre bir kitap en az ${minimumOkumaGunu} gün okunmalıdır.\n\n(Not: Eğer kitabı az önce yanlışlıkla verdiyseniz 'Tamam' diyerek işlemi zorla yapabilirsiniz. İptal etmek istiyor musunuz?)`;
+                        if(!confirm(mesaj)) return;
+                    }
+                }
+            }
+
             let newValue = '';
             let btnText = 'Okumadı';
             let bgRenk = '#f1f5f9';
@@ -618,7 +700,7 @@ function ogrenciDetayiniAc(ogrId, ogrName, kalemler, matris) {
             let borderRenk = '#cbd5e1';
 
             if (val === '') {
-                newValue = '⏳'; btnText = '⏳ Okuyor'; bgRenk = '#fef3c7'; textColor = '#d97706'; borderRenk = '#f59e0b';
+                newValue = '⏳'; btnText = '⏳ Okuyor (Bugün aldı)'; bgRenk = '#fef3c7'; textColor = '#d97706'; borderRenk = '#f59e0b';
             } else if (val === '⏳') {
                 newValue = '✔️'; btnText = '✔️ Okudu'; bgRenk = '#d1fae5'; textColor = '#059669'; borderRenk = '#10b981';
             } else {

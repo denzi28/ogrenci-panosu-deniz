@@ -90,7 +90,7 @@
             max-width: 400px;
             margin-bottom: 40px;
             border: 6px dashed #f3e8ff;
-            transition: all 0.3s ease;
+            transition: transform 0.3s ease, opacity 0.3s ease;
         }
 
         #soru-metni {
@@ -253,29 +253,39 @@
         const skorKutusu = document.getElementById('skor-kutusu');
         const soruSayaci = document.getElementById('soru-sayaci');
 
-        // Basit ses efektleri
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        // Tarayıcı bloklamasından kaçmak için güvenli ses sistemi
+        let audioCtx = null;
+
         function sesCal(frekans, tip, sure) {
-            if(audioCtx.state === 'suspended') audioCtx.resume();
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.type = tip;
-            osc.frequency.setValueAtTime(frekans, audioCtx.currentTime);
-            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + sure);
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.start();
-            osc.stop(audioCtx.currentTime + sure);
+            try {
+                if (!audioCtx) {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = tip;
+                osc.frequency.setValueAtTime(frekans, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + sure);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + sure);
+            } catch (error) {
+                // Sessizce hatayı yut, oyun bozulmasın
+            }
         }
 
         function dogruSesi() { sesCal(600, 'sine', 0.1); setTimeout(() => sesCal(800, 'sine', 0.15), 100); }
         function yanlisSesi() { sesCal(300, 'sawtooth', 0.3); }
 
         function yeniSayiUret() {
-            soruSayaci.innerText = `${kacinciSoru}/${TOPLAM_SORU}`;
+            soruSayaci.innerText = kacinciSoru + "/" + TOPLAM_SORU;
 
-            gecerliSayi = Math.floor(Math.random() * 990) + 10; // 10 ile 999 arası
+            // 10 ile 999 arasında rastgele sayı üret
+            gecerliSayi = Math.floor(Math.random() * 990) + 10; 
             
             if (gecerliSayi % 2 === 0) {
                 dogruCevap = 'cift';
@@ -310,7 +320,7 @@
 
                 soruKarti.classList.add('dogru-animasyon');
             } else {
-                // YANLIŞ (Puan düşmüyor ama soru hakkı gidiyor)
+                // YANLIŞ
                 yanlisSesi();
                 
                 skorKutusu.style.backgroundColor = "#fee2e2";
@@ -320,7 +330,7 @@
                 soruKarti.classList.add('yanlis-animasyon');
             }
 
-            // Soru geçişi
+            // Diğer soruya geçiş
             setTimeout(() => {
                 soruKarti.classList.remove('dogru-animasyon', 'yanlis-animasyon');
                 skorKutusu.style.backgroundColor = "#f1f5f9";
@@ -366,4 +376,38 @@
                 if (window.parent) {
                     window.parent.postMessage({ 
                         islem: 'gorev_bitti', 
-                        puan: puan,
+                        puan: puan, 
+                        limit: 100 // 100 Üzerinden değerlendirilecek
+                    }, '*');
+                }
+            } else {
+                // GÖREV BAŞARISIZ
+                sonucBaslik.innerText = "😢 Görev Başarısız";
+                sonucBaslik.style.color = "#ef4444";
+                sonucPuani.style.color = "#ef4444";
+                sonucPuani.style.textShadow = "2px 2px 0 #fecaca";
+                sonucMesaj.innerText = `Olamaz! 10 sorunun sonunda ${puan} puanda kaldın.`;
+                
+                basariliBilgi.style.display = "none";
+                basarisizBilgi.style.display = "block";
+            }
+        }
+
+        function oyunuSifirla() {
+            puan = 0;
+            kacinciSoru = 1;
+            puanAlani.innerText = puan;
+            
+            document.getElementById('bitis-ekrani').style.display = 'none';
+            soruKarti.style.display = 'block';
+            document.getElementById('buton-grubu').style.display = 'flex';
+            
+            yeniSayiUret();
+        }
+
+        // Window.onload beklemeden oyunu anında başlat!
+        yeniSayiUret();
+
+    </script>
+</body>
+</html>

@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Tek mi, Çift mi?</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap');
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Fredoka', sans-serif;
+            background: linear-gradient(135deg, #f3e8ff, #faf5ff);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            color: #334155;
+        }
+
+        #header {
+            background: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+            z-index: 10;
+        }
+
+        .header-bilgi {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .hedef-kutusu, .soru-kutusu {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #64748b;
+            background: #f8fafc;
+            padding: 5px 12px;
+            border-radius: 8px;
+            border: 1px dashed #cbd5e1;
+        }
+
+        .soru-kutusu {
+            background: #fffbeb;
+            color: #d97706;
+            border-color: #fcd34d;
+        }
+
+        .skor-kutusu {
+            background: #f1f5f9;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #9333ea;
+            border: 2px solid #d8b4fe;
+            transition: all 0.3s;
+        }
+
+        #game-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            text-align: center;
+            max-width: 800px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        #soru-karti {
+            background: #c084fc; 
+            padding: 40px 20px;
+            border-radius: 24px;
+            box-shadow: 0 10px 25px -5px rgba(147, 51, 234, 0.3);
+            width: 100%;
+            max-width: 400px;
+            margin-bottom: 40px;
+            border: 6px dashed #f3e8ff;
+            transition: all 0.3s ease;
+        }
+
+        #soru-metni {
+            font-size: 5rem; 
+            font-weight: 900;
+            line-height: 1;
+            color: #ffffff;
+            text-shadow: 3px 3px 0 #9333ea;
+            letter-spacing: 5px;
+        }
+
+        .buton-grubu {
+            display: flex;
+            gap: 20px;
+            width: 100%;
+            justify-content: center;
+        }
+
+        .secenek-btn {
+            flex: 1;
+            max-width: 300px;
+            padding: 20px;
+            font-size: 1.8rem;
+            font-weight: 700;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: transform 0.1s, box-shadow 0.1s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .secenek-btn:active { transform: scale(0.95); }
+
+        .btn-tek { background: #f59e0b; color: white; box-shadow: 0 8px 0 #b45309; }
+        .btn-cift { background: #fbbf24; color: #78350f; box-shadow: 0 8px 0 #d97706; }
+
+        .dogru-animasyon {
+            background: #22c55e !important;
+            border-color: #16a34a !important;
+            transform: scale(1.1);
+        }
+
+        .yanlis-animasyon {
+            animation: salla 0.4s;
+            background: #ef4444 !important;
+            border-color: #dc2626 !important;
+        }
+
+        @keyframes salla {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            50% { transform: translateX(10px); }
+            75% { transform: translateX(-10px); }
+            100% { transform: translateX(0); }
+        }
+
+        #bitis-ekrani {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+
+        .bitis-baslik {
+            font-size: 3rem;
+            margin-bottom: 10px;
+        }
+
+        .bitis-puan {
+            font-size: 5rem;
+            font-weight: 900;
+            margin: 20px 0;
+        }
+
+        .btn-tekrar {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            border-radius: 12px;
+            cursor: pointer;
+            box-shadow: 0 6px 0 #1d4ed8;
+            margin-top: 20px;
+        }
+        .btn-tekrar:active { transform: translateY(4px); box-shadow: 0 2px 0 #1d4ed8; }
+        
+        @media (max-width: 600px) {
+            #header { flex-direction: column; gap: 10px; }
+            #soru-metni { font-size: 4rem; }
+            .secenek-btn { font-size: 1.5rem; padding: 15px; }
+            .buton-grubu { flex-direction: column; align-items: center; }
+            .secenek-btn { width: 100%; max-width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="header">
+        <div class="header-bilgi">
+            <div class="soru-kutusu">Soru: <span id="soru-sayaci">1/10</span></div>
+            <div class="hedef-kutusu">Baraj: 60 Puan 🏆</div>
+        </div>
+        <div class="skor-kutusu" id="skor-kutusu">Puan: <span id="puan-alani">0</span></div>
+    </div>
+
+    <div id="game-area">
+        <div id="soru-karti">
+            <div id="soru-metni">...</div>
+        </div>
+
+        <div class="buton-grubu" id="buton-grubu">
+            <button class="secenek-btn btn-tek" onclick="cevapKontrol('tek')">
+                Tek Sayı
+            </button>
+            <button class="secenek-btn btn-cift" onclick="cevapKontrol('cift')">
+                Çift Sayı
+            </button>
+        </div>
+
+        <div id="bitis-ekrani">
+            <div class="bitis-baslik" id="sonuc-baslik">🎉</div>
+            <div style="font-size: 1.5rem; color: #64748b;" id="sonuc-mesaj"></div>
+            <div class="bitis-puan" id="sonuc-puani">100</div>
+            
+            <!-- Başarılı olursa bu çıkacak -->
+            <div id="basarili-bilgi" style="display:none; font-size: 1.2rem; color: #16a34a; font-weight: bold; padding: 15px; background: #dcfce7; border-radius: 12px; margin-top: 20px;">
+                ✅ Puanın öğretmene gönderiliyor, harikasın!
+            </div>
+
+            <!-- Başarısız olursa bu çıkacak -->
+            <div id="basarisiz-bilgi" style="display:none;">
+                <div style="font-size: 1.1rem; color: #ef4444; font-weight: bold; margin-top: 10px;">
+                    Görevi tamamlamak için barajı geçmelisin.
+                </div>
+                <button class="btn-tekrar" onclick="oyunuSifirla()">🔄 Tekrar Dene</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const TOPLAM_SORU = 10;
+        const GECME_NOTU = 60;
+        const DOGRU_PUANI = 10;
+
+        let gecerliSayi = 0;
+        let dogruCevap = '';
+        let puan = 0;
+        let kacinciSoru = 1;
+        let beklemede = false;
+        
+        const soruKarti = document.getElementById('soru-karti');
+        const soruMetni = document.getElementById('soru-metni');
+        const puanAlani = document.getElementById('puan-alani');
+        const skorKutusu = document.getElementById('skor-kutusu');
+        const soruSayaci = document.getElementById('soru-sayaci');
+
+        // Basit ses efektleri
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function sesCal(frekans, tip, sure) {
+            if(audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = tip;
+            osc.frequency.setValueAtTime(frekans, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + sure);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + sure);
+        }
+
+        function dogruSesi() { sesCal(600, 'sine', 0.1); setTimeout(() => sesCal(800, 'sine', 0.15), 100); }
+        function yanlisSesi() { sesCal(300, 'sawtooth', 0.3); }
+
+        function yeniSayiUret() {
+            soruSayaci.innerText = `${kacinciSoru}/${TOPLAM_SORU}`;
+
+            gecerliSayi = Math.floor(Math.random() * 990) + 10; // 10 ile 999 arası
+            
+            if (gecerliSayi % 2 === 0) {
+                dogruCevap = 'cift';
+            } else {
+                dogruCevap = 'tek';
+            }
+
+            soruMetni.innerText = gecerliSayi;
+            
+            soruKarti.style.transform = 'scale(0.8)';
+            soruKarti.style.opacity = '0';
+            setTimeout(() => {
+                soruKarti.style.transform = 'scale(1)';
+                soruKarti.style.opacity = '1';
+                beklemede = false;
+            }, 150);
+        }
+
+        function cevapKontrol(secilenTur) {
+            if (beklemede) return;
+            beklemede = true;
+
+            if (secilenTur === dogruCevap) {
+                // DOĞRU
+                dogruSesi();
+                puan += DOGRU_PUANI;
+                puanAlani.innerText = puan;
+                
+                skorKutusu.style.backgroundColor = "#d1fae5";
+                skorKutusu.style.borderColor = "#10b981";
+                skorKutusu.style.color = "#047857";
+
+                soruKarti.classList.add('dogru-animasyon');
+            } else {
+                // YANLIŞ (Puan düşmüyor ama soru hakkı gidiyor)
+                yanlisSesi();
+                
+                skorKutusu.style.backgroundColor = "#fee2e2";
+                skorKutusu.style.borderColor = "#ef4444";
+                skorKutusu.style.color = "#b91c1c";
+
+                soruKarti.classList.add('yanlis-animasyon');
+            }
+
+            // Soru geçişi
+            setTimeout(() => {
+                soruKarti.classList.remove('dogru-animasyon', 'yanlis-animasyon');
+                skorKutusu.style.backgroundColor = "#f1f5f9";
+                skorKutusu.style.borderColor = "#d8b4fe";
+                skorKutusu.style.color = "#9333ea";
+
+                if (kacinciSoru >= TOPLAM_SORU) {
+                    oyunuBitir();
+                } else {
+                    kacinciSoru++;
+                    yeniSayiUret();
+                }
+            }, 800);
+        }
+
+        function oyunuBitir() {
+            soruKarti.style.display = 'none';
+            document.getElementById('buton-grubu').style.display = 'none';
+            
+            const bitisEkrani = document.getElementById('bitis-ekrani');
+            bitisEkrani.style.display = 'flex';
+            
+            const sonucPuani = document.getElementById('sonuc-puani');
+            const sonucBaslik = document.getElementById('sonuc-baslik');
+            const sonucMesaj = document.getElementById('sonuc-mesaj');
+            const basariliBilgi = document.getElementById('basarili-bilgi');
+            const basarisizBilgi = document.getElementById('basarisiz-bilgi');
+
+            sonucPuani.innerText = puan;
+
+            if (puan >= GECME_NOTU) {
+                // GÖREV BAŞARILI
+                sonucBaslik.innerText = "🎉 Görev Tamamlandı! 🎉";
+                sonucBaslik.style.color = "#22c55e";
+                sonucPuani.style.color = "#22c55e";
+                sonucPuani.style.textShadow = "2px 2px 0 #bbf7d0";
+                sonucMesaj.innerText = "Tebrikler, barajı başarıyla geçtin!";
+                
+                basariliBilgi.style.display = "block";
+                basarisizBilgi.style.display = "none";
+
+                // Puanı Öğretmene Gönder
+                if (window.parent) {
+                    window.parent.postMessage({ 
+                        islem: 'gorev_bitti', 
+                        puan: puan,

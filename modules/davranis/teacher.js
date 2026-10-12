@@ -1,5 +1,8 @@
 import { db } from '../../js/db.js';
 
+// Açık olan panellerin listesini hafızada tutar
+let acikPaneller = new Set(); 
+
 export async function render(container) {
     container.innerHTML = '<div class="card"><p>⚡ Davranış modülü yükleniyor...</p></div>';
 
@@ -67,7 +70,6 @@ export async function render(container) {
                     <button id="btn-puanlama-kapat" class="btn btn-secondary" style="font-weight: bold; padding: 10px 20px; font-size: 1.1em; box-shadow: 0 4px 0 #94a3b8;">⬅ Yönetime Geri Dön</button>
                 </div>
                 
-                <!-- 🌟 YENİ: AKILLI TOPLU İŞLEM ALANI (+1 / -1) -->
                 <div id="toplu-islem-alani"></div>
 
                 <div id="puanlama-student-list"></div>
@@ -128,7 +130,7 @@ export async function render(container) {
         ogrenciler.forEach(ogr => {
             let total = 0;
             kriterler.forEach(k => {
-                const kayit = matris.find(m => m.ogrId === ogr.id && m.targetId === k.id);
+                const kayit = matris.find(m => String(m.ogrId) === String(ogr.id) && String(m.targetId) === String(k.id));
                 if (kayit && kayit.deger) {
                     total += parseInt(kayit.deger) || 0;
                 }
@@ -213,7 +215,7 @@ async function arayuzuGuncelle() {
     ogrenciler.forEach(ogr => {
         let total = 0;
         kriterler.forEach(k => {
-            const kayit = matris.find(m => m.ogrId === ogr.id && m.targetId === k.id);
+            const kayit = matris.find(m => String(m.ogrId) === String(ogr.id) && String(m.targetId) === String(k.id));
             if (kayit && kayit.deger) {
                 total += parseInt(kayit.deger) || 0;
             }
@@ -296,6 +298,10 @@ async function arayuzuGuncelle() {
                 gosterilecekSira = '-'; 
             }
 
+            // 🌟 Veri Tipi Hatasını Çözen Kısım (String'e çevrilerek kontrol edilir)
+            let panelDisplay = acikPaneller.has(String(ogr.id)) ? 'block' : 'none';
+            let btnText = acikPaneller.has(String(ogr.id)) ? '➖ Kapat' : '➕ Hızlı Değerlendir';
+
             panoHtml += `
             <div style="background: ${bgRenk}; border-radius: 8px; border: 1px solid ${borderRenk}; box-shadow: 0 2px 4px rgba(0,0,0,0.05); overflow: hidden;">
                 
@@ -304,7 +310,7 @@ async function arayuzuGuncelle() {
                         <span style="font-size: 1.8em; width: 40px; text-align: center; font-weight: bold; color: #555;">${gosterilecekSira}</span>
                         <div style="display: flex; flex-direction: column;">
                             <span style="font-size: 1.2em; font-weight: bold; color: var(--primary);">${ogr.name}</span>
-                            <button class="btn-hizli-panel-ac" data-ogr="${ogr.id}" style="text-align: left; background: none; border: none; padding: 0; color: #0ea5e9; font-size: 0.85em; font-weight: bold; cursor: pointer; display: inline-block; margin-top: 5px;">➕ Hızlı Değerlendir</button>
+                            <button class="btn-hizli-panel-ac" data-ogr="${ogr.id}" style="text-align: left; background: none; border: none; padding: 0; color: #0ea5e9; font-size: 0.85em; font-weight: bold; cursor: pointer; display: inline-block; margin-top: 5px;">${btnText}</button>
                         </div>
                     </div>
                     <div style="text-align: right;">
@@ -313,7 +319,7 @@ async function arayuzuGuncelle() {
                     </div>
                 </div>
 
-                <div id="hizli-panel-${ogr.id}" style="display: none; background: #ffffff; border-top: 1px dashed ${borderRenk}; padding: 15px;">
+                <div id="hizli-panel-${ogr.id}" style="display: ${panelDisplay}; background: #ffffff; border-top: 1px dashed ${borderRenk}; padding: 15px;">
                     <p style="margin: 0 0 10px 0; font-size: 0.85em; color: #64748b; font-weight: bold;">Davranışlara Puan Ver (Değişiklikler anında panoya yansır):</p>
                     <div style="display: flex; flex-direction: column; gap: 8px;">`;
                         
@@ -321,7 +327,7 @@ async function arayuzuGuncelle() {
                             panoHtml += `<div style="font-size: 0.85em; color: #ef4444;">Önce Yönetim sekmesinden kriter ekleyin.</div>`;
                         } else {
                             kriterler.forEach(k => {
-                                let mevcutDeger = parseInt(matris.find(m => m.ogrId === ogr.id && m.targetId === k.id)?.deger || '0');
+                                let mevcutDeger = parseInt(matris.find(m => String(m.ogrId) === String(ogr.id) && String(m.targetId) === String(k.id))?.deger || '0');
                                 
                                 let starsHtml = '';
                                 for(let i = 1; i <= 5; i++) {
@@ -352,14 +358,16 @@ async function arayuzuGuncelle() {
 
         document.querySelectorAll('.btn-hizli-panel-ac').forEach(btn => {
             btn.addEventListener('click', (e) => {
-                const ogrId = e.target.getAttribute('data-ogr');
+                const ogrId = String(e.target.getAttribute('data-ogr'));
                 const panel = document.getElementById(`hizli-panel-${ogrId}`);
                 if (panel.style.display === 'none') {
                     panel.style.display = 'block';
                     e.target.innerText = '➖ Kapat';
+                    acikPaneller.add(ogrId); // Sıkı mühürleme
                 } else {
                     panel.style.display = 'none';
                     e.target.innerText = '➕ Hızlı Değerlendir';
+                    acikPaneller.delete(ogrId);
                 }
             });
         });
@@ -367,8 +375,8 @@ async function arayuzuGuncelle() {
         document.querySelectorAll('.hizli-star-btn').forEach(star => {
             star.addEventListener('click', async (e) => {
                 const val = parseInt(e.target.getAttribute('data-val'));
-                const oId = e.target.getAttribute('data-ogr');
-                const kId = e.target.getAttribute('data-kriter');
+                const oId = String(e.target.getAttribute('data-ogr'));
+                const kId = String(e.target.getAttribute('data-kriter'));
                 
                 const container = document.querySelector(`.hizli-stars-container[data-ogr="${oId}"][data-kriter="${kId}"]`);
                 container.querySelectorAll('.hizli-star-btn').forEach((s, idx) => {
@@ -384,8 +392,8 @@ async function arayuzuGuncelle() {
 
         document.querySelectorAll('.btn-hizli-sifirla').forEach(btn => {
             btn.addEventListener('click', async (e) => {
-                const oId = e.target.getAttribute('data-ogr');
-                const kId = e.target.getAttribute('data-kriter');
+                const oId = String(e.target.getAttribute('data-ogr'));
+                const kId = String(e.target.getAttribute('data-kriter'));
                 
                 const container = document.querySelector(`.hizli-stars-container[data-ogr="${oId}"][data-kriter="${kId}"]`);
                 container.querySelectorAll('.hizli-star-btn').forEach(s => {
@@ -405,7 +413,6 @@ function tamSayfaPuanlamayiAc(kriterId, kriterName, ogrenciler, matris) {
     document.getElementById('puanlama-criteria-name').innerText = `⭐ ${kriterName}`;
     const siraliOgrenciler = [...ogrenciler].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
     
-    // 🌟 YENİ: +1 ve -1 EKLENMİŞ TOPLU İŞLEM PANELİ
     const topluIslemHtml = `
         <div style="background: #fffbeb; border: 2px dashed #f59e0b; padding: 15px 20px; border-radius: 12px; margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
             <div>
@@ -424,7 +431,7 @@ function tamSayfaPuanlamayiAc(kriterId, kriterName, ogrenciler, matris) {
     let listeHtml = '<div style="display: flex; flex-direction: column; gap: 15px;">';
     
     siraliOgrenciler.forEach((ogr, index) => {
-        let mevcutDeger = parseInt(matris.find(m => m.ogrId === ogr.id && m.targetId === kriterId)?.deger || '0');
+        let mevcutDeger = parseInt(matris.find(m => String(m.ogrId) === String(ogr.id) && String(m.targetId) === String(kriterId))?.deger || '0');
         
         let starsHtml = '';
         for(let i = 1; i <= 5; i++) {
@@ -454,7 +461,6 @@ function tamSayfaPuanlamayiAc(kriterId, kriterName, ogrenciler, matris) {
     document.getElementById('view-puanlama').style.display = 'block';
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
-    // 🌟 +1 YILDIZ EKLEME (HERKES İÇİN)
     document.getElementById('btn-toplu-arti').addEventListener('click', async (e) => {
         const btn = e.target;
         const originalText = btn.innerText;
@@ -468,19 +474,16 @@ function tamSayfaPuanlamayiAc(kriterId, kriterName, ogrenciler, matris) {
             if(container) {
                 let currentVal = parseInt(container.getAttribute('data-val') || '0');
                 if (currentVal < 5) {
-                    currentVal++; // Değeri 1 artır
+                    currentVal++; 
                     container.setAttribute('data-val', currentVal);
                     
-                    // Yıldızları boya
                     container.querySelectorAll('.star-btn').forEach((s, idx) => {
                         s.style.color = (idx < currentVal) ? '#fbbf24' : '#e2e8f0';
                     });
                     
-                    // Çarpı butonunu göster
                     const sifirlaBtn = document.querySelector(`.btn-sifirla[data-ogr="${ogr.id}"]`);
                     if(sifirlaBtn) sifirlaBtn.style.display = 'block';
 
-                    // Yeşil parlama efekti
                     const satir = document.querySelector(`.puan-satiri[data-ogr="${ogr.id}"]`);
                     if(satir) {
                         satir.style.borderColor = '#10b981';
@@ -491,18 +494,16 @@ function tamSayfaPuanlamayiAc(kriterId, kriterName, ogrenciler, matris) {
                         }, 500);
                     }
                     
-                    // Veritabanı kaydını kuyruğa al
-                    guncellemeIslemleri.push(db.saveMatrixStatus('davranis_matrisi', ogr.id, kriterId, currentVal.toString()));
+                    guncellemeIslemleri.push(db.saveMatrixStatus('davranis_matrisi', String(ogr.id), String(kriterId), currentVal.toString()));
                 }
             }
         });
 
-        await Promise.all(guncellemeIslemleri); // Tüm kayıtları aynı anda yaz
+        await Promise.all(guncellemeIslemleri); 
         btn.innerText = originalText;
         btn.disabled = false;
     });
 
-    // 🌟 -1 YILDIZ SİLME (HERKES İÇİN)
     document.getElementById('btn-toplu-eksi').addEventListener('click', async (e) => {
         const btn = e.target;
         const originalText = btn.innerText;
@@ -516,19 +517,16 @@ function tamSayfaPuanlamayiAc(kriterId, kriterName, ogrenciler, matris) {
             if(container) {
                 let currentVal = parseInt(container.getAttribute('data-val') || '0');
                 if (currentVal > 0) {
-                    currentVal--; // Değeri 1 azalt
+                    currentVal--; 
                     container.setAttribute('data-val', currentVal);
                     
-                    // Yıldız boyasını kaldır
                     container.querySelectorAll('.star-btn').forEach((s, idx) => {
                         s.style.color = (idx < currentVal) ? '#fbbf24' : '#e2e8f0';
                     });
                     
-                    // Eğer 0 olduysa çarpı butonunu gizle
                     const sifirlaBtn = document.querySelector(`.btn-sifirla[data-ogr="${ogr.id}"]`);
                     if(sifirlaBtn && currentVal === 0) sifirlaBtn.style.display = 'none';
 
-                    // Turuncu parlama efekti (uyarı)
                     const satir = document.querySelector(`.puan-satiri[data-ogr="${ogr.id}"]`);
                     if(satir) {
                         satir.style.borderColor = '#f59e0b';
@@ -539,7 +537,7 @@ function tamSayfaPuanlamayiAc(kriterId, kriterName, ogrenciler, matris) {
                         }, 500);
                     }
                     
-                    guncellemeIslemleri.push(db.saveMatrixStatus('davranis_matrisi', ogr.id, kriterId, currentVal.toString()));
+                    guncellemeIslemleri.push(db.saveMatrixStatus('davranis_matrisi', String(ogr.id), String(kriterId), currentVal.toString()));
                 }
             }
         });
@@ -549,7 +547,6 @@ function tamSayfaPuanlamayiAc(kriterId, kriterName, ogrenciler, matris) {
         btn.disabled = false;
     });
 
-    // 🌟 TOPLU TEMİZLEME (SIFIRLAMA)
     document.getElementById('btn-toplu-sifirla').addEventListener('click', async (e) => {
         if(!confirm("DİKKAT: Tüm sınıfın bu davranıştaki puanları tamamen SIFIRLANACAK! Geri alınamaz. Emin misiniz?")) return;
 
@@ -580,7 +577,7 @@ function tamSayfaPuanlamayiAc(kriterId, kriterName, ogrenciler, matris) {
                 }, 500);
             }
 
-            guncellemeIslemleri.push(db.saveMatrixStatus('davranis_matrisi', ogr.id, kriterId, '0'));
+            guncellemeIslemleri.push(db.saveMatrixStatus('davranis_matrisi', String(ogr.id), String(kriterId), '0'));
         });
 
         await Promise.all(guncellemeIslemleri);
@@ -588,15 +585,14 @@ function tamSayfaPuanlamayiAc(kriterId, kriterName, ogrenciler, matris) {
         btn.disabled = false;
     });
 
-    // BİREYSEL YILDIZ VERME
     document.querySelectorAll('.star-btn').forEach(star => {
         star.addEventListener('click', async (e) => {
             const val = parseInt(e.target.getAttribute('data-val'));
-            const oId = e.target.getAttribute('data-ogr');
-            const kId = e.target.getAttribute('data-kriter');
+            const oId = String(e.target.getAttribute('data-ogr'));
+            const kId = String(e.target.getAttribute('data-kriter'));
             
             const container = document.querySelector(`.stars-container[data-ogr="${oId}"]`);
-            container.setAttribute('data-val', val); // Yeni değeri kaydet
+            container.setAttribute('data-val', val);
             container.querySelectorAll('.star-btn').forEach((s, idx) => {
                 s.style.color = (idx < val) ? '#fbbf24' : '#e2e8f0';
             });
@@ -616,14 +612,13 @@ function tamSayfaPuanlamayiAc(kriterId, kriterName, ogrenciler, matris) {
         });
     });
 
-    // BİREYSEL SIFIRLAMA
     document.querySelectorAll('.btn-sifirla').forEach(btn => {
         btn.addEventListener('click', async (e) => {
-            const oId = e.target.getAttribute('data-ogr');
-            const kId = e.target.getAttribute('data-kriter');
+            const oId = String(e.target.getAttribute('data-ogr'));
+            const kId = String(e.target.getAttribute('data-kriter'));
             
             const container = document.querySelector(`.stars-container[data-ogr="${oId}"]`);
-            container.setAttribute('data-val', '0'); // Değeri sıfırla
+            container.setAttribute('data-val', '0'); 
             container.querySelectorAll('.star-btn').forEach(s => {
                 s.style.color = '#e2e8f0';
             });

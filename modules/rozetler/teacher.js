@@ -25,7 +25,6 @@ function renderRozetGorseli(iconVal, style1 = '#fbbf24', style2 = '#d97706', sha
         shapeStyle = `border-radius: 50% 50% 50% 50% / 20% 20% 80% 80%;`;
     }
 
-    // 10 karaktere kadar izin veren, rozet içine tam oturan şık yazı bandı
     let yaziHtml = altYazi ? `<div style="position: absolute; bottom: 3px; font-size: 7px; font-weight: 900; color: #1e293b; background: rgba(255,255,255,0.92); padding: 0px 3px; border-radius: 3px; width: 40px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center; box-shadow: 0 1px 2px rgba(0,0,0,0.2);">${altYazi}</div>` : '';
 
     return `
@@ -104,6 +103,12 @@ export async function render(container) {
                                     <label style="font-weight: bold; font-size: 0.85em; color: #475569;">İkon / Emoji:</label>
                                     <select id="studioIconSelect" style="width:100%; padding:9px; border-radius:6px; border:1px solid #cbd5e1; background:white;">
                                         <option value="⭐">⭐ Yıldız</option>
+                                        <option value="🎒">🎒 Çanta</option>
+                                        <option value="🔍">🔍 Büyüteç</option>
+                                        <option value="🎨">🎨 Resim Paleti</option>
+                                        <option value="🤝">🤝 El Sıkışma</option>
+                                        <option value="👥">👥 İnsanlar</option>
+                                        <option value="⏰">⏰ Saat</option>
                                         <option value="📚">📚 Kitap</option>
                                         <option value="🏆">🏆 Kupa</option>
                                         <option value="🎓">🎓 Kep</option>
@@ -179,6 +184,69 @@ export async function render(container) {
                     <button id="btn-detay-kapat" class="btn btn-secondary" style="font-weight: bold; padding: 10px 20px; font-size: 1.1em;">⬅ Listeye Dön</button>
                 </div>
                 <div id="detay-rozet-listesi"></div>
+            </div>
+        </div>
+
+        <!-- DÜZENLEME MODALI (PENCERE) -->
+        <div id="duzenle-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:999; align-items:center; justify-content:center;">
+            <div style="background:white; padding:25px; border-radius:12px; width:90%; max-width:500px; box-shadow:0 10px 25px rgba(0,0,0,0.2);">
+                <h3 style="margin-top:0; color:var(--primary);">✏️ Rozeti Düzenle</h3>
+                <input type="hidden" id="edit-id">
+                
+                <div style="display:flex; flex-direction:column; gap:10px; margin-top:15px;">
+                    <div>
+                        <label style="font-size:0.85em; font-weight:bold; color:#475569;">Kategori:</label>
+                        <select id="edit-kategori" style="width:100%; padding:8px; border-radius:6px; border:1px solid #cbd5e1;">
+                            <option value="davranis">❤️ Davranış ve Değerler</option>
+                            <option value="akademik">📚 Akademik Başarı</option>
+                            <option value="gelisim">📈 Çaba ve Gelişim</option>
+                            <option value="sorumluluk">📋 Sorumluluk ve Düzen</option>
+                            <option value="yaraticilik">👥 Yaratıcılık ve İş Birliği</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="font-size:0.85em; font-weight:bold; color:#475569;">Rozet Adı:</label>
+                        <input type="text" id="edit-ad" style="width:100%; padding:8px; border-radius:6px; border:1px solid #cbd5e1;">
+                    </div>
+                    <div style="display:flex; gap:10px;">
+                        <div style="flex:1;">
+                            <label style="font-size:0.85em; font-weight:bold; color:#475569;">İkon / Emoji:</label>
+                            <input type="text" id="edit-icon" style="width:100%; padding:8px; border-radius:6px; border:1px solid #cbd5e1; text-align:center;">
+                        </div>
+                        <div style="flex:1;">
+                            <label style="font-size:0.85em; font-weight:bold; color:#475569;">Şekil:</label>
+                            <select id="edit-shape" style="width:100%; padding:8px; border-radius:6px; border:1px solid #cbd5e1;">
+                                <option value="50%">Daire</option>
+                                <option value="kalkan">🛡️ Kalkan</option>
+                                <option value="12px">Yumuşak Kare</option>
+                                <option value="0px">Keskin Kare</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div style="display:flex; gap:10px;">
+                        <div style="flex:1;">
+                            <label style="font-size:0.75em; font-weight:bold; color:#475569;">Renk 1 (Üst)</label>
+                            <input type="color" id="edit-style1" style="width:100%; height:34px; border:none; border-radius:6px; cursor:pointer; background:none;">
+                        </div>
+                        <div style="flex:1;">
+                            <label style="font-size:0.75em; font-weight:bold; color:#475569;">Renk 2 (Alt)</label>
+                            <input type="color" id="edit-style2" style="width:100%; height:34px; border:none; border-radius:6px; cursor:pointer; background:none;">
+                        </div>
+                    </div>
+                    <div>
+                        <label style="font-size:0.85em; font-weight:bold; color:#475569;">İçine Yazı (Maks 10 Karakter):</label>
+                        <input type="text" id="edit-altyazi" maxlength="10" style="width:100%; padding:8px; border-radius:6px; border:1px solid #cbd5e1;">
+                    </div>
+                    <div>
+                        <label style="font-size:0.85em; font-weight:bold; color:#475569;">Açıklama / Kriter:</label>
+                        <input type="text" id="edit-aciklama" style="width:100%; padding:8px; border-radius:6px; border:1px solid #cbd5e1;">
+                    </div>
+                </div>
+
+                <div style="display:flex; gap:10px; margin-top:20px;">
+                    <button id="btn-modal-kaydet" class="btn btn-primary" style="flex:1; padding:10px; font-weight:bold;">💾 Güncellemeleri Kaydet</button>
+                    <button id="btn-modal-iptal" class="btn btn-secondary" style="flex:1; padding:10px; font-weight:bold;">İptal</button>
+                </div>
             </div>
         </div>
     `;
@@ -279,6 +347,32 @@ export async function render(container) {
         }
     });
 
+    document.getElementById('btn-modal-iptal').addEventListener('click', () => {
+        document.getElementById('duzenle-modal').style.display = 'none';
+    });
+
+    document.getElementById('btn-modal-kaydet').addEventListener('click', async () => {
+        const id = document.getElementById('edit-id').value;
+        const kategori = document.getElementById('edit-kategori').value;
+        const ad = document.getElementById('edit-ad').value.trim();
+        const icon = document.getElementById('edit-icon').value.trim();
+        const shape = document.getElementById('edit-shape').value;
+        const style1 = document.getElementById('edit-style1').value;
+        const style2 = document.getElementById('edit-style2').value;
+        const altYazi = document.getElementById('edit-altyazi').value.trim();
+        const aciklama = document.getElementById('edit-aciklama').value.trim();
+
+        if (ad) {
+            await db.update('rozetler_kalemleri', id, {
+                kategori, ad, icon, shape, style1, style2, altYazi, aciklama
+            });
+            document.getElementById('duzenle-modal').style.display = 'none';
+            await arayuzuGuncelle();
+        } else {
+            alert("Rozet adı boş olamaz.");
+        }
+    });
+
     document.getElementById('btn-detay-kapat').addEventListener('click', async () => {
         document.getElementById('detay-gorunum').style.display = 'none';
         document.getElementById('ana-gorunum').style.display = 'block';
@@ -343,7 +437,10 @@ async function arayuzuGuncelle() {
                         <p style="font-size: 0.8em; color: #64748b; margin: 6px 0 4px 0;">${r.aciklama || ''}</p>
                         <p style="font-size: 0.75em; color: var(--success); font-weight: bold; margin: 4px 0;">${alanSayisi} öğrenci kazandı</p>
                     </div>
-                    <button class="btn-rozet-sil btn btn-danger" data-id="${r.id}" style="margin-top: 8px; padding: 4px; font-size: 0.8em;">✕ Sil</button>
+                    <div style="display: flex; gap: 6px; margin-top: 8px;">
+                        <button class="btn btn-secondary btn-rozet-duzenle" data-id="${r.id}" style="flex: 1; padding: 4px; font-size: 0.8em; font-weight: bold;">✏️ Düzenle</button>
+                        <button class="btn btn-danger btn-rozet-sil" data-id="${r.id}" style="flex: 1; padding: 4px; font-size: 0.8em;">✕ Sil</button>
+                    </div>
                 </div>
             `;
         });
@@ -375,6 +472,26 @@ async function arayuzuGuncelle() {
     });
     kartlarHtml += `</div>`;
     document.getElementById('rozet-tablosu-alani').innerHTML = kartlarHtml;
+
+    document.querySelectorAll('.btn-rozet-duzenle').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const id = e.currentTarget.getAttribute('data-id');
+            const rozet = rozetler.find(r => r.id === id);
+            if (!rozet) return;
+
+            document.getElementById('edit-id').value = rozet.id;
+            document.getElementById('edit-kategori').value = rozet.kategori || 'akademik';
+            document.getElementById('edit-ad').value = rozet.ad || '';
+            document.getElementById('edit-icon').value = rozet.icon || '⭐';
+            document.getElementById('edit-shape').value = rozet.shape || '50%';
+            document.getElementById('edit-style1').value = rozet.style1 || '#fbbf24';
+            document.getElementById('edit-style2').value = rozet.style2 || '#d97706';
+            document.getElementById('edit-altyazi').value = rozet.altYazi || '';
+            document.getElementById('edit-aciklama').value = rozet.aciklama || '';
+
+            document.getElementById('duzenle-modal').style.display = 'flex';
+        });
+    });
 
     document.querySelectorAll('.btn-rozet-sil').forEach(btn => {
         btn.addEventListener('click', async (e) => {

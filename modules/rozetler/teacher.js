@@ -11,22 +11,27 @@ const KATEGORILER = {
     'yaraticilik': { ad: '👥 Yaratıcılık ve İş Birliği', renk: '#059669' }
 };
 
-// Yazıyı rozetin *içinde* konumlandıran güncellenmiş yardımcı fonksiyon
 function renderRozetGorseli(iconVal, style1 = '#fbbf24', style2 = '#d97706', shape = '50%', altYazi = '') {
     if (!iconVal) iconVal = '⭐';
     
     if (!style1 && (iconVal.endsWith('.png') || iconVal.includes('/'))) {
-        return `<img src="${iconVal}" alt="Rozet" style="width: 45px; height: 45px; object-fit: contain; vertical-align: middle;">`; }  const bg = style1 && style2 ? `linear-gradient(145deg, ${style1}, ${style2})` : 'linear-gradient(145deg, #fbbf24, #d97706)';  let shapeStyle = `border-radius: ${shape};`;
+        return `<img src="${iconVal}" alt="Rozet" style="width: 45px; height: 45px; object-fit: contain; vertical-align: middle;">`;
+    }
+
+    const bg = style1 && style2 ? `linear-gradient(145deg, ${style1}, ${style2})` : 'linear-gradient(145deg, #fbbf24, #d97706)';
+    
+    let shapeStyle = `border-radius: ${shape};`;
     if (shape === 'kalkan') {
         shapeStyle = `border-radius: 50% 50% 50% 50% / 20% 20% 80% 80%;`;
     }
 
-    // Yazı rozetin içinde, alt kısımda şık bir bant şeklinde yer alır
-    let yaziHtml = altYazi ? `<div style="position: absolute; bottom: 3px; font-size: 7.5px; font-weight: 900; color: #1e293b; background: rgba(255,255,255,0.85); padding: 0px 4px; border-radius: 3px; max-width: 38px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; box-shadow: 0 1px 2px rgba(0,0,0,0.2);">${altYazi}</div>` : '';
+    // 10 karaktere kadar izin veren, rozet içine tam oturan şık yazı bandı
+    let yaziHtml = altYazi ? `<div style="position: absolute; bottom: 3px; font-size: 7px; font-weight: 900; color: #1e293b; background: rgba(255,255,255,0.92); padding: 0px 3px; border-radius: 3px; width: 40px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center; box-shadow: 0 1px 2px rgba(0,0,0,0.2);">${altYazi}</div>` : '';
 
     return `
-        <div style="width: 46px; height: 46px; background: ${bg};${shapeStyle} display: inline-flex; flex-direction: column; align-items: center; justify-content: center; position: relative; box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.2), inset 0 2px 4px rgba(255,255,255,0.4); border: 2px solid #fef3c7; vertical-align: middle;">
-            <span style="font-size: ${altYazi ? '18px' : '22px'}; margin-top: ${altYazi ? '-4px' : '0'}; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.3));">${iconVal}</span>${yaziHtml}
+        <div style="width: 48px; height: 48px; background: ${bg}; ${shapeStyle} display: inline-flex; flex-direction: column; align-items: center; justify-content: center; position: relative; box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.2), inset 0 2px 4px rgba(255,255,255,0.4); border: 2px solid #fef3c7; vertical-align: middle;">
+            <span style="font-size: ${altYazi ? '16px' : '22px'}; margin-top: ${altYazi ? '-6px' : '0'}; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.3));">${iconVal}</span>
+            ${yaziHtml}
         </div>
     `;
 }
@@ -135,8 +140,8 @@ export async function render(container) {
 
                             <div style="display: flex; gap: 10px;">
                                 <div style="flex: 1;">
-                                    <label style="font-weight: bold; font-size: 0.85em; color: #475569;">İçine Yazı (İsteğe Bağlı):</label>
-                                    <input type="text" id="yeni-rozet-altyazi" placeholder="Örn: 3-A" maxlength="6" style="width:100%; padding:9px; border-radius:6px; border:1px solid #cbd5e1;">
+                                    <label style="font-weight: bold; font-size: 0.85em; color: #475569;">İçine Yazı (Maks 10 Karakter):</label>
+                                    <input type="text" id="yeni-rozet-altyazi" placeholder="Örn: 3-A ŞAMPİYON" maxlength="10" style="width:100%; padding:9px; border-radius:6px; border:1px solid #cbd5e1;">
                                 </div>
                                 <div style="flex: 1;">
                                     <label style="font-weight: bold; font-size: 0.85em; color: #475569;">Açıklama / Kriter:</label>
@@ -149,9 +154,9 @@ export async function render(container) {
                         <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; background: white; padding: 20px; border-radius: 10px; border: 2px dashed #cbd5e1;">
                             <span style="font-size: 0.75rem; color: #64748b; margin-bottom: 10px; font-weight: bold;">Canlı Önizleme</span>
                             
-                            <div id="studioPrevMedal" style="width: 75px; height: 75px; background: linear-gradient(145deg, #fbbf24, #d97706); border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; box-shadow: 0 0 0 5px rgba(251, 191, 36, 0.2), inset 0 2px 4px rgba(255,255,255,0.4); border: 2px solid #fef3c7; margin-bottom: 15px;">
-                                <span id="studioPrevIcon" style="font-size: 30px; margin-top: 0px; filter: drop-shadow(0 2px 3px rgba(0,0,0,0.3);">⭐</span>
-                                <div id="studioPrevAltYazi" style="position: absolute; bottom: 4px; font-size: 8px; font-weight: 900; color: #1e293b; background: rgba(255,255,255,0.9); padding: 0px 4px; border-radius: 3px; display: none;"></div>
+                            <div id="studioPrevMedal" style="width: 80px; height: 80px; background: linear-gradient(145deg, #fbbf24, #d97706); border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; box-shadow: 0 0 0 5px rgba(251, 191, 36, 0.2), inset 0 2px 4px rgba(255,255,255,0.4); border: 2px solid #fef3c7; margin-bottom: 15px;">
+                                <span id="studioPrevIcon" style="font-size: 32px; margin-top: 0px; filter: drop-shadow(0 2px 3px rgba(0,0,0,0.3);">⭐</span>
+                                <div id="studioPrevAltYazi" style="position: absolute; bottom: 5px; font-size: 9px; font-weight: 900; color: #1e293b; background: rgba(255,255,255,0.92); padding: 0px 4px; border-radius: 3px; display: none; text-align: center; width: 68px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"></div>
                             </div>
 
                             <button id="btn-rozet-ekle" class="btn btn-primary" style="width: 100%; font-weight: bold; padding: 10px;">💾 Kataloğa Ekle</button>
@@ -208,7 +213,7 @@ export async function render(container) {
             medal.style.borderRadius = shape;
         }
 
-        medal.style.background = `linear-gradient(145deg, ${c1},${c2})`;
+        medal.style.background = `linear-gradient(145deg, ${c1}, ${c2})`;
 
         const yaziDiv = document.getElementById('studioPrevAltYazi');
         const iconSpan = document.getElementById('studioPrevIcon');
@@ -216,12 +221,12 @@ export async function render(container) {
         if (altYazi) {
             yaziDiv.textContent = altYazi;
             yaziDiv.style.display = 'block';
-            iconSpan.style.marginTop = '-6px';
+            iconSpan.style.marginTop = '-8px';
             iconSpan.style.fontSize = '26px';
         } else {
             yaziDiv.style.display = 'none';
             iconSpan.style.marginTop = '0px';
-            iconSpan.style.fontSize = '30px';
+            iconSpan.style.fontSize = '32px';
         }
     };
 
@@ -354,7 +359,7 @@ async function arayuzuGuncelle() {
             <div style="background: white; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); padding: 20px; display: flex; flex-direction: column; gap: 15px;">
                 <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px;">
                     <div>
-                        <div style="font-size: 0.8em; color: #94a3b8; font-weight: bold; margin-bottom: 5px;">#${index + 1} \vert{} No:${ogr.okulno || '-'}</div>
+                        <div style="font-size: 0.8em; color: #94a3b8; font-weight: bold; margin-bottom: 5px;">#${index + 1} | No: ${ogr.okulno || '-'}</div>
                         <div style="font-weight: bold; font-size: 1.15em; color: #1e293b; line-height: 1.2;">${ogr.name}</div>
                     </div>
                     <div style="background: #f0fdf4; border: 2px solid #22c55e; color: #16a34a; border-radius: 10px; padding: 5px 12px; text-align: center; min-width: 60px;">

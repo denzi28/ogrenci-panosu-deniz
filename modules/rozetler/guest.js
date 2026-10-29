@@ -23,11 +23,11 @@ function renderRozetGorseli(iconVal, style1 = '#fbbf24', style2 = '#d97706', sha
         shapeStyle = `border-radius: 50% 50% 50% 50% / 20% 20% 80% 80%;`;
     }
 
-    let yaziHtml = altYazi ? `<div style="position: absolute; bottom: 3px; font-size: 7.5px; font-weight: 900; color: #1e293b; background: rgba(255,255,255,0.9); padding: 0px 4px; border-radius: 3px; max-width: 36px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${altYazi}</div>` : '';
+    let yaziHtml = altYazi ? `<div style="position: absolute; bottom: 3px; font-size: 7.5px; font-weight: 900; color: #1e293b; background: rgba(255,255,255,0.92); padding: 0px 3px; border-radius: 3px; width: 40px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center;">${altYazi}</div>` : '';
 
     return `
-        <div style="width: 42px; height: 42px; background: ${bg}; ${shapeStyle} display: inline-flex; flex-direction: column; align-items: center; justify-content: center; position: relative; box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.2), inset 0 2px 4px rgba(255,255,255,0.4); border: 2px solid #fef3c7; vertical-align: middle;">
-            <span style="font-size: ${altYazi ? '16px' : '20px'}; margin-top: ${altYazi ? '-5px' : '0'}; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.3));">${iconVal}</span>
+        <div style="width: 44px; height: 44px; background: ${bg}; ${shapeStyle} display: inline-flex; flex-direction: column; align-items: center; justify-content: center; position: relative; box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.2), inset 0 2px 4px rgba(255,255,255,0.4); border: 2px solid #fef3c7; vertical-align: middle;">
+            <span style="font-size: ${altYazi ? '16px' : '20px'}; margin-top: ${altYazi ? '-6px' : '0'}; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.3));">${iconVal}</span>
             ${yaziHtml}
         </div>
     `;

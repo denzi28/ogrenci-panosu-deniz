@@ -170,17 +170,18 @@ export async function render(container) {
 
                     <div style="margin-top: 30px;">
                         <h3 style="margin-bottom: 15px; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px;">Katalog Rozetleri (<span id="rozet-sayaci">0</span>)</h3>
+                        <p style="font-size: 0.85em; color: #64748b; margin-bottom: 15px;">💡 Bir rozetin üzerine tıklayarak doğrudan öğrenci listesinden kimlere verileceğini seçebilirsiniz.</p>
                         <div id="rozet-basliklari"></div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- DETAY GÖRÜNÜMÜ -->
+        <!-- DETAY GÖRÜNÜMÜ (ÖĞRENCİ VEYA KİTAP BAZLI) -->
         <div id="detay-gorunum" style="display: none;">
             <div class="card" style="border-top: 4px solid var(--primary); min-height: 50vh;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
-                    <h2 id="detay-baslik" style="margin: 0; color: var(--primary);">📖 Öğrenci Rozet Listesi</h2>
+                    <h2 id="detay-baslik" style="margin: 0; color: var(--primary);">📖 Detay Listesi</h2>
                     <button id="btn-detay-kapat" class="btn btn-secondary" style="font-weight: bold; padding: 10px 20px; font-size: 1.1em;">⬅ Listeye Dön</button>
                 </div>
                 <div id="detay-rozet-listesi"></div>
@@ -398,6 +399,13 @@ async function arayuzuGuncelle() {
     document.getElementById('rozet-sayaci').innerText = rozetler.length;
     const ogrenciler = tumKullanicilar.filter(u => u.role === 'student');
 
+    ogrenciler.sort((a, b) => {
+        const noA = parseInt(a.okulno) || 999999;
+        const noB = parseInt(b.okulno) || 999999;
+        if (noA === noB) return (a.name || '').localeCompare(b.name || '');
+        return noA - noB;
+    });
+
     ogrenciler.forEach(ogr => {
         let kazanilanSayisi = 0;
         rozetler.forEach(r => {
@@ -411,7 +419,6 @@ async function arayuzuGuncelle() {
     const metinSpan = document.getElementById('siralama-metin');
     
     if (aktifSiralama === 'alfabetik') {
-        ogrenciler.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'tr-TR'));
         if(ikonSpan) { ikonSpan.innerText = '🔤'; metinSpan.innerText = 'Alfabetik Sıralama'; }
     } else {
         ogrenciler.sort((a, b) => b.kazanilanSayisi - a.kazanilanSayisi);
@@ -424,22 +431,26 @@ async function arayuzuGuncelle() {
         if (katRozetleri.length === 0) return;
 
         basliklarHtml += `<div style="margin-bottom: 25px;"><h4 style="color: ${KATEGORILER[katKey].renk}; border-bottom: 2px solid ${KATEGORILER[katKey].renk}; padding-bottom: 5px; margin-bottom: 12px;">${KATEGORILER[katKey].ad}</h4>`;
-        basliklarHtml += '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px;">';
+        basliklarHtml += '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px;">';
         
         katRozetleri.forEach(r => {
             let alanSayisi = matris.filter(m => m.targetId === r.id && m.deger === '✔️').length;
             basliklarHtml += `
-                <div style="background: white; border: 1px solid #e2e8f0; border-left: 5px solid ${KATEGORILER[katKey].renk}; padding: 12px; border-radius: 8px; display: flex; flex-direction: column; justify-content: space-between;">
+                <div class="rozet-katalog-karti" data-id="${r.id}" data-ad="${r.ad}" style="background: white; border: 1px solid #e2e8f0; border-left: 5px solid ${KATEGORILER[katKey].renk}; padding: 12px; border-radius: 8px; display: flex; flex-direction: column; justify-content: space-between; cursor: pointer; transition: transform 0.1s, box-shadow 0.1s;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.08)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';">
                     <div>
                         <div style="font-size: 1.05em; font-weight: bold; display: flex; align-items: center; gap: 10px;">
-                            ${renderRozetGorseli(r.icon, r.style1, r.style2, r.shape, r.altYazi)} <span>${r.ad}</span>
+                            ${renderRozetGorseli(r.icon, r.style1, r.style2, r.shape, r.altYazi)} 
+                            <div style="flex: 1;">
+                                <div style="color: #1e293b;">${r.ad}</div>
+                                <div style="font-size: 0.75em; color: var(--success); font-weight: bold; margin-top: 2px;">✅ ${alanSayisi} öğrenci kazandı</div>
+                            </div>
                         </div>
-                        <p style="font-size: 0.8em; color: #64748b; margin: 6px 0 4px 0;">${r.aciklama || ''}</p>
-                        <p style="font-size: 0.75em; color: var(--success); font-weight: bold; margin: 4px 0;">${alanSayisi} öğrenci kazandı</p>
+                        <p style="font-size: 0.8em; color: #64748b; margin: 8px 0 4px 0;">${r.aciklama || 'Açıklama yok'}</p>
                     </div>
-                    <div style="display: flex; gap: 6px; margin-top: 8px;">
-                        <button class="btn btn-secondary btn-rozet-duzenle" data-id="${r.id}" style="flex: 1; padding: 4px; font-size: 0.8em; font-weight: bold;">✏️ Düzenle</button>
-                        <button class="btn btn-danger btn-rozet-sil" data-id="${r.id}" style="flex: 1; padding: 4px; font-size: 0.8em;">✕ Sil</button>
+                    <div style="display: flex; gap: 6px; margin-top: 10px; border-top: 1px dashed #e2e8f0; pt-2;">
+                        <button class="btn btn-primary btn-rozet-ver-genel" data-id="${r.id}" data-ad="${r.ad}" style="flex: 2; padding: 6px; font-size: 0.85em; font-weight: bold; background: #0ea5e9; border:none;">👥 Öğrencilere Ver</button>
+                        <button class="btn btn-secondary btn-rozet-duzenle" data-id="${r.id}" style="flex: 1; padding: 6px; font-size: 0.8em; font-weight: bold;">✏️</button>
+                        <button class="btn btn-danger btn-rozet-sil" data-id="${r.id}" style="flex: 1; padding: 6px; font-size: 0.8em;">✕</button>
                     </div>
                 </div>
             `;
@@ -473,8 +484,10 @@ async function arayuzuGuncelle() {
     kartlarHtml += `</div>`;
     document.getElementById('rozet-tablosu-alani').innerHTML = kartlarHtml;
 
+    // ETKİLEŞİMLER
     document.querySelectorAll('.btn-rozet-duzenle').forEach(btn => {
         btn.addEventListener('click', (e) => {
+            e.stopPropagation();
             const id = e.currentTarget.getAttribute('data-id');
             const rozet = rozetler.find(r => r.id === id);
             if (!rozet) return;
@@ -495,10 +508,22 @@ async function arayuzuGuncelle() {
 
     document.querySelectorAll('.btn-rozet-sil').forEach(btn => {
         btn.addEventListener('click', async (e) => {
+            e.stopPropagation();
             if(confirm("Bu rozeti silmek istediğinize emin misiniz?")) {
                 await db.delete('rozetler_kalemleri', e.currentTarget.getAttribute('data-id'));
                 await arayuzuGuncelle();
             }
+        });
+    });
+
+    // 🌟 KATSALOGDAN "ÖĞRENCİLERE VER" BUTONUNA TIKLANINCA
+    document.querySelectorAll('.btn-rozet-ver-genel').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const rozetId = e.currentTarget.getAttribute('data-id');
+            const rozetAd = e.currentTarget.getAttribute('data-ad');
+            const rozet = rozetler.find(r => r.id === rozetId);
+            rozettenOgrenciyeAc(rozet, ogrenciler, matris);
         });
     });
 
@@ -509,6 +534,9 @@ async function arayuzuGuncelle() {
     });
 }
 
+// ----------------------------------------------------
+// 1. ÖĞRENCİDEN ROZETE (Mevcut Görünüm)
+// ----------------------------------------------------
 function ogrenciDetayiniAc(ogrId, ogrName, rozetler, matris) {
     document.getElementById('ana-gorunum').style.display = 'none';
     document.getElementById('detay-gorunum').style.display = 'block';
@@ -564,6 +592,70 @@ function ogrenciDetayiniAc(ogrId, ogrName, rozetler, matris) {
             e.currentTarget.style.borderColor = newValue === '✔️' ? '#10b981' : '#cbd5e1';
 
             await db.saveMatrixStatus('rozet_matrisi', oId, kId, newValue);
+        });
+    });
+}
+
+// ----------------------------------------------------
+// 2. ROZETTEN ÖĞRENCİYE (YENİ EKLENEN ÖZELLİK)
+// ----------------------------------------------------
+function rozettenOgrenciyeAc(rozet, ogrenciler, matris) {
+    document.getElementById('ana-gorunum').style.display = 'none';
+    document.getElementById('detay-gorunum').style.display = 'block';
+    
+    document.getElementById('detay-baslik').innerHTML = `
+        <div style="display: flex; align-items: center; gap: 12px;">
+            ${renderRozetGorseli(rozet.icon, rozet.style1, rozet.style2, rozet.shape, rozet.altYazi)}
+            <div>
+                <span>"${rozet.ad}" Rozeti Atama Paneli</span>
+                <div style="font-size: 0.7em; color: #64748b; font-weight: normal; margin-top: 2px;">${rozet.aciklama || ''}</div>
+            </div>
+        </div>
+    `;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    let listeHtml = `
+        <div style="margin-bottom: 15px; background: #e8f4fd; padding: 12px 15px; border-radius: 8px; border: 1px solid #bde0fe;">
+            <p style="margin: 0; font-size: 0.9em; color: #1e293b;">Bu rozeti vermek istediğiniz öğrencileri seçin veya kaldırın. Değişiklikler anında buluta kaydedilir.</p>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px;">
+    `;
+
+    ogrenciler.forEach((ogr, index) => {
+        let kayit = matris.find(m => m.ogrId === ogr.id && m.targetId === rozet.id);
+        let sahipMi = kayit && kayit.deger === '✔️';
+
+        listeHtml += `
+            <div style="background: white; padding: 12px 15px; border-radius: 8px; border: 1px solid #cbd5e1; display: flex; justify-content: space-between; align-items: center; gap: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
+                <div>
+                    <div style="font-size: 0.75em; color: #94a3b8; font-weight: bold;">No: ${ogr.okulno || '-'}</div>
+                    <div style="font-weight: bold; color: #334155;">${ogr.name}</div>
+                </div>
+                <button class="btn-rozet-ata-toggle" data-ogr="${ogr.id}" data-rozet="${rozet.id}" data-val="${sahipMi ? '✔️' : ''}"
+                    style="padding: 8px 14px; border-radius: 6px; font-weight: bold; font-size: 0.85em; cursor: pointer; border: 2px solid ${sahipMi ? '#10b981' : '#cbd5e1'}; background: ${sahipMi ? '#d1fae5' : '#f8fafc'}; color: ${sahipMi ? '#059669' : '#64748b'}; min-width: 110px;">
+                    ${sahipMi ? '✅ Verildi' : '➕ Ver'}
+                </button>
+            </div>
+        `;
+    });
+
+    listeHtml += '</div>';
+    document.getElementById('detay-rozet-listesi').innerHTML = listeHtml;
+
+    document.querySelectorAll('.btn-rozet-ata-toggle').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            const oId = e.currentTarget.getAttribute('data-ogr');
+            const rId = e.currentTarget.getAttribute('data-rozet');
+            const val = e.currentTarget.getAttribute('data-val');
+            
+            let newValue = val === '✔️' ? '' : '✔️';
+            e.currentTarget.setAttribute('data-val', newValue);
+            e.currentTarget.innerText = newValue === '✔️' ? '✅ Verildi' : '➕ Ver';
+            e.currentTarget.style.backgroundColor = newValue === '✔️' ? '#d1fae5' : '#f8fafc';
+            e.currentTarget.style.color = newValue === '✔️' ? '#059669' : '#64748b';
+            e.currentTarget.style.borderColor = newValue === '✔️' ? '#10b981' : '#cbd5e1';
+
+            await db.saveMatrixStatus('rozet_matrisi', oId, rId, newValue);
         });
     });
 }

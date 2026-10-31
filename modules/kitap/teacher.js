@@ -93,7 +93,7 @@ export async function render(container) {
             <div class="card" style="border-top: 4px solid var(--primary); min-height: 50vh;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
                     <h2 id="detay-baslik" style="margin: 0; color: var(--primary);">📖 Öğrenci Adı - Kitap Listesi</h2>
-                    <button id="btn-detay-kapat" class="btn btn-secondary" style="font-weight: bold; padding: 10px 20px; font-size: 1.1em; box-shadow: 0 4px 0 #94a3b8;">⬅️️ Listeye Dön</button>
+                    <button id="btn-detay-kapat" class="btn btn-secondary" style="font-weight: bold; padding: 10px 20px; font-size: 1.1em; box-shadow: 0 4px 0 #94a3b8;">⬅ Listeye Dön</button>
                 </div>
                 
                 <div style="background: #e8f4fd; border: 1px dashed var(--primary); padding: 12px; border-radius: 8px; font-size: 0.95em; margin-bottom: 20px; color: #1e293b; text-align: center;">
@@ -103,7 +103,80 @@ export async function render(container) {
                 <div id="detay-kitap-listesi"></div>
             </div>
         </div>
+
+        <!-- 🌟 ÖZEL NUMARATÖR (NUMPAD) MODALI -->
+        <div id="numpad-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.4); z-index:4000; align-items:center; justify-content:center;">
+            <div style="background:white; width:280px; border-radius:16px; padding:20px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); display:flex; flex-direction:column; gap:15px; border: 2px solid #0ea5e9;">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span style="font-weight:bold; color:#0ea5e9; font-size:1em;">Kitap Numarası Gir</span>
+                    <button id="numpad-kapat" style="background:none; border:none; font-size:1.2em; cursor:pointer; color:#666; font-weight:bold;">✕</button>
+                </div>
+                <div id="numpad-ekran" style="background:#f1f5f9; padding:12px; border-radius:8px; font-size:1.5em; font-weight:bold; text-align:center; color:#1e293b; letter-spacing:2px; min-height:30px; border: 1px solid #cbd5e1;"></div>
+                <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:8px;">
+                    <button class="numpad-tus btn btn-secondary" data-val="1" style="padding:15px; font-size:1.2em; font-weight:bold; background:#f8fafc; color:#1e293b; border:1px solid #cbd5e1;">1</button>
+                    <button class="numpad-tus btn btn-secondary" data-val="2" style="padding:15px; font-size:1.2em; font-weight:bold; background:#f8fafc; color:#1e293b; border:1px solid #cbd5e1;">2</button>
+                    <button class="numpad-tus btn btn-secondary" data-val="3" style="padding:15px; font-size:1.2em; font-weight:bold; background:#f8fafc; color:#1e293b; border:1px solid #cbd5e1;">3</button>
+                    <button class="numpad-tus btn btn-secondary" data-val="4" style="padding:15px; font-size:1.2em; font-weight:bold; background:#f8fafc; color:#1e293b; border:1px solid #cbd5e1;">4</button>
+                    <button class="numpad-tus btn btn-secondary" data-val="5" style="padding:15px; font-size:1.2em; font-weight:bold; background:#f8fafc; color:#1e293b; border:1px solid #cbd5e1;">5</button>
+                    <button class="numpad-tus btn btn-secondary" data-val="6" style="padding:15px; font-size:1.2em; font-weight:bold; background:#f8fafc; color:#1e293b; border:1px solid #cbd5e1;">6</button>
+                    <button class="numpad-tus btn btn-secondary" data-val="7" style="padding:15px; font-size:1.2em; font-weight:bold; background:#f8fafc; color:#1e293b; border:1px solid #cbd5e1;">7</button>
+                    <button class="numpad-tus btn btn-secondary" data-val="8" style="padding:15px; font-size:1.2em; font-weight:bold; background:#f8fafc; color:#1e293b; border:1px solid #cbd5e1;">8</button>
+                    <button class="numpad-tus btn btn-secondary" data-val="9" style="padding:15px; font-size:1.2em; font-weight:bold; background:#f8fafc; color:#1e293b; border:1px solid #cbd5e1;">9</button>
+                    <button class="numpad-tus btn btn-secondary" data-val="sil" style="padding:15px; font-size:1em; font-weight:bold; background:#fee2e2; color:#b91c1c; border:1px solid #fca5a5;">⌫ Sil</button>
+                    <button class="numpad-tus btn btn-secondary" data-val="0" style="padding:15px; font-size:1.2em; font-weight:bold; background:#f8fafc; color:#1e293b; border:1px solid #cbd5e1;">0</button>
+                    <button id="numpad-tamam" class="btn btn-primary" style="padding:15px; font-size:1em; font-weight:bold; background:#0ea5e9; color:white; border:none;">✔ OK</button>
+                </div>
+            </div>
+        </div>
     `;
+
+    let aktifInputId = null;
+    const numpadModal = document.getElementById('numpad-modal');
+    const numpadEkran = document.getElementById('numpad-ekran');
+
+    function numpadAc(inputId) {
+        aktifInputId = inputId;
+        const inputEl = document.getElementById(inputId);
+        numpadEkran.innerText = inputEl ? inputEl.value : '';
+        numpadModal.style.display = 'flex';
+    }
+
+    document.getElementById('numpad-kapat').addEventListener('click', () => {
+        numpadModal.style.display = 'none';
+        aktifInputId = null;
+    });
+
+    numpadModal.addEventListener('click', (e) => {
+        if (e.target === numpadModal) {
+            numpadModal.style.display = 'none';
+            aktifInputId = null;
+        }
+    });
+
+    document.querySelectorAll('.numpad-tus').forEach(tus => {
+        tus.addEventListener('click', () => {
+            const val = tus.getAttribute('data-val');
+            let mevcut = numpadEkran.innerText;
+            if (val === 'sil') {
+                numpadEkran.innerText = mevcut.slice(0, -1);
+            } else {
+                if (mevcut.length < 5) {
+                    numpadEkran.innerText = mevcut + val;
+                }
+            }
+        });
+    });
+
+    document.getElementById('numpad-tamam').addEventListener('click', () => {
+        if (aktifInputId) {
+            const inputEl = document.getElementById(aktifInputId);
+            if (inputEl) {
+                inputEl.value = numpadEkran.innerText;
+            }
+        }
+        numpadModal.style.display = 'none';
+        aktifInputId = null;
+    });
 
     document.getElementById('btn-ayar-kaydet').addEventListener('click', async (e) => {
         const val = document.getElementById('ayar-min-gun').value;
@@ -317,6 +390,8 @@ export async function render(container) {
     });
 
     await arayuzuGuncelle();
+
+    window.acNumpad = numpadAc;
 }
 
 function gunFarkiHesapla(verilisTarihiStr) {
@@ -342,7 +417,8 @@ async function arayuzuGuncelle() {
         return noA - noB;
     });
 
-    document.getElementById('kitap-sayaci').innerText = kalemler.length;
+    const sayacEl = document.getElementById('kitap-sayaci');
+    if(sayacEl) sayacEl.innerText = kalemler.length;
 
     const ogrenciler = tumKullanicilar.filter(u => u.role === 'student');
 
@@ -433,10 +509,15 @@ async function arayuzuGuncelle() {
     basliklarHtml += '</div>';
     
     if(kalemler.length === 0) basliklarHtml = '<div style="color:#64748b; padding: 15px; text-align: center; background: #f8fafc; border-radius: 8px; font-style: italic;">Henüz sınıf kitaplığına eklenmiş kitap bulunmuyor.</div>';
-    document.getElementById('kitap-basliklari').innerHTML = basliklarHtml;
+    
+    const kitapBasliklariEl = document.getElementById('kitap-basliklari');
+    if(kitapBasliklariEl) kitapBasliklariEl.innerHTML = basliklarHtml;
+
+    const tabloAlaniEl = document.getElementById('kitap-tablosu-alani');
+    if (!tabloAlaniEl) return;
 
     if (kalemler.length === 0) {
-        document.getElementById('kitap-tablosu-alani').innerHTML = '<p style="color:var(--secondary); padding: 20px;">Lütfen önce "Kitap Yönetimi" sekmesinden en az bir kitap ekleyin.</p>';
+        tabloAlaniEl.innerHTML = '<p style="color:var(--secondary); padding: 20px;">Lütfen önce "Kitap Yönetimi" sekmesinden en az bir kitap ekleyin.</p>';
         return;
     }
 
@@ -445,11 +526,10 @@ async function arayuzuGuncelle() {
     ogrenciler.forEach((ogr, index) => {
         let hizliIslemHtml = `<div style="margin-top: auto; display: flex; flex-direction: column; gap: 8px; border-top: 1px dashed #cbd5e1; padding-top: 15px;">`;
 
+        // Eğer elinde kitap varsa listele ve bitirdi/bırak butonu koy
         if (ogr.suAnOkuyanlarDetay.length > 0) {
             ogr.suAnOkuyanlarDetay.forEach(k => {
                 let kNoStr = (k.no && k.no !== 999) ? `#${k.no} ` : '';
-                
-                // 🌟 YENİ: OKUMA SÜRESİ HESAPLAMA VE EKRANA YAZDIRMA
                 let sureMetni = "";
                 if (k.tarih) {
                     let gunFarki = gunFarkiHesapla(k.tarih);
@@ -465,25 +545,23 @@ async function arayuzuGuncelle() {
                             <span style="font-size: 0.85em; color: #b45309;">${sureMetni}</span>
                         </span>
                         <div style="display: flex; gap: 8px;">
-                            <button class="btn-hizli-bitir" data-ogr="${ogr.id}" data-kitap="${k.id}" style="flex: 1; background: #10b981; color: white; border: none; padding: 6px; border-radius: 6px; font-size: 0.85em; cursor: pointer; font-weight: bold; box-shadow: 0 2px 0 #059669;" title="Kitabı Okudu Olarak İşaretle">✔️ Bitirdi</button>
-                            <button class="btn-hizli-iade" data-ogr="${ogr.id}" data-kitap="${k.id}" style="flex: 1; background: #ef4444; color: white; border: none; padding: 6px; border-radius: 6px; font-size: 0.85em; cursor: pointer; font-weight: bold; box-shadow: 0 2px 0 #dc2626;" title="Okumadan Geri Verdi">❌ Bırak</button>
+                            <button class="btn-hizli-bitir" data-ogr="${ogr.id}" data-kitap="${k.id}" style="flex: 1; background: #10b981; color: white; border: none; padding: 6px; border-radius: 6px; font-size: 0.85em; cursor: pointer; font-weight: bold;" title="Kitabı Okudu Olarak İşaretle">✔️ Bitirdi</button>
+                            <button class="btn-hizli-iade" data-ogr="${ogr.id}" data-kitap="${k.id}" style="flex: 1; background: #ef4444; color: white; border: none; padding: 6px; border-radius: 6px; font-size: 0.85em; cursor: pointer; font-weight: bold;" title="Okumadan Geri Verdi">❌ Bırak</button>
                         </div>
                     </div>
                 `;
             });
-        } else {
-            hizliIslemHtml += `
-                <div style="display: flex; flex-direction: column; gap: 6px;">
-                    <div style="background: #fee2e2; padding: 6px 10px; border-radius: 6px; border: 1px solid #fca5a5; text-align: center;">
-                        <span style="color: #b91c1c; font-size: 0.85em; font-weight: bold;">Şu an elinde kitap yok.</span>
-                    </div>
-                    <div style="display: flex; gap: 5px;">
-                        <input type="number" id="hizli-no-${ogr.id}" placeholder="Kitap No Gir..." style="flex: 1; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.9em; outline: none;" onkeypress="if(event.key === 'Enter'){ document.getElementById('btn-ver-${ogr.id}').click(); }">
-                        <button class="btn-hizli-ver" id="btn-ver-${ogr.id}" data-ogr="${ogr.id}" style="background: #0ea5e9; color: white; border: none; padding: 8px 15px; border-radius: 6px; font-size: 0.95em; cursor: pointer; font-weight: bold; box-shadow: 0 2px 0 #0284c7;">📥 Ver</button>
-                    </div>
-                </div>
-            `;
         }
+
+        // 🌟 ARTIK ELİNDE KİTAP OLSA BİLE KİTAP VERME INPUTU HER ZAMAN GÖRÜNECEK
+        hizliIslemHtml += `
+            <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 5px;">
+                <div style="display: flex; gap: 5px;">
+                    <input type="text" readonly id="hizli-no-${ogr.id}" placeholder="Kitap No Seç..." class="numpad-trigger-input" data-ogrid="${ogr.id}" style="flex: 1; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.95em; outline: none; background: #fff; cursor: pointer; text-align: center; font-weight: bold; color: #0284c7;" title="Klavyeyi Açmak İçin Tıkla">
+                    <button class="btn-hizli-ver" id="btn-ver-${ogr.id}" data-ogr="${ogr.id}" style="background: #0ea5e9; color: white; border: none; padding: 8px 15px; border-radius: 6px; font-size: 0.95em; cursor: pointer; font-weight: bold; box-shadow: 0 2px 0 #0284c7;">📥 Ver</button>
+                </div>
+            </div>
+        `;
         
         hizliIslemHtml += `</div>`;
 
@@ -511,7 +589,17 @@ async function arayuzuGuncelle() {
     });
 
     kartlarHtml += `</div>`;
-    document.getElementById('kitap-tablosu-alani').innerHTML = kartlarHtml;
+    tabloAlaniEl.innerHTML = kartlarHtml;
+
+    // NUMPAD TETİKLEYİCİLERİNİ BAĞLA
+    document.querySelectorAll('.numpad-trigger-input').forEach(input => {
+        input.onclick = (e) => {
+            const ogrId = e.currentTarget.getAttribute('data-ogrid');
+            if(window.acNumpad) {
+                window.acNumpad(`hizli-no-${ogrId}`);
+            }
+        };
+    });
 
     document.querySelectorAll('.btn-kalem-duzenle').forEach(btn => {
         btn.addEventListener('click', async (e) => {
@@ -632,7 +720,7 @@ function ogrenciDetayiniAc(ogrId, ogrName, kalemler, matris) {
 
     let listeHtml = '<div style="display: flex; flex-direction: column; gap: 12px;">';
 
-    kalemler.forEach((k, index) => {
+    kalemler.forEach((k) => {
         let kayit = matris.find(m => m.ogrId === ogrId && m.targetId === k.id);
         let mevcutDeger = kayit ? kayit.deger : '';
         let tarih = kayit ? kayit.tarih : null;
@@ -642,7 +730,6 @@ function ogrenciDetayiniAc(ogrId, ogrName, kalemler, matris) {
         let textColor = '#64748b';
         let borderRenk = '#cbd5e1';
 
-        // 🌟 DETAY EKRANINDA DA SÜREYİ EKLİYORUZ
         if (mevcutDeger === '⏳') {
             let sureMetni = "";
             if(tarih) {
@@ -687,7 +774,7 @@ function ogrenciDetayiniAc(ogrId, ogrName, kalemler, matris) {
                 if (kayit && kayit.tarih) {
                     const farkGun = gunFarkiHesapla(kayit.tarih);
                     if (farkGun < minimumOkumaGunu) {
-                        const mesaj = `⚠️️ KİTAP DEĞİŞTİRME SÜRESİ UYARISI\n\nBu kitap öğrenciye henüz ${farkGun === 0 ? 'BUGÜN' : farkGun + ' gün önce'} verilmiş! Kurala göre bir kitap en az ${minimumOkumaGunu} gün okunmalıdır.\n\n(Not: Eğer kitabı az önce yanlışlıkla verdiyseniz 'Tamam' diyerek işlemi zorla yapabilirsiniz. İptal etmek istiyor musunuz?)`;
+                        const mesaj = `⚠ KİTAP DEĞİŞTİRME SÜRESİ UYARISI\n\nBu kitap öğrenciye henüz ${farkGun === 0 ? 'BUGÜN' : farkGun + ' gün önce'} verilmiş! Kurala göre bir kitap en az ${minimumOkumaGunu} gün okunmalıdır.\n\n(Not: Eğer kitabı az önce yanlışlıkla verdiyseniz 'Tamam' diyerek işlemi zorla yapabilirsiniz. İptal etmek istiyor musunuz?)`;
                         if(!confirm(mesaj)) return;
                     }
                 }

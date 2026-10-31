@@ -1,7 +1,7 @@
 import { db } from '../../js/db.js';
 
 export async function render(container) {
-    container.innerHTML = '<div class="card"><p>⏳ İhtiyaç tablosu buluttan getiriliyor...</p></div>';
+    container.innerHTML = '<div class="card"><p>⏳ İhtiyaç modülü buluttan getiriliyor...</p></div>';
 
     const isModuleVisible = await db.getModuleVisibility('ihtiyaclar');
     const btnClass = isModuleVisible ? 'btn-success' : 'btn-secondary';
@@ -11,7 +11,7 @@ export async function render(container) {
         <div class="card" style="background: #e8f4fd; border: 1px solid var(--primary); display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
             <div>
                 <h3 style="margin: 0; color: var(--primary);">👀 Modül Görünürlüğü (Misafirler İçin)</h3>
-                <p style="margin: 5px 0 0 0; font-size: 0.9em;">Açık olduğunda misafirler (veliler) sadece neye ihtiyaç olduğunu liste halinde görür, kimin getirip getirmediğini göremez.</p>
+                <p style="margin: 5px 0 0 0; font-size: 0.9em;">Açık olduğunda misafirler (veliler) sadece neye ihtiyaç olduğunu liste halinde görür.</p>
             </div>
             <div>
                 <button id="toggle-module-btn" class="btn ${btnClass}">${btnText}</button>
@@ -21,21 +21,37 @@ export async function render(container) {
         <div class="card" style="border-top: 4px solid var(--primary);">
             <h3>1. Aşama: İhtiyaç Kalemlerini Belirle</h3>
             <div style="display: flex; gap: 10px; margin-top: 15px;">
-                <input type="text" id="yeni-ihtiyac-ad" placeholder="Örn: A4 Kağıdı, Peçete, 200+200 TL" style="flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 4px;">
-                <button id="btn-ihtiyac-ekle" class="btn btn-primary">Sütun Ekle</button>
+                <input type="text" id="yeni-ihtiyac-ad" placeholder="Örn: A4 Kağıdı, Peçete" style="flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 4px;">
+                <button id="btn-ihtiyac-ekle" class="btn btn-primary">İhtiyaç Ekle</button>
             </div>
             <div id="ihtiyac-basliklari" style="margin-top: 15px; display: flex; flex-wrap: wrap; gap: 10px;"></div>
         </div>
 
-        <div class="card" style="border-top: 4px solid var(--success); overflow-x: auto;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; flex-wrap: wrap; gap: 10px;">
-                <h3 style="margin: 0;">2. Aşama: Sınıf Takip Tablosu</h3>
-                <button id="btn-ihtiyac-yazdir" class="btn btn-primary" style="padding: 10px 20px; font-size: 1em; font-weight: bold; background-color: #0284c7; color: white; border: none; border-radius: 5px; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        <div class="card" style="border-top: 4px solid var(--success);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
+                <h3 style="margin: 0;">2. Aşama: Öğrenci İhtiyaç Takibi</h3>
+                <button id="btn-ihtiyac-yazdir" class="btn btn-primary" style="padding: 8px 15px; font-size: 0.9em; font-weight: bold; background-color: #0284c7; color: white; border: none; border-radius: 5px; cursor: pointer;">
                     🖨️ Listeyi Yazdır / PDF Al
                 </button>
             </div>
-            <p style="font-size:0.85em; color:#666; margin-bottom: 15px;">Hücrelere "x", "Devamsız" veya miktar yazabilirsiniz. Başka yere tıkladığınız an buluta otomatik kaydedilir.</p>
-            <div id="ihtiyac-tablosu-alani"><p>⏳ Tablo yükleniyor...</p></div>
+            <p style="font-size:0.85em; color:#666; margin-bottom: 15px;">Bir öğrencinin üzerine tıklayarak ihtiyaç malzemelerini görebilir ve tek dokunuşla X atabilirsiniz.</p>
+            <div id="ogrenci-liste-alani"><p>⏳ Öğrenciler yükleniyor...</p></div>
+        </div>
+
+        <!-- ÖĞRENCİ DETAY MODALI (POPUP) -->
+        <div id="ogrenci-detay-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:3000; align-items:center; justify-content:center;">
+            <div style="background:white; width:90%; max-width:450px; border-radius:16px; padding:20px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); max-height:85vh; overflow-y:auto;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; border-bottom:1px solid #eee; padding-bottom:10px;">
+                    <div>
+                        <h3 id="modal-ogr-ad" style="margin:0; font-size:1.2em; color:var(--primary);">Öğrenci Adı</h3>
+                        <span id="modal-ogr-no" style="font-size:0.85em; color:#666;">Okul No: -</span>
+                    </div>
+                    <button id="modal-kapat" style="background:none; border:none; font-size:1.4em; cursor:pointer; color:#666;"><i class="fas fa-times">✕</i></button>
+                </div>
+                <div id="modal-malzeme-listesi" style="display:flex; flex-direction:column; gap:10px;">
+                    <!-- Malzemeler dinamik eklenecek -->
+                </div>
+            </div>
         </div>
     `;
 
@@ -54,14 +70,26 @@ export async function render(container) {
             btn.disabled = true; btn.innerText = "...";
             await db.add('ihtiyac_kalemleri', { ad: ad });
             document.getElementById('yeni-ihtiyac-ad').value = '';
-            btn.disabled = false; btn.innerText = "Sütun Ekle";
+            btn.disabled = false; btn.innerText = "İhtiyaç Ekle";
             await arayuzuGuncelle();
+        }
+    });
+
+    // Modal Kapatma
+    const modal = document.getElementById('ogrenci-detay-modal');
+    document.getElementById('modal-kapat').addEventListener('click', () => {
+        modal.style.display = 'none';
+        arayuzuGuncelle(); // Listeyi güncelle ki ana ekrandaki özet sayaçlar yenilensin
+    });
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            modal.style.display = 'none';
+            arayuzuGuncelle();
         }
     });
 
     // YAZDIRMA İŞLEMİ
     document.getElementById('btn-ihtiyac-yazdir').addEventListener('click', async () => {
-        // HIZLANDIRMA: Çıktı alırken verileri aynı anda çekiyoruz
         const [kalemler, tumKullanicilar, matris] = await Promise.all([
             db.getAll('ihtiyac_kalemleri'),
             db.getAll('users'),
@@ -69,13 +97,11 @@ export async function render(container) {
         ]);
         
         if (kalemler.length === 0) {
-            alert("Yazdırılacak herhangi bir ihtiyaç sütunu bulunmuyor.");
+            alert("Yazdırılacak herhangi bir ihtiyaç kalemi bulunmuyor.");
             return;
         }
 
         const ogrenciler = tumKullanicilar.filter(u => u.role === 'student');
-
-        // Okul numarasına göre sıralama
         ogrenciler.sort((a, b) => {
             const noA = parseInt(a.okulno) || 999999;
             const noB = parseInt(b.okulno) || 999999;
@@ -97,10 +123,8 @@ export async function render(container) {
                     th, td { border: 1px solid #000; padding: 6px 8px; }
                     th { background-color: #f1f5f9; font-weight: bold; }
                     td.merkez { text-align: center; }
-                    .dolu { background-color: #d1fae5 !important; font-weight: bold; -webkit-print-color-adjust: exact; color-adjust: exact; }
-                    .devamsiz { color: #dc2626 !important; font-style: italic; -webkit-print-color-adjust: exact; color-adjust: exact; }
-                    /* Yazıcıda da zebra deseninin çıkması için */
-                    tr:nth-child(even) { background-color: #f8fafc !important; -webkit-print-color-adjust: exact; color-adjust: exact; }
+                    .dolu { background-color: #d1fae5 !important; font-weight: bold; -webkit-print-color-adjust: exact; }
+                    tr:nth-child(even) { background-color: #f8fafc !important; -webkit-print-color-adjust: exact; }
                 </style>
             </head>
             <body>
@@ -125,36 +149,17 @@ export async function render(container) {
                     <td class="merkez"><strong>${ogr.okulno || '-'}</strong></td>
                     <td>${ogr.name}</td>
             `;
-            
             kalemler.forEach(k => {
                 let hucreDegeri = matris.find(m => m.ogrId === ogr.id && m.targetId === k.id)?.deger || '';
                 let islemGorduMu = hucreDegeri !== '';
-                let cssClass = "merkez";
-                
-                if (hucreDegeri.toLowerCase() === 'devamsız') {
-                    cssClass += " devamsiz";
-                } else if (islemGorduMu) {
-                    cssClass += " dolu";
-                }
-                
-                printContent += `<td class="${cssClass}">${hucreDegeri}</td>`;
+                printContent += `<td class="merkez ${islemGorduMu ? 'dolu' : ''}">${hucreDegeri}</td>`;
             });
-            
             printContent += `</tr>`;
         });
 
-        printContent += `
-                    </tbody>
-                </table>
-                <script>
-                    window.onload = function() { 
-                        window.print(); 
-                        setTimeout(() => window.close(), 500); 
-                    };
-                </script>
-            </body>
-            </html>
-        `;
+        printContent += `</tbody></table>
+                <script>window.onload = function() { window.print(); setTimeout(() => window.close(), 500); }</script>
+            </body></html>`;
 
         const printWindow = window.open('', '_blank');
         printWindow.document.write(printContent);
@@ -165,7 +170,6 @@ export async function render(container) {
 }
 
 async function arayuzuGuncelle() {
-    // HIZLANDIRMA: Tüm tabloları aynı anda çekiyoruz
     const [kalemler, tumKullanicilar, matris] = await Promise.all([
         db.getAll('ihtiyac_kalemleri'),
         db.getAll('users'),
@@ -174,97 +178,127 @@ async function arayuzuGuncelle() {
     
     const ogrenciler = tumKullanicilar.filter(u => u.role === 'student');
 
-    // --- OKUL NUMARASINA GÖRE SIRALAMA ---
     ogrenciler.sort((a, b) => {
         const noA = parseInt(a.okulno) || 999999;
         const noB = parseInt(b.okulno) || 999999;
         if (noA === noB) return (a.name || '').localeCompare(b.name || '');
         return noA - noB;
     });
-    // -------------------------------------------
 
+    // İhtiyaç Kalemlerini Üstte Rozet Şeklinde Göster
     let basliklarHtml = '';
     kalemler.forEach(k => {
         basliklarHtml += `
-            <div style="background: #f1f1f1; padding: 5px 10px; border-radius: 15px; display: flex; align-items: center; gap: 8px; border: 1px solid #ddd;">
+            <div style="background: #f1f1f1; padding: 5px 12px; border-radius: 15px; display: flex; align-items: center; gap: 8px; border: 1px solid #ddd;">
                 <span style="font-size: 0.9em; font-weight: bold;">${k.ad}</span>
                 <button class="btn-kalem-sil" data-id="${k.id}" style="background: none; border: none; color: var(--danger); cursor: pointer; font-weight: bold;">✕</button>
             </div>
         `;
     });
-    document.getElementById('ihtiyac-basliklari').innerHTML = basliklarHtml;
+    document.getElementById('ihtiyac-basliklari').innerHTML = basliklarHtml || '<span style="color:#666; font-size:0.9em;">Henüz ihtiyaç kalemi eklenmemiş.</span>';
 
     document.querySelectorAll('.btn-kalem-sil').forEach(btn => {
         btn.addEventListener('click', async (e) => {
             if(confirm("Bu sütunu silmek istediğinize emin misiniz?")) {
-                e.target.innerText = "...";
                 await db.delete('ihtiyac_kalemleri', e.target.getAttribute('data-id'));
                 await arayuzuGuncelle();
             }
         });
     });
 
-    if (kalemler.length === 0) {
-        document.getElementById('ihtiyac-tablosu-alani').innerHTML = '<p style="color:var(--secondary);">Lütfen önce yukarıdan en az bir ihtiyaç kalemi ekleyin.</p>';
+    if (ogrenciler.length === 0) {
+        document.getElementById('ogrenci-liste-alani').innerHTML = '<p style="color:var(--secondary);">Kayıtlı öğrenci bulunmuyor.</p>';
         return;
     }
 
-    let tabloHtml = `
-        <table style="width: 100%; border-collapse: collapse; min-width: 600px; font-size: 0.9em;">
-            <thead>
-                <tr style="background: #f8f9fa;">
-                    <th style="border: 1px solid #ddd; padding: 8px; width: 30px;">SN</th>
-                    <th style="border: 1px solid #ddd; padding: 8px; width: 60px;">OKUL NO</th>
-                    <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">ADI SOYADI</th>
-                    ${kalemler.map(k => `<th style="border: 1px solid #ddd; padding: 8px;">${k.ad}</th>`).join('')}
-                </tr>
-            </thead>
-            <tbody>
-    `;
-
+    // Öğrenci Liste Kartları
+    let listeHtml = '<div style="display: flex; flex-direction: column; gap: 8px;">';
     ogrenciler.forEach((ogr, index) => {
-        // ZEBRA DESENİ İÇİN SATIR RENGİ: Çift sayılar beyaz, tek sayılar çok hafif gri-mavi
-        let satirArkaPlan = index % 2 === 0 ? '#ffffff' : '#f1f5f9';
+        // Bu öğrencinin getirdiği toplam X sayısını hesapla
+        let getirilenSayisi = kalemler.filter(k => {
+            let val = matris.find(m => m.ogrId === ogr.id && m.targetId === k.id)?.deger;
+            return val && val !== '';
+        }).length;
 
-        tabloHtml += `<tr style="background-color: ${satirArkaPlan}; transition: background-color 0.2s;">
-            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${index + 1}</td>
-            <td style="border: 1px solid #ddd; padding: 8px; text-align: center; font-weight: bold;">${ogr.okulno || '-'}</td>
-            <td style="border: 1px solid #ddd; padding: 8px; font-weight: bold;">${ogr.name}</td>
+        let rozetRenk = getirilenSayisi > 0 ? '#d1fae5' : '#f1f5f9';
+        let rozetYazi = getirilenSayisi > 0 ? `✅ ${getirilenSayisi}/${kalemler.length} Tamamlandı` : '⏳ Eksik';
+
+        listeHtml += `
+            <div class="ogrenci-karti" data-id="${ogr.id}" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 15px; background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; cursor: pointer; transition: background 0.2s, transform 0.1s;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <span style="background: #e2e8f0; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 50%; font-size: 0.8em; font-weight: bold; color: #475569;">${index + 1}</span>
+                    <div>
+                        <strong style="font-size: 0.95em; color: #1e293b;">${ogr.name}</strong>
+                        <div style="font-size: 0.75em; color: #64748b;">No: ${ogr.okulno || '-'}</div>
+                    </div>
+                </div>
+                <div style="background: ${rozetRenk}; padding: 5px 12px; border-radius: 20px; font-size: 0.8em; font-weight: bold; color: #334155;">
+                    ${rozetYazi} →
+                </div>
+            </div>
         `;
-
-        kalemler.forEach(k => {
-            let hucreDegeri = matris.find(m => m.ogrId === ogr.id && m.targetId === k.id)?.deger || '';
-            let textColor = hucreDegeri.toLowerCase() === 'devamsız' ? 'red' : 'inherit';
-            
-            tabloHtml += `
-                <td style="border: 1px solid #ddd; padding: 0;">
-                    <input type="text" class="hucre-input" data-ogr="${ogr.id}" data-kalem="${k.id}" value="${hucreDegeri}" 
-                           onfocus="this.parentElement.parentElement.style.backgroundColor='#fff3cd';"
-                           onblur="this.parentElement.parentElement.style.backgroundColor='${satirArkaPlan}';"
-                           style="width: 100%; height: 100%; padding: 10px; border: none; text-align: center; color: ${textColor}; font-weight: ${hucreDegeri ? 'bold' : 'normal'}; box-sizing: border-box; outline: none; background: transparent;">
-                </td>
-            `;
-        });
-        tabloHtml += `</tr>`;
     });
+    listeHtml += '</div>';
 
-    tabloHtml += `</tbody></table>`;
-    document.getElementById('ihtiyac-tablosu-alani').innerHTML = tabloHtml;
+    document.getElementById('ogrenci-liste-alani').innerHTML = listeHtml;
 
-    document.querySelectorAll('.hucre-input').forEach(input => {
-        input.addEventListener('input', (e) => {
-            e.target.style.color = e.target.value.toLowerCase() === 'devamsız' ? 'red' : 'inherit';
-            e.target.style.fontWeight = e.target.value ? 'bold' : 'normal';
-        });
-
-        input.addEventListener('change', async (e) => {
-            const ogrId = e.target.getAttribute('data-ogr');
-            const kalemId = e.target.getAttribute('data-kalem');
-            const deger = e.target.value.trim();
+    // Öğrenciye Tıklayınca Modal Açma
+    document.querySelectorAll('.ogrenci-karti').forEach(kart => {
+        kart.addEventListener('click', async () => {
+            const ogrId = kart.getAttribute('data-id');
+            const ogr = ogrenciler.find(u => u.id === ogrId);
             
-            e.target.style.backgroundColor = '#d1fae5'; // Başarılı kayıt yeşili
-            await db.saveMatrixStatus('ihtiyac_matrisi', ogrId, kalemId, deger);
-            setTimeout(() => { e.target.style.backgroundColor = 'transparent'; }, 800);
+            document.getElementById('modal-ogr-ad').innerText = ogr.name;
+            document.getElementById('modal-ogr-no').innerText = `Okul No: ${ogr.okulno || '-'}`;
+
+            const malzemeContainer = document.getElementById('modal-malzeme-listesi');
+            
+            if (kalemler.length === 0) {
+                malzemeContainer.innerHTML = '<p style="text-align:center; color:#666;">Önce yukarıdan ihtiyaç kalemi eklemelisiniz.</p>';
+            } else {
+                let mHtml = '';
+                kalemler.forEach(k => {
+                    let mevcutDeger = matris.find(m => m.ogrId === ogr.id && m.targetId === k.id)?.deger || '';
+                    let isXVar = mevcutDeger === 'X' || mevcutDeger === 'x';
+
+                    mHtml += `
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px;">
+                            <span style="font-weight: 600; font-size: 0.9em; color: #334155;">${k.ad}</span>
+                            <button class="btn-x-toggle" data-ogr="${ogr.id}" data-kalem="${k.id}" data-durum="${isXVar ? 'var' : 'yok'}" 
+                                    style="padding: 6px 14px; font-weight: bold; border-radius: 8px; border: none; cursor: pointer; background: ${isXVar ? '#22c55e' : '#e2e8f0'}; color: ${isXVar ? '#fff' : '#64748b'}; transition: 0.2s;">
+                                ${isXVar ? '✔ X Atıldı' : '+ X At'}
+                            </button>
+                        </div>
+                    `;
+                });
+                malzemeContainer.innerHTML = mHtml;
+
+                // X Atma / Kaldırma Butonu İşlevi
+                document.querySelectorAll('.btn-x-toggle').forEach(btn => {
+                    btn.addEventListener('click', async (e) => {
+                        const bOgrId = btn.getAttribute('data-ogr');
+                        const bKalemId = btn.getAttribute('data-kalem');
+                        const durumm = btn.getAttribute('data-durum');
+
+                        btn.innerText = '...';
+                        if (durumm === 'yok') {
+                            await db.saveMatrixStatus('ihtiyac_matrisi', bOgrId, bKalemId, 'X');
+                            btn.setAttribute('data-durum', 'var');
+                            btn.style.background = '#22c55e';
+                            btn.style.color = '#fff';
+                            btn.innerText = '✔ X Atıldı';
+                        } else {
+                            await db.saveMatrixStatus('ihtiyac_matrisi', bOgrId, bKalemId, '');
+                            btn.setAttribute('data-durum', 'yok');
+                            btn.style.background = '#e2e8f0';
+                            btn.style.color = '#64748b';
+                            btn.innerText = '+ X At';
+                        }
+                    });
+                });
+            }
+
+            document.getElementById('ogrenci-detay-modal').style.display = 'flex';
         });
     });
 }

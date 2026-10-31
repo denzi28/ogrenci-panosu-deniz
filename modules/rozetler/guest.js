@@ -21,49 +21,51 @@ function renderRozetGorseli(iconVal, style1 = '#fbbf24', style2 = '#d97706', sha
     let shapeStyle = `border-radius: ${shape};`;
     if (shape === 'kalkan') {
         shapeStyle = `border-radius: 50% 50% 50% 50% / 20% 20% 80% 80%;`;
+    } else if (shape === 'tirtikli') {
+        shapeStyle = `clip-path: polygon(50% 0%, 65% 10%, 80% 5%, 88% 20%, 98% 22%, 95% 38%, 100% 50%, 95% 62%, 98% 78%, 88% 80%, 80% 95%, 65% 90%, 50% 100%, 35% 90%, 20% 95%, 12% 80%, 2% 78%, 5% 62%, 0% 50%, 5% 38%, 2% 22%, 12% 20%, 20% 5%, 35% 10%);`;
+    } else if (shape === 'yildizpatlama') {
+        shapeStyle = `clip-path: polygon(50% 0%, 63% 15%, 82% 8%, 88% 27%, 100% 35%, 93% 54%, 100% 73%, 82% 78%, 75% 95%, 57% 88%, 43% 88%, 25% 95%, 18% 78%, 0% 73%, 7% 54%, 0% 35%, 12% 27%, 18% 8%, 37% 15%);`;
+    } else if (shape === 'sekizgen') {
+        shapeStyle = `clip-path: polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%);`;
     }
 
-    let yaziHtml = altYazi ? `<div style="position: absolute; bottom: 3px; font-size: 7.5px; font-weight: 900; color: #1e293b; background: rgba(255,255,255,0.92); padding: 0px 3px; border-radius: 3px; width: 40px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center;">${altYazi}</div>` : '';
+    let yaziHtml = altYazi ? `<div style="position: absolute; bottom: 2px; font-size: 6.5px; font-weight: 900; color: #1e293b; background: rgba(255,255,255,0.92); padding: 0px 2px; border-radius: 2px; width: 35px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center;">${altYazi}</div>` : '';
 
     return `
-        <div style="width: 44px; height: 44px; background: ${bg}; ${shapeStyle} display: inline-flex; flex-direction: column; align-items: center; justify-content: center; position: relative; box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.2), inset 0 2px 4px rgba(255,255,255,0.4); border: 2px solid #fef3c7; vertical-align: middle;">
-            <span style="font-size: ${altYazi ? '16px' : '20px'}; margin-top: ${altYazi ? '-6px' : '0'}; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.3));">${iconVal}</span>
+        <div style="width: 40px; height: 40px; background: ${bg}; ${shapeStyle} display: inline-flex; flex-direction: column; align-items: center; justify-content: center; position: relative; border: 1.5px solid #fef3c7; vertical-align: middle;">
+            <span style="font-size: ${altYazi ? '15px' : '18px'}; margin-top: ${altYazi ? '-4px' : '0'}; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.3));">${iconVal}</span>
             ${yaziHtml}
         </div>
     `;
 }
 
 export async function render(container) {
-    container.innerHTML = '<div class="card"><p>⚡ Rozet kataloğu yükleniyor...</p></div>';
-
     const isModuleVisible = await db.getModuleVisibility('rozetler');
     if (!isModuleVisible) {
         container.innerHTML = `
-            <div class="card" style="text-align: center; padding: 40px 20px;">
-                <h3 style="color: var(--secondary);">🏆 Rozet Panosu Şimdilik Gizli</h3>
-                <p style="color: #666;">Sınıf öğretmenimiz panoyu güncelliyor olabilir, lütfen daha sonra tekrar kontrol edin.</p>
+            <div class="card" style="text-align: center; padding: 30px 15px;">
+                <h3 style="color: var(--secondary);">🏆 Rozet Panosu Gizli</h3>
+                <p style="color: #666; font-size: 0.85em;">Şu anda rozet panosu misafir erişimine kapalıdır.</p>
             </div>
         `;
         return;
     }
 
     container.innerHTML = `
-        <div id="ana-gorunum" style="display: block;">
-            <div class="card" style="border-top: 4px solid var(--primary);">
-                <h3 style="margin-top: 0; color: var(--primary); margin-bottom: 20px;">🏆 Sınıf Başarı ve Rozet Kataloğu</h3>
-                
-                <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
-                    <button id="tab-ogrenciler" class="btn btn-primary" style="flex: 1; min-width: 200px; font-weight: bold;">👥 Öğrenci Listesi</button>
-                    <button id="tab-rozetler" class="btn btn-secondary" style="flex: 1; min-width: 200px; font-weight: bold;">🎖️ Rozet Katalog Vitrini</button>
-                </div>
+        <div class="card">
+            <h3 style="margin-top: 0; color: var(--primary); font-size: 1.2em; margin-bottom: 15px;">🏆 Sınıf Rozet Kataloğu ve Durumu</h3>
+            
+            <div style="display: flex; gap: 8px; margin-bottom: 20px;">
+                <button id="tab-ogrenciler" class="btn btn-primary" style="flex: 1; font-weight: bold; font-size: 0.9em;">👥 Öğrenci Listesi</button>
+                <button id="tab-rozetler" class="btn btn-secondary" style="flex: 1; font-weight: bold; font-size: 0.9em;">🎖️ Rozet Vitrini</button>
+            </div>
 
-                <div id="view-ogrenciler" style="display: block;">
-                    <div id="ogrenci-tablosu-alani" style="overflow-x: auto;"><p>⏳ Liste yükleniyor...</p></div>
-                </div>
+            <div id="view-ogrenciler" style="display: block;">
+                <div id="ogrenci-tablosu-alani"><p>⏳ Öğrenci listesi yükleniyor...</p></div>
+            </div>
 
-                <div id="view-rozetler" style="display: none;">
-                    <div id="rozetler-listesi-alani"><p>⏳ Katalog yükleniyor...</p></div>
-                </div>
+            <div id="view-rozetler" style="display: none;">
+                <div id="rozetler-listesi-alani"><p>⏳ Rozet vitrini yükleniyor...</p></div>
             </div>
         </div>
     `;
@@ -92,68 +94,51 @@ async function listeyiYukle() {
         db.getAll('rozet_matrisi')
     ]);
 
-    if (rozetler.length === 0) {
-        document.getElementById('ogrenci-tablosu-alani').innerHTML = '<p style="color:#888;">Henüz listeye rozet eklenmemiş.</p>';
-        document.getElementById('rozetler-listesi-alani').innerHTML = '<p style="color:#888;">Henüz tanımlı rozet bulunmuyor.</p>';
-        return;
-    }
-
     const ogrenciler = tumKullanicilar.filter(u => u.role === 'student');
     ogrenciler.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'tr-TR'));
 
-    let tabloHtml = `
-        <table style="width: 100%; border-collapse: collapse; min-width: 500px; font-size: 0.95em;">
-            <thead>
-                <tr style="background: #f8f9fa;">
-                    <th style="border: 1px solid #ddd; padding: 12px; width: 40px; text-align: center;">SN</th>
-                    <th style="border: 1px solid #ddd; padding: 12px; text-align: left;">ADI SOYADI</th>
-                    <th style="border: 1px solid #ddd; padding: 12px; width: 140px; color: var(--primary); text-align: center;">TOPLAM ROZET</th>
-                </tr>
-            </thead>
-            <tbody>
-    `;
-
+    // Öğrenci Listesi Görünümü
+    let tabloHtml = '<div style="display: flex; flex-direction: column; gap: 10px;">';
     ogrenciler.forEach((ogr, index) => {
         let rozetSayisi = rozetler.filter(r => matris.find(m => m.ogrId === ogr.id && m.targetId === r.id)?.deger === '✔️').length;
-        let satirArkaPlan = index % 2 === 0 ? '#ffffff' : '#f8fafc';
-        
         tabloHtml += `
-            <tr style="background-color: ${satirArkaPlan};">
-                <td style="border: 1px solid #ddd; padding: 10px; text-align: center; color: #666;">${index + 1}</td>
-                <td style="border: 1px solid #ddd; padding: 10px; font-weight: bold; color: #334155;">${ogr.name}</td>
-                <td style="border: 1px solid #ddd; padding: 10px; text-align: center; font-weight: bold; color: var(--primary); font-size: 1.2em; background: #f1f5f9;">${rozetSayisi}</td>
-            </tr>
+            <div style="background: white; border-radius: 10px; border: 1px solid #e2e8f0; padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+                <div>
+                    <span style="font-size: 0.8em; color: #94a3b8; font-weight: bold;">#${index + 1} | No: ${ogr.okulno || '-'}</span>
+                    <div style="font-weight: bold; font-size: 1em; color: #1e293b; margin-top: 2px;">${ogr.name}</div>
+                </div>
+                <span style="background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; font-weight: 900; padding: 6px 12px; border-radius: 20px; font-size: 0.85em;">${rozetSayisi} Rozet</span>
+            </div>
         `;
     });
-    tabloHtml += `</tbody></table>`;
-    document.getElementById('ogrenci-tablosu-alani').innerHTML = tabloHtml;
+    tabloHtml += '</div>';
+    document.getElementById('ogrenci-tablosu-alani').innerHTML = tabloHtml || '<p>Kayıtlı öğrenci bulunmuyor.</p>';
 
+    // Rozet Vitrini Görünümü
     let rozetlerHtml = '';
     Object.keys(KATEGORILER).forEach(katKey => {
         const katRozetleri = rozetler.filter(r => (r.kategori || 'akademik') === katKey);
         if (katRozetleri.length === 0) return;
 
-        rozetlerHtml += `<div style="margin-bottom: 25px;"><h4 style="color: ${KATEGORILER[katKey].renk}; border-bottom: 2px solid ${KATEGORILER[katKey].renk}; padding-bottom: 5px;">${KATEGORILER[katKey].ad}</h4>`;
-        rozetlerHtml += '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 15px;">';
+        rozetlerHtml += `<div style="margin-bottom: 20px;"><h4 style="color: ${KATEGORILER[katKey].renk}; border-bottom: 2px solid ${KATEGORILER[katKey].renk}; padding-bottom: 4px; font-size: 0.95em; margin-bottom: 10px;">${KATEGORILER[katKey].ad}</h4>`;
+        rozetlerHtml += '<div style="display: flex; flex-direction: column; gap: 8px;">';
         
         katRozetleri.forEach(r => {
             let alanSayisi = matris.filter(m => m.targetId === r.id && m.deger === '✔️').length;
             rozetlerHtml += `
-                <div style="background: white; border: 1px solid #e2e8f0; border-left: 5px solid ${KATEGORILER[katKey].renk}; padding: 12px; border-radius: 8px;">
-                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px;">
+                <div style="background: white; border: 1px solid #e2e8f0; border-left: 4px solid ${KATEGORILER[katKey].renk}; border-radius: 8px; padding: 10px 12px; display: flex; justify-content: space-between; align-items: center;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
                         ${renderRozetGorseli(r.icon, r.style1, r.style2, r.shape, r.altYazi)}
                         <div>
-                            <h4 style="margin: 0; color: #1e293b; font-size: 1em;">${r.ad}</h4>
-                            <span style="font-size: 0.75em; color: #64748b;">${r.aciklama || ''}</span>
+                            <div style="font-size: 0.9em; font-weight: bold; color: #1e293b;">${r.ad}</div>
+                            <div style="font-size: 0.75em; color: #64748b;">${r.aciklama || 'Kriter belirtilmemiş'}</div>
                         </div>
                     </div>
-                    <div style="border-top: 1px dashed #cbd5e1; padding-top: 6px; font-size: 0.8em; color: var(--success); font-weight: bold; text-align: right;">
-                        Bu rozeti ${alanSayisi} öğrenci kazandı.
-                    </div>
+                    <span style="font-size: 0.8em; font-weight: bold; color: var(--success); background: #f0fdf4; padding: 4px 8px; border-radius: 6px;">${alanSayisi} öğrenci</span>
                 </div>
             `;
         });
         rozetlerHtml += '</div></div>';
     });
-    document.getElementById('rozetler-listesi-alani').innerHTML = rozetlerHtml;
+    document.getElementById('rozetler-listesi-alani').innerHTML = rozetlerHtml || '<p style="color:#64748b; font-style:italic;">Henüz katalogda rozet bulunmuyor.</p>';
 }

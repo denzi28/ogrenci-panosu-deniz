@@ -10,7 +10,7 @@ export const appConfig = {
         { id: 'uygulamalar', name: 'İnteraktif Görevler', icon: '🎮' },
         { id: 'program', name: 'Ders Programı', icon: '📅' },
         { id: 'kitap', name: 'Kitap Okuma', icon: '📚' },
-             { id: 'rozetler', name: 'Rozetler', icon: '📚' },
+        { id: 'rozetler', name: 'Rozetler', icon: '📚' },
         { id: 'beslenme', name: 'Beslenme Programı', icon: '🍎' }, // YENİ EKLENEN MODÜL
         { id: 'yedekleme', name: 'Sistem Yedekleme', icon: '💾' }
     ]

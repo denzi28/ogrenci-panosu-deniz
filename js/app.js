@@ -34,11 +34,14 @@ export async function initApp(role) {
     if (hash) {
         loadModule(hash);
     } else {
-        const firstMenuItem = document.querySelector('.menu-item');
-        if (firstMenuItem) {
-            const defaultModule = firstMenuItem.getAttribute('data-module');
-            window.location.hash = defaultModule; 
-            loadModule(defaultModule);
+        // Eğer kullanıcı misafir (guest) değilse ilk modüle yönlendir, misafirse ana sayfa kutularında bırak
+        if (role !== 'guest') {
+            const firstMenuItem = document.querySelector('.menu-item');
+            if (firstMenuItem) {
+                const defaultModule = firstMenuItem.getAttribute('data-module');
+                window.location.hash = defaultModule; 
+                loadModule(defaultModule);
+            }
         }
     }
 
@@ -87,15 +90,20 @@ async function renderMenu() {
     });
 
     if (menuItems.length === 0 && currentRole === 'guest') {
-        document.getElementById('app-content').innerHTML = `
-            <div class="card" style="text-align:center; padding: 40px;">
-                <h2>Şu an misafirlere açık bir içerik bulunmuyor 🔒</h2>
-            </div>`;
+        const appContent = document.getElementById('app-content');
+        if (appContent) {
+            appContent.innerHTML = `
+                <div class="card" style="text-align:center; padding: 40px;">
+                    <h2>Şu an misafirlere açık bir içerik bulunmuyor 🔒</h2>
+                </div>`;
+        }
     }
 }
 
 async function loadModule(moduleId) {
     const container = document.getElementById('app-content');
+    if (!container) return;
+    
     container.innerHTML = '<div class="card"><p>⚡ Yükleniyor...</p></div>';
 
     document.querySelectorAll('.menu-item').forEach(btn => btn.style.backgroundColor = 'transparent');
@@ -138,9 +146,12 @@ function setupMobileMenu() {
         });
     }
     
-    document.getElementById('menu-container').addEventListener('click', (e) => {
-        if (e.target.closest('.menu-item') && window.innerWidth <= 768) {
-            sidebar.classList.remove('active');
-        }
-    });
+    const menuContainer = document.getElementById('menu-container');
+    if (menuContainer) {
+        menuContainer.addEventListener('click', (e) => {
+            if (e.target.closest('.menu-item') && window.innerWidth <= 768) {
+                sidebar.classList.remove('active');
+            }
+        });
+    }
 }

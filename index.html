@@ -2,56 +2,228 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>3/D Sınıfı Panosu</title>
     <link rel="stylesheet" href="css/global.css">
+    <!-- FontAwesome İkonları İçin -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
-<body>
+<body style="padding-bottom: 80px;">
+
+    <!-- Mobil Üst Başlık (Header) -->
     <header class="top-header">
         <div class="header-left">
-            <button id="mobile-menu-btn" class="hamburger-btn">☰</button>
-            <h1>Sınıf Panosu</h1>
+            <h1 id="page-title" style="font-size: 1.2em; font-weight: 800;">🏆 Sınıf Panosu</h1>
         </div>
-        <!-- Butona id="auth-btn" ekledik ki JavaScript ile kontrol edebilelim -->
-        <a href="login.html" id="auth-btn" class="btn btn-primary">Sisteme Giriş Yap</a>
+        <div class="header-actions">
+            <a href="login.html" id="auth-btn" class="btn btn-primary" style="padding: 6px 12px; font-size: 0.85em;">Giriş Yap</a>
+        </div>
     </header>
 
-    <div class="layout">
-        <aside class="sidebar">
-            <nav id="menu-container"></nav>
-        </aside>
-        <main id="app-content" class="content-area">
-            <div class="card">
-                <h2>Sınıfımıza Hoş Geldiniz!</h2>
-                <p>Soldaki menüden herkese açık duyuru ve etkinlikleri inceleyebilirsiniz.</p>
+    <!-- Gizli Sidebar (app.js uyumluluğu için) -->
+    <aside class="sidebar" style="display: none;">
+        <nav id="menu-container"></nav>
+    </aside>
+
+    <!-- Ana İçerik Alanı -->
+    <main id="app-content" class="content-area" style="padding: 15px;">
+        <div class="card" style="text-align: center; padding: 25px 20px; background: linear-gradient(135deg, #4a90e2, #357abd); color: white; border-radius: 16px; margin-bottom: 15px;">
+            <h2 style="color: white; margin-bottom: 8px; font-size: 1.3em;">Sınıfımıza Hoş Geldiniz!</h2>
+            <p style="color: rgba(255,255,255,0.9); font-size: 0.85em; margin: 0;">3/D sınıfı modüllerine ve etkinliklerine aşağıdan göz atın.</p>
+        </div>
+        
+        <!-- Modül Kutularının Listeleneceği Alan -->
+        <div id="guest-moduller-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
+            <div class="card" style="grid-column: span 2; text-align: center;"><p>⏳ Modüller yükleniyor...</p></div>
+        </div>
+    </main>
+
+    <!-- Mobil Alt Navigasyon Çubuğu (Tab Bar) -->
+    <nav class="mobile-nav">
+        <a href="index.html" class="active">
+            <i class="fas fa-house"></i>
+            <span>Ana Sayfa</span>
+        </a>
+        <a href="javascript:void(0);" id="btn-tum-moduller">
+            <i class="fas fa-th-large"></i>
+            <span>Menü</span>
+        </a>
+        <a href="login.html" id="nav-giris">
+            <i class="fas fa-user-lock"></i>
+            <span>Giriş</span>
+        </a>
+    </nav>
+
+    <!-- Tüm Modüllerin Listeleneceği Açılır Pencere (Modal) -->
+    <div id="modul-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:3000; align-items:flex-end; justify-content:center;">
+        <div style="background:white; width:100%; max-height:80vh; border-radius:20px 20px 0 0; padding:20px; overflow-y:auto; box-shadow: 0 -5px 20px rgba(0,0,0,0.15);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; border-bottom:1px solid #eee; padding-bottom:10px;">
+                <h3 style="margin:0; font-size:1.1em; color:var(--primary);">📋 Sınıf Modülleri</h3>
+                <button id="modal-kapat" style="background:none; border:none; font-size:1.2em; cursor:pointer; color:#666;"><i class="fas fa-times"></i></button>
             </div>
-        </main>
+            <div id="modal-modul-listesi" style="display:grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
+                <!-- Modüller buraya dinamik eklenecek -->
+            </div>
+        </div>
     </div>
+
+    <!-- CSS ile Alt Menüyü Sabitleme -->
+    <style>
+        .mobile-nav {
+            height: 70px;
+            background-color: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-top: 1px solid #eaeaea;
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            z-index: 2000;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+        }
+        .mobile-nav a {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: #95a5a6;
+            text-decoration: none;
+            font-size: 0.7em;
+            font-weight: 700;
+            gap: 4px;
+        }
+        .mobile-nav a.active { color: var(--primary); }
+        .mobile-nav a i { font-size: 1.4em; }
+
+        .modul-kutu {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 14px;
+            padding: 15px;
+            text-decoration: none;
+            color: #1e293b;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .modul-kutu:active {
+            transform: scale(0.97);
+        }
+    </style>
 
     <script type="module">
         import { initApp } from './js/app.js';
+        import { appConfig } from './js/config.js';
+        import { db } from './js/db.js';
         
-        document.addEventListener('DOMContentLoaded', () => {
+        let cachedVisibleModules = null;
+
+        document.addEventListener('DOMContentLoaded', async () => {
             const kayitliKullanici = localStorage.getItem('currentUser');
             const sonGiris = localStorage.getItem('sonGirisTarihi');
             const HAFTA_MILISANIYE = 7 * 24 * 60 * 60 * 1000;
             const simdi = Date.now();
 
-            // Eğer kişi daha önce giriş yapmışsa ve 1 haftası dolmamışsa...
             if (kayitliKullanici && sonGiris && (simdi - parseInt(sonGiris) <= HAFTA_MILISANIYE)) {
                 const user = JSON.parse(kayitliKullanici);
-                
-                // Sağ üstteki butonu değiştir ve kişiyi panosuna yönlendir
                 const authBtn = document.getElementById('auth-btn');
+                const navGiris = document.getElementById('nav-giris');
+                
                 if (authBtn) {
-                    authBtn.innerText = 'Panoma Git ➔';
+                    authBtn.innerText = 'Panom';
                     authBtn.href = user.role === 'teacher' ? 'teacher.html' : 'student.html';
-                    authBtn.style.backgroundColor = '#10b981'; // Yeşil renk
-                    authBtn.style.boxShadow = '0 4px 0 #059669';
+                    authBtn.style.backgroundColor = '#2ecc71';
+                }
+                if (navGiris) {
+                    navGiris.href = user.role === 'teacher' ? 'teacher.html' : 'student.html';
+                    navGiris.innerHTML = `<i class="fas fa-user-shield"></i><span>Panom</span>`;
                 }
             }
 
-            // Sınıf panosu anasayfasının sol menüsünü çizmesi için başlat
+            // Görünür modülleri önbelleğe al
+            const visibilityPromises = appConfig.modules.map(async mod => {
+                const isVisible = await db.getModuleVisibility(mod.id);
+                return isVisible ? mod : null;
+            });
+            const results = await Promise.all(visibilityPromises);
+            cachedVisibleModules = results.filter(mod => mod !== null);
+
+            const mainContentArea = document.getElementById('app-content');
+
+            function renderAnaSayfaKutulari() {
+                mainContentArea.innerHTML = `
+                    <div class="card" style="text-align: center; padding: 25px 20px; background: linear-gradient(135deg, #4a90e2, #357abd); color: white; border-radius: 16px; margin-bottom: 15px;">
+                        <h2 style="color: white; margin-bottom: 8px; font-size: 1.3em;">Sınıfımıza Hoş Geldiniz!</h2>
+                        <p style="color: rgba(255,255,255,0.9); font-size: 0.85em; margin: 0;">3/D sınıfı modüllerine ve etkinliklerine aşağıdan göz atın.</p>
+                    </div>
+                    <div id="guest-moduller-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;"></div>
+                `;
+
+                const gridContainer = document.getElementById('guest-moduller-grid');
+                if (cachedVisibleModules.length === 0) {
+                    gridContainer.innerHTML = '<div class="card" style="grid-column: span 2; text-align:center;"><p>Şu an misafirlere açık modül bulunmuyor.</p></div>';
+                } else {
+                    let html = '';
+                    cachedVisibleModules.forEach(mod => {
+                        html += `
+                            <a href="#${mod.id}" class="modul-kutu">
+                                <span style="font-size: 2em;">${mod.icon}</span>
+                                <strong style="font-size: 0.95em; color: var(--primary);">${mod.name}</strong>
+                                <span style="font-size: 0.75em; color: #64748b;">İncelemek için tıkla →</span>
+                            </a>
+                        `;
+                    });
+                    gridContainer.innerHTML = html;
+                }
+            }
+
+            if (!window.location.hash) {
+                renderAnaSayfaKutulari();
+            }
+
+            window.addEventListener('hashchange', () => {
+                const hash = window.location.hash.substring(1);
+                if (!hash) {
+                    renderAnaSayfaKutulari();
+                }
+            });
+
+            // Alt menüdeki "Menü" modalı
+            const modal = document.getElementById('modul-modal');
+            document.getElementById('btn-tum-moduller').addEventListener('click', () => {
+                const listeContainer = document.getElementById('modal-modul-listesi');
+                let html = '';
+                cachedVisibleModules.forEach(mod => {
+                    html += `
+                        <a href="#${mod.id}" class="modal-modul-link" style="display:flex; align-items:center; gap:10px; padding:12px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; text-decoration:none; color:#1e293b; font-weight:600; font-size:0.85em;">
+                            <span style="font-size:1.4em;">${mod.icon}</span>
+                            <span>${mod.name}</span>
+                        </a>
+                    `;
+                });
+                listeContainer.innerHTML = html;
+                modal.style.display = 'flex';
+
+                document.querySelectorAll('.modal-modul-link').forEach(link => {
+                    link.addEventListener('click', () => {
+                        modal.style.display = 'none';
+                    });
+                });
+            });
+
+            document.getElementById('modal-kapat').addEventListener('click', () => {
+                modal.style.display = 'none';
+            });
+
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) modal.style.display = 'none';
+            });
+
             initApp('guest');
         });
     </script>

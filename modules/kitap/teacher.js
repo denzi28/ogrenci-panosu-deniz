@@ -137,7 +137,7 @@ export async function render(container) {
     function numpadAc(inputId) {
         aktifInputId = inputId;
         const inputEl = document.getElementById(inputId);
-        numpadEkran.innerText = inputEl ? inputEl.value : '';
+        numpadEkran.innerText = inputEl ? inputEl.getAttribute('data-gercek-no') || '' : '';
         numpadModal.style.display = 'flex';
     }
 
@@ -167,11 +167,43 @@ export async function render(container) {
         });
     });
 
-    document.getElementById('numpad-tamam').addEventListener('click', () => {
+    // 🌟 OK DENDİĞİNDE KİTAP ADINI BUL VE EKRANA YANSIT
+    document.getElementById('numpad-tamam').addEventListener('click', async () => {
         if (aktifInputId) {
+            const ogrId = aktifInputId.replace('hizli-no-', '');
+            const girilenNo = numpadEkran.innerText.trim();
+            
             const inputEl = document.getElementById(aktifInputId);
+            const kitapAdiGosterge = document.getElementById(`kitap-adi-gosterge-${ogrId}`);
+            
             if (inputEl) {
-                inputEl.value = numpadEkran.innerText;
+                inputEl.setAttribute('data-gercek-no', girilenNo);
+                
+                if (girilenNo !== "") {
+                    const kalemler = await db.getAll('kitaplar_kalemleri');
+                    const kNo = parseInt(girilenNo);
+                    const bulunanKitap = kalemler.find(k => k.no === kNo);
+                    
+                    if (bulunanKitap) {
+                        inputEl.value = `#${bulunanKitap.no}`;
+                        if(kitapAdiGosterge) {
+                            kitapAdiGosterge.innerText = bulunanKitap.ad;
+                            kitapAdiGosterge.style.color = "#059669";
+                        }
+                    } else {
+                        inputEl.value = `#${girilenNo}`;
+                        if(kitapAdiGosterge) {
+                            kitapAdiGosterge.innerText = "⚠️ Kitap bulunamadı!";
+                            kitapAdiGosterge.style.color = "#dc2626";
+                        }
+                    }
+                } else {
+                    inputEl.value = "";
+                    if(kitapAdiGosterge) {
+                        kitapAdiGosterge.innerText = "Kitap seçilmedi";
+                        kitapAdiGosterge.style.color = "#64748b";
+                    }
+                }
             }
         }
         numpadModal.style.display = 'none';
@@ -526,7 +558,6 @@ async function arayuzuGuncelle() {
     ogrenciler.forEach((ogr, index) => {
         let hizliIslemHtml = `<div style="margin-top: auto; display: flex; flex-direction: column; gap: 8px; border-top: 1px dashed #cbd5e1; padding-top: 15px;">`;
 
-        // Eğer elinde kitap varsa listele ve bitirdi/bırak butonu koy
         if (ogr.suAnOkuyanlarDetay.length > 0) {
             ogr.suAnOkuyanlarDetay.forEach(k => {
                 let kNoStr = (k.no && k.no !== 999) ? `#${k.no} ` : '';
@@ -553,12 +584,13 @@ async function arayuzuGuncelle() {
             });
         }
 
-        // 🌟 ARTIK ELİNDE KİTAP OLSA BİLE KİTAP VERME INPUTU HER ZAMAN GÖRÜNECEK
+        // 🌟 KİTAP NO VE ANLIK GÖRÜNEN KİTAP ADI ALANI
         hizliIslemHtml += `
             <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 5px;">
                 <div style="display: flex; gap: 5px;">
-                    <input type="text" readonly id="hizli-no-${ogr.id}" placeholder="Kitap No Seç..." class="numpad-trigger-input" data-ogrid="${ogr.id}" style="flex: 1; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.95em; outline: none; background: #fff; cursor: pointer; text-align: center; font-weight: bold; color: #0284c7;" title="Klavyeyi Açmak İçin Tıkla">
-                    <button class="btn-hizli-ver" id="btn-ver-${ogr.id}" data-ogr="${ogr.id}" style="background: #0ea5e9; color: white; border: none; padding: 8px 15px; border-radius: 6px; font-size: 0.95em; cursor: pointer; font-weight: bold; box-shadow: 0 2px 0 #0284c7;">📥 Ver</button>
+                    <input type="text" readonly id="hizli-no-${ogr.id}" placeholder="No Seç..." class="numpad-trigger-input" data-ogrid="${ogr.id}" style="width: 80px; padding: 8px 5px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.95em; outline: none; background: #fff; cursor: pointer; text-align: center; font-weight: bold; color: #0284c7;" title="Klavyeyi Açmak İçin Tıkla">
+                    <div id="kitap-adi-gosterge-${ogr.id}" style="flex: 1; display: flex; align-items: center; padding: 0 8px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 0.85em; color: #64748b; font-weight: 500; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;">Kitap seçilmedi</div>
+                    <button class="btn-hizli-ver" id="btn-ver-${ogr.id}" data-ogr="${ogr.id}" style="background: #0ea5e9; color: white; border: none; padding: 8px 12px; border-radius: 6px; font-size: 0.95em; cursor: pointer; font-weight: bold; box-shadow: 0 2px 0 #0284c7;">📥 Ver</button>
                 </div>
             </div>
         `;
@@ -591,7 +623,6 @@ async function arayuzuGuncelle() {
     kartlarHtml += `</div>`;
     tabloAlaniEl.innerHTML = kartlarHtml;
 
-    // NUMPAD TETİKLEYİCİLERİNİ BAĞLA
     document.querySelectorAll('.numpad-trigger-input').forEach(input => {
         input.onclick = (e) => {
             const ogrId = e.currentTarget.getAttribute('data-ogrid');
@@ -686,14 +717,15 @@ async function arayuzuGuncelle() {
     document.querySelectorAll('.btn-hizli-ver').forEach(btn => {
         btn.addEventListener('click', async (e) => {
             const ogrId = e.currentTarget.getAttribute('data-ogr');
-            const noInput = document.getElementById(`hizli-no-${ogrId}`).value.trim();
+            const inputEl = document.getElementById(`hizli-no-${ogrId}`);
+            const gercekNoAttr = inputEl.getAttribute('data-gercek-no');
             
-            if (!noInput) return alert("Lütfen verilecek kitabın numarasını girin.");
+            if (!gercekNoAttr) return alert("Lütfen önce kitap numarası seçin.");
             
-            const kNo = parseInt(noInput);
+            const kNo = parseInt(gercekNoAttr);
             const kitap = kalemler.find(k => k.no === kNo);
             
-            if (!kitap) return alert(`${kNo} numaralı kitap kütüphanede bulunamadı! Lütfen numarayı kontrol edin.`);
+            if (!kitap) return alert(`${kNo} numaralı kitap kütüphanede bulunamadı!`);
 
             const baskasiOkuyorMu = matris.find(m => m.targetId === kitap.id && m.deger === '⏳' && m.ogrId !== ogrId);
             if (baskasiOkuyorMu) {

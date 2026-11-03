@@ -5,9 +5,14 @@ let aktifGorevSiralama = 'yeni'; // Varsayılan sıralama
 
 // SINIF MODU İÇİN DEĞİŞKENLER
 let sinifModuAktif = false;
+let sinifModuTipi = 'tekli'; // 'tekli' veya 'ciftli'
 let gercekOgretmenVerisi = null; // Öğretmen hesabını yedeklemek için
 let sinifModuAktifGorevLink = null;
 let sinifModuAktifGorevId = null;
+
+// Çiftli mod için seçilen öğrenciler ve taraf durumları
+let ciftliSolOgrenci = null;
+let ciftliSagOgrenci = null;
 
 export async function render(container) {
     container.innerHTML = '<div class="card"><p>⚡ Görevler hızla yükleniyor...</p></div>';
@@ -100,12 +105,38 @@ export async function render(container) {
                 <button id="btn-sinif-modu-cikis" class="btn btn-danger" style="padding: 10px 25px; font-size: 1.1em; font-weight: bold; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">🚪 Öğretmen Paneline Dön</button>
             </div>
 
-            <div id="sinif-modu-liste-ekrani" style="flex: 1; padding: 30px 20px; text-align: center;">
+            <!-- MOD SEÇİM EKRANI -->
+            <div id="sinif-modu-secim-ekrani" style="flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 30px; text-align: center;">
+                <h2 style="color: #1e293b; font-size: 2.2em; margin-bottom: 10px;">Oynatma Modunu Seçin</h2>
+                <p style="color: #64748b; font-size: 1.2em; margin-bottom: 40px;">Tahtada tek bir öğrenci mi oynasın, yoksa ekran ikiye bölünerek iki öğrenci bağımsız yarışsın mı?</p>
+                
+                <div style="display: flex; gap: 30px; flex-wrap: wrap; justify-content: center;">
+                    <button id="btn-mod-tekli" style="background: white; border: 3px solid #3b82f6; border-radius: 20px; padding: 30px 40px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 15px; box-shadow: 0 10px 25px rgba(59,130,246,0.15); transition: 0.2s;" onmouseover="this.style.transform='translateY(-5px)'" onmouseout="this.style.transform='translateY(0)'">
+                        <span style="font-size: 3.5em;">👤</span>
+                        <div>
+                            <h3 style="margin: 0 0 5px 0; color: #1e293b; font-size: 1.5em;">Tekli Sınıf Modu</h3>
+                            <p style="margin: 0; color: #64748b; font-size: 1em;">Tek öğrenci tam ekran oynar.</p>
+                        </div>
+                    </button>
+
+                    <button id="btn-mod-ciftli" style="background: white; border: 3px solid #10b981; border-radius: 20px; padding: 30px 40px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 15px; box-shadow: 0 10px 25px rgba(16,185,129,0.15); transition: 0.2s;" onmouseover="this.style.transform='translateY(-5px)'" onmouseout="this.style.transform='translateY(0)'">
+                        <span style="font-size: 3.5em;">👥</span>
+                        <div>
+                            <h3 style="margin: 0 0 5px 0; color: #1e293b; font-size: 1.5em;">Çiftli Sınıf Modu (2'li)</h3>
+                            <p style="margin: 0; color: #64748b; font-size: 1em;">Ekran ikiye bölünür, herkes bağımsız oynar.</p>
+                        </div>
+                    </button>
+                </div>
+            </div>
+
+            <!-- ÖĞRENCİ LİSTELEME EKRANI (Tekli Mod İçin) -->
+            <div id="sinif-modu-liste-ekrani" style="display: none; flex: 1; padding: 30px 20px; text-align: center;">
                 <h2 style="color: #334155; margin-bottom: 10px; font-size: 2em;">👋 Tahtaya Kim Geliyor?</h2>
                 <p style="color: #64748b; font-size: 1.2em; margin-bottom: 30px;">Oyuna başlamak için kendi ismine tıkla.</p>
                 <div id="sinif-modu-ogrenciler" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 20px; max-width: 1400px; margin: 0 auto; padding-bottom: 50px;"></div>
             </div>
 
+            <!-- TEKLİ OYUN EKRANI -->
             <div id="sinif-modu-oyun-ekrani" style="display: none; flex: 1; flex-direction: column;">
                  <div style="background: #1e293b; color: #f8fafc; padding: 12px 25px; display: flex; justify-content: space-between; align-items: center;">
                      <span id="sinif-modu-oynayan-isim" style="font-weight: bold; font-size: 1.3em;">🎮 Oynayan: ...</span>
@@ -113,6 +144,47 @@ export async function render(container) {
                  </div>
                  <iframe id="sinif-oyun-iframe" style="width: 100%; height: 100%; border: none; flex: 1; background: #fff;"></iframe>
             </div>
+
+            <!-- ÇİFTLİ (BÖLÜNMÜŞ) BAĞIMSIZ OYUN EKRANI -->
+            <div id="sinif-modu-ciftli-oyun-ekrani" style="display: none; flex: 1; flex-direction: column;">
+                 <div style="background: #1e293b; color: #f8fafc; padding: 12px 25px; display: flex; justify-content: space-between; align-items: center;">
+                     <span style="font-weight: bold; font-size: 1.2em;">⚔️ Çiftli Sınıf Modu (Bağımsız Yarışma)</span>
+                     <button id="btn-ciftli-oyun-iptal" class="btn" style="background: #ef4444; color: white; border: none; padding: 8px 20px; border-radius: 6px; font-weight: bold; cursor: pointer;">❌ Çiftli Modu Kapat</button>
+                 </div>
+                 
+                 <div style="flex: 1; display: flex; width: 100%; height: 100%; background: #e2e8f0; gap: 4px;">
+                     <!-- Sol Taraf -->
+                     <div style="flex: 1; display: flex; flex-direction: column; background: #ffffff;" id="ciftli-sol-kapsayici">
+                         <div style="background: #3b82f6; color: white; padding: 10px 15px; font-weight: bold; display: flex; justify-content: space-between; align-items: center;">
+                             <span id="ciftli-sol-baslik">Sol Taraf: Oyuncu Seçilmedi</span>
+                             <button id="btn-sol-sec" class="btn" style="background: white; color: #3b82f6; border: none; padding: 4px 10px; border-radius: 4px; font-size: 0.85em; font-weight: bold; cursor: pointer;">👤 Öğrenci Seç</button>
+                         </div>
+                         <div id="ciftli-sol-icerik" style="flex: 1; display: flex; flex-direction: column;">
+                             <iframe id="ciftli-sol-iframe" style="width: 100%; flex: 1; border: none; display: none;"></iframe>
+                             <div id="ciftli-sol-liste" style="flex: 1; padding: 15px; overflow-y: auto; text-align: center; background: #f8fafc;">
+                                 <p style="color: #64748b; font-weight: bold; margin-bottom: 15px;">Sol taraf için oynamak isteyecek öğrenciyi seçin:</p>
+                                 <div class="sol-ogrenci-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px;"></div>
+                             </div>
+                         </div>
+                     </div>
+
+                     <!-- Sağ Taraf -->
+                     <div style="flex: 1; display: flex; flex-direction: column; background: #ffffff;" id="ciftli-sag-kapsayici">
+                         <div style="background: #10b981; color: white; padding: 10px 15px; font-weight: bold; display: flex; justify-content: space-between; align-items: center;">
+                             <span id="ciftli-sag-baslik">Sağ Taraf: Oyuncu Seçilmedi</span>
+                             <button id="btn-sag-sec" class="btn" style="background: white; color: #10b981; border: none; padding: 4px 10px; border-radius: 4px; font-size: 0.85em; font-weight: bold; cursor: pointer;">👤 Öğrenci Seç</button>
+                         </div>
+                         <div id="ciftli-sag-icerik" style="flex: 1; display: flex; flex-direction: column;">
+                             <iframe id="ciftli-sag-iframe" style="width: 100%; flex: 1; border: none; display: none;"></iframe>
+                             <div id="ciftli-sag-liste" style="flex: 1; padding: 15px; overflow-y: auto; text-align: center; background: #f8fafc;">
+                                 <p style="color: #64748b; font-weight: bold; margin-bottom: 15px;">Sağ taraf için oynamak isteyecek öğrenciyi seçin:</p>
+                                 <div class="sag-ogrenci-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px;"></div>
+                             </div>
+                         </div>
+                     </div>
+                 </div>
+            </div>
+
         </div>
     `;
 
@@ -159,52 +231,116 @@ export async function render(container) {
         document.getElementById('oyun-modal').style.display = 'none';
     });
 
-    // 🌟 PUAN KAYDETME EKLENMİŞ OYUN DİNLEYİCİSİ
+    // MOD SEÇİMİ
+    document.getElementById('btn-mod-tekli').addEventListener('click', () => {
+        sinifModuTipi = 'tekli';
+        document.getElementById('sinif-modu-secim-ekrani').style.display = 'none';
+        document.getElementById('sinif-modu-liste-ekrani').style.display = 'block';
+        sinifModuArayuzunuCiz();
+    });
+
+    document.getElementById('btn-mod-ciftli').addEventListener('click', () => {
+        sinifModuTipi = 'ciftli';
+        ciftliSolOgrenci = null;
+        ciftliSagOgrenci = null;
+        document.getElementById('sinif-modu-secim-ekrani').style.display = 'none';
+        document.getElementById('sinif-modu-ciftli-oyun-ekrani').style.display = 'flex';
+        ciftliEkranlariGuncelle();
+    });
+
+    // Çiftli mod yan panel öğrenci değiştirme butonları
+    document.getElementById('btn-sol-sec').addEventListener('click', () => {
+        ciftliSolOgrenci = null;
+        document.getElementById('ciftli-sol-iframe').src = '';
+        document.getElementById('ciftli-sol-iframe').style.display = 'none';
+        document.getElementById('ciftli-sol-liste').style.display = 'block';
+        document.getElementById('ciftli-sol-baslik').innerText = "Sol Taraf: Oyuncu Seçilmedi";
+        ciftliEkranlariGuncelle();
+    });
+
+    document.getElementById('btn-sag-sec').addEventListener('click', () => {
+        ciftliSagOgrenci = null;
+        document.getElementById('ciftli-sag-iframe').src = '';
+        document.getElementById('ciftli-sag-iframe').style.display = 'none';
+        document.getElementById('ciftli-sag-liste').style.display = 'block';
+        document.getElementById('ciftli-sag-baslik').innerText = "Sağ Taraf: Oyuncu Seçilmedi";
+        ciftliEkranlariGuncelle();
+    });
+
+    // PUAN KAYDETME DİNLEYİCİSİ
     if (!window.ogretmenOyunDinleyiciEklendi) {
         window.addEventListener('message', async (event) => {
             if (event.data && event.data.islem === 'gorev_bitti') {
                 
-                // Eğer Sınıf Modundayken oyun bittiyse (PUAN KAYDEDİLİR)
                 if (sinifModuAktif) {
-                    
-                    // 1. O AN OYNAYAN ÖĞRENCİYİ VE PUANINI BUL
-                    const aktifOgrenci = JSON.parse(localStorage.getItem('currentUser') || '{}');
-                    
-                    if (aktifOgrenci.id && sinifModuAktifGorevId) {
-                        let kaydedilecekPuan = '✔️'; // Oyun skor yollamazsa varsayılan
-                        
-                        if (event.data.deger !== undefined) {
-                            kaydedilecekPuan = event.data.deger;
-                        } else if (event.data.puan !== undefined) {
-                            if (event.data.limit !== undefined) {
-                                kaydedilecekPuan = `${event.data.puan}/${event.data.limit}`;
-                            } else {
-                                kaydedilecekPuan = event.data.puan;
-                            }
+                    let kaydedilecekPuan = '✔️'; 
+                    if (event.data.deger !== undefined) {
+                        kaydedilecekPuan = event.data.deger;
+                    } else if (event.data.puan !== undefined) {
+                        if (event.data.limit !== undefined) {
+                            kaydedilecekPuan = `${event.data.puan}/${event.data.limit}`;
+                        } else {
+                            kaydedilecekPuan = event.data.puan;
                         }
-                        
-                        // ANINDA VERİTABANINA YAZ
-                        await db.saveMatrixStatus('uygulama_matrisi', aktifOgrenci.id, sinifModuAktifGorevId, String(kaydedilecekPuan));
                     }
 
-                    setTimeout(() => {
-                        // 2. İframe'i boşalt ve kapat
-                        document.getElementById('sinif-oyun-iframe').src = '';
-                        document.getElementById('sinif-modu-oyun-ekrani').style.display = 'none';
-                        
-                        // 3. ÖĞRETMEN HESABINI GERİ YÜKLE (GÜVENLİK)
-                        if(gercekOgretmenVerisi) {
-                            localStorage.setItem('currentUser', gercekOgretmenVerisi);
+                    // TEKLİ MOD PUAN KAYDI
+                    if (sinifModuTipi === 'tekli') {
+                        const aktifOgrenci = JSON.parse(localStorage.getItem('currentUser') || '{}');
+                        if (aktifOgrenci.id && sinifModuAktifGorevId) {
+                            await db.saveMatrixStatus('uygulama_matrisi', aktifOgrenci.id, sinifModuAktifGorevId, String(kaydedilecekPuan));
                         }
-                        
-                        // 4. Öğrenci listesine geri dön ve tabloları güncelle
-                        document.getElementById('sinif-modu-liste-ekrani').style.display = 'block';
-                        sinifModuArayuzunuCiz(); 
-                        arayuzuGuncelle(); 
-                        
-                    }, 1500); // Oyunda "Tebrikler" yazısı görünmesi için 1.5 sn bekle
+
+                        setTimeout(() => {
+                            document.getElementById('sinif-oyun-iframe').src = '';
+                            document.getElementById('sinif-modu-oyun-ekrani').style.display = 'none';
+                            if(gercekOgretmenVerisi) localStorage.setItem('currentUser', gercekOgretmenVerisi);
+                            document.getElementById('sinif-modu-liste-ekrani').style.display = 'block';
+                            sinifModuArayuzunuCiz(); 
+                            arayuzuGuncelle(); 
+                        }, 1500);
+                    } 
+                    // ÇİFTLİ MOD (Biri bitince sadece kendi tarafı listeye döner, diğeri oynamaya devam eder)
+                    else if (sinifModuTipi === 'ciftli') {
+                        const solElem = document.getElementById('ciftli-sol-iframe');
+                        const sagElem = document.getElementById('ciftli-sag-iframe');
+
+                        let hedefOgrenciId = null;
+                        let taraf = null;
+
+                        if (solElem && event.source === solElem.contentWindow && ciftliSolOgrenci) {
+                            hedefOgrenciId = ciftliSolOgrenci.id;
+                            taraf = 'sol';
+                        } else if (sagElem && event.source === sagElem.contentWindow && ciftliSagOgrenci) {
+                            hedefOgrenciId = ciftliSagOgrenci.id;
+                            taraf = 'sag';
+                        }
+
+                        if (hedefOgrenciId && sinifModuAktifGorevId) {
+                            await db.saveMatrixStatus('uygulama_matrisi', hedefOgrenciId, sinifModuAktifGorevId, String(kaydedilecekPuan));
+                            arayuzuGuncelle(); // Tabloyu anında güncelle
+
+                            // Bitiren tarafı otomatik olarak tekrar öğrenci seçme listesine döndür
+                            setTimeout(() => {
+                                if (taraf === 'sol') {
+                                    ciftliSolOgrenci = null;
+                                    solElem.src = '';
+                                    solElem.style.display = 'none';
+                                    document.getElementById('ciftli-sol-liste').style.display = 'block';
+                                    document.getElementById('ciftli-sol-baslik').innerText = "Sol Taraf: Oyuncu Seçilmedi";
+                                    ciftliEkranlariGuncelle();
+                                } else if (taraf === 'sag') {
+                                    ciftliSagOgrenci = null;
+                                    sagElem.src = '';
+                                    sagElem.style.display = 'none';
+                                    document.getElementById('ciftli-sag-liste').style.display = 'block';
+                                    document.getElementById('ciftli-sag-baslik').innerText = "Sağ Taraf: Oyuncu Seçilmedi";
+                                    ciftliEkranlariGuncelle();
+                                }
+                            }, 1500);
+                        }
+                    }
                 } 
-                // Normal öğretmen testindeyse (PUAN KAYDEDİLMEZ, SADECE KAPATILIR)
                 else {
                     setTimeout(() => {
                         const modal = document.getElementById('oyun-modal');
@@ -226,7 +362,7 @@ export async function render(container) {
         window.ogretmenOyunDinleyiciEklendi = true;
     }
 
-    // --- SINIF MODU BUTONLARI ---
+    // ÇIKIŞ BUTONLARI
     document.getElementById('btn-sinif-oyun-iptal').addEventListener('click', () => {
         document.getElementById('sinif-oyun-iframe').src = '';
         document.getElementById('sinif-modu-oyun-ekrani').style.display = 'none';
@@ -234,13 +370,24 @@ export async function render(container) {
         document.getElementById('sinif-modu-liste-ekrani').style.display = 'block';
     });
 
+    document.getElementById('btn-ciftli-oyun-iptal').addEventListener('click', () => {
+        document.getElementById('ciftli-sol-iframe').src = '';
+        document.getElementById('ciftli-sag-iframe').src = '';
+        document.getElementById('sinif-modu-ciftli-oyun-ekrani').style.display = 'none';
+        if(gercekOgretmenVerisi) localStorage.setItem('currentUser', gercekOgretmenVerisi); 
+        document.getElementById('sinif-modu-secim-ekrani').style.display = 'flex';
+    });
+
     document.getElementById('btn-sinif-modu-cikis').addEventListener('click', () => {
         sinifModuAktif = false;
         if(gercekOgretmenVerisi) localStorage.setItem('currentUser', gercekOgretmenVerisi); 
         document.getElementById('sinif-modu-modal').style.display = 'none';
         document.getElementById('sinif-oyun-iframe').src = '';
+        document.getElementById('ciftli-sol-iframe').src = '';
+        document.getElementById('ciftli-sag-iframe').src = '';
         document.getElementById('sinif-modu-oyun-ekrani').style.display = 'none';
-        document.getElementById('sinif-modu-liste-ekrani').style.display = 'block';
+        document.getElementById('sinif-modu-ciftli-oyun-ekrani').style.display = 'none';
+        document.getElementById('sinif-modu-secim-ekrani').style.display = 'flex';
         arayuzuGuncelle(); 
     });
 
@@ -372,12 +519,69 @@ async function sinifModuArayuzunuCiz() {
     document.querySelectorAll('.btn-sinif-ogrenci').forEach(btn => {
         btn.addEventListener('click', (e) => {
             const ogrObj = JSON.parse(decodeURIComponent(e.currentTarget.getAttribute('data-ogr')));
-            
             localStorage.setItem('currentUser', JSON.stringify(ogrObj));
             document.getElementById('sinif-modu-oynayan-isim').innerText = `🎮 Oynayan: ${ogrObj.name}`;
             document.getElementById('sinif-oyun-iframe').src = sinifModuAktifGorevLink;
             document.getElementById('sinif-modu-liste-ekrani').style.display = 'none';
             document.getElementById('sinif-modu-oyun-ekrani').style.display = 'flex';
+        });
+    });
+}
+
+// Çiftli mod için sol ve sağ taraftaki öğrenci listelerini dolduran fonksiyon
+async function ciftliEkranlariGuncelle() {
+    const [tumKullanicilar, matris] = await Promise.all([
+        db.getAll('users'),
+        db.getAll('uygulama_matrisi')
+    ]);
+
+    const ogrenciler = tumKullanicilar.filter(u => u.role === 'student').sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+
+    // Sol liste grid
+    const solGrid = document.querySelector('.sol-ogrenci-grid');
+    let solHtml = '';
+    ogrenciler.forEach(ogr => {
+        let puan = matris.find(m => m.ogrId === ogr.id && m.targetId === sinifModuAktifGorevId)?.deger || '';
+        let renk = puan !== '' ? '#d1fae5' : '#ffffff';
+        let ogrStr = encodeURIComponent(JSON.stringify(ogr));
+        solHtml += `<button class="cift-sol-sec" data-ogr="${ogrStr}" style="padding: 10px; background: ${renk}; border: 1px solid #cbd5e1; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 0.9em; text-align: center;">${ogr.name}</button>`;
+    });
+    solGrid.innerHTML = solHtml;
+
+    // Sağ liste grid
+    const sagGrid = document.querySelector('.sag-ogrenci-grid');
+    let sagHtml = '';
+    ogrenciler.forEach(ogr => {
+        let puan = matris.find(m => m.ogrId === ogr.id && m.targetId === sinifModuAktifGorevId)?.deger || '';
+        let renk = puan !== '' ? '#d1fae5' : '#ffffff';
+        let ogrStr = encodeURIComponent(JSON.stringify(ogr));
+        sagHtml += `<button class="cift-sag-sec" data-ogr="${ogrStr}" style="padding: 10px; background: ${renk}; border: 1px solid #cbd5e1; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 0.9em; text-align: center;">${ogr.name}</button>`;
+    });
+    sagGrid.innerHTML = sagHtml;
+
+    // Sol öğrenci tıklama olayı
+    document.querySelectorAll('.cift-sol-sec').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const ogrObj = JSON.parse(decodeURIComponent(e.currentTarget.getAttribute('data-ogr')));
+            ciftliSolOgrenci = ogrObj;
+            document.getElementById('ciftli-sol-baslik').innerText = `Sol: ${ogrObj.name}`;
+            document.getElementById('ciftli-sol-liste').style.display = 'none';
+            const solIframe = document.getElementById('ciftli-sol-iframe');
+            solIframe.style.display = 'block';
+            solIframe.src = sinifModuAktifGorevLink;
+        });
+    });
+
+    // Sağ öğrenci tıklama olayı
+    document.querySelectorAll('.cift-sag-sec').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const ogrObj = JSON.parse(decodeURIComponent(e.currentTarget.getAttribute('data-ogr')));
+            ciftliSagOgrenci = ogrObj;
+            document.getElementById('ciftli-sag-baslik').innerText = `Sağ: ${ogrObj.name}`;
+            document.getElementById('ciftli-sag-liste').style.display = 'none';
+            const sagIframe = document.getElementById('ciftli-sag-iframe');
+            sagIframe.style.display = 'block';
+            sagIframe.src = sinifModuAktifGorevLink;
         });
     });
 }
@@ -510,7 +714,12 @@ async function arayuzuGuncelle() {
             
             gercekOgretmenVerisi = localStorage.getItem('currentUser');
             document.getElementById('sinif-modu-baslik').innerText = `🏫 Sınıf Modu: ${oyunAd}`;
-            sinifModuArayuzunuCiz();
+            
+            document.getElementById('sinif-modu-secim-ekrani').style.display = 'flex';
+            document.getElementById('sinif-modu-liste-ekrani').style.display = 'none';
+            document.getElementById('sinif-modu-oyun-ekrani').style.display = 'none';
+            document.getElementById('sinif-modu-ciftli-oyun-ekrani').style.display = 'none';
+
             document.getElementById('sinif-modu-modal').style.display = 'flex';
         });
     });

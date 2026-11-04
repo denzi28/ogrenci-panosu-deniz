@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Sınıf Oyun Portalı (Çiftli / Tekli Mod)</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap');
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: 'Fredoka', sans-serif;
+            background: #f8fafc;
+            display: flex;
+            flex-direction: column;
+            color: #334155;
+        }
+
+        /* HEADER */
+        .header {
+            background: #ffffff;
+            padding: 10px 20px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 3px solid #cbd5e1;
+            z-index: 100;
+            height: 60px;
+            flex-shrink: 0;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 1.3rem;
+            color: #1e293b;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 6px 14px;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            font-family: 'Fredoka', sans-serif;
+            transition: 0.2s;
+            text-decoration: none;
+        }
+
+        .btn:hover { opacity: 0.9; }
+        .btn-danger { background: #ef4444; }
+        .btn-success { background: #10b981; }
+        .btn-warning { background: #f59e0b; color: white; padding: 3px 8px; font-size: 0.8em; border-radius: 4px; }
+
+        .content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            height: calc(100vh - 60px);
+            overflow: hidden;
+        }
+
+        /* MOD SEÇİMİ */
+        #secim-ekrani {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            text-align: center;
+            overflow-y: auto;
+        }
+
+        .secim-kartlari {
+            display: flex;
+            gap: 30px;
+            margin-top: 25px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .kart {
+            background: white;
+            border: 3px solid #cbd5e1;
+            border-radius: 20px;
+            padding: 30px 40px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            width: 280px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+            transition: all 0.2s;
+        }
+
+        .kart:hover {
+            transform: translateY(-5px);
+            border-color: #2563eb;
+            box-shadow: 0 15px 25px rgba(37,99,235,0.15);
+        }
+
+        /* OYUN LİSTESİ EKRANI */
+        #oyun-liste-ekrani {
+            display: none;
+            flex: 1;
+            padding: 30px 20px;
+            max-width: 900px;
+            margin: 0 auto;
+            width: 100%;
+            overflow-y: auto;
+        }
+
+        .oyun-kartlari {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .oyun-kart {
+            background: white;
+            border: 2px solid #cbd5e1;
+            border-radius: 16px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.03);
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .oyun-kart:hover {
+            transform: translateY(-4px);
+            border-color: #2563eb;
+            box-shadow: 0 10px 20px rgba(37,99,235,0.12);
+        }
+
+        .oyun-baslik {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 8px;
+        }
+
+        .oyun-aciklama {
+            font-size: 0.9rem;
+            color: #64748b;
+            margin-bottom: 15px;
+            line-height: 1.4;
+        }
+
+        .oyun-baslat-btn {
+            background: #10b981;
+            color: white;
+            padding: 10px;
+            border-radius: 8px;
+            font-weight: bold;
+            text-align: center;
+            margin-top: auto;
+        }
+
+        /* ÇİFTLİ TARAF SEÇİM EKRANI */
+        #ciftli-secim-ekrani {
+            display: none;
+            flex: 1;
+            flex-direction: column;
+            padding: 20px;
+            max-width: 1100px;
+            margin: 0 auto;
+            width: 100%;
+            overflow-y: auto;
+        }
+
+        .ciftli-secim-container {
+            display: flex;
+            gap: 20px;
+            flex: 1;
+            margin-top: 15px;
+        }
+
+        .taraf-secim-kutu {
+            flex: 1;
+            background: white;
+            border-radius: 16px;
+            border: 2px solid #cbd5e1;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.03);
+        }
+
+        /* OYUN EKRANLARI */
+        #tekli-oyun-alani {
+            display: none;
+            flex: 1;
+            flex-direction: column;
+            width: 100%;
+            height: 100%;
+        }
+
+        #ciftli-oyun-alani {
+            display: none; /* Başlangıçta kesinlikle gizli */
+            flex: 1;
+            width: 100%;
+            height: 100%;
+            background: #cbd5e1;
+            flex-direction: row;
+            gap: 4px;
+            overflow: hidden;
+        }
+
+        .iframe-kapsayici {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: white;
+            height: 100%;
+            overflow: hidden;
+            min-width: 0;
+        }
+
+        .taraf-baslik {
+            background: #1e293b;
+            color: white;
+            padding: 6px 15px;
+            font-size: 0.85em;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+            height: 35px;
+        }
+
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background: white;
+            flex: 1;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            background: white;
+            border-radius: 16px;
+            border: 2px dashed #cbd5e1;
+            color: #64748b;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1 id="baslik-metin">🎮 Sınıf Serbest Oyun Portalı</h1>
+        <button id="btn-ana-don" class="btn btn-danger" style="display: none;">🏠 Mod / Oyun Değiştir</button>
+    </div>
+
+    <div class="content">
+        <!-- 1. ADIM: MOD SEÇİMİ -->
+        <div id="secim-ekrani">
+            <h2 style="font-size: 2rem; color: #1e293b; margin-bottom: 10px;">Oynatma Modunu Seçin</h2>
+            <p style="color: #64748b; font-size: 1.1rem; margin-bottom: 20px;">Üyelik veya öğrenci seçimi gerekmez. Modunuzu seçip oyunları belirleyebilirsiniz.</p>
+            
+            <div class="secim-kartlari">
+                <div class="kart" onclick="modSec('tekli')">
+                    <span style="font-size: 3.5em;">👤</span>
+                    <h3 style="margin: 0; color: #2563eb;">Tekli Ekran</h3>
+                    <p style="margin: 0; color: #64748b; font-size: 0.9em;">Tam ekran tek oyun alanı.</p>
+                </div>
+
+                <div class="kart" onclick="modSec('ciftli')">
+                    <span style="font-size: 3.5em;">👥</span>
+                    <h3 style="margin: 0; color: #10b981;">Çiftli Ekran (2'li)</h3>
+                    <p style="margin: 0; color: #64748b; font-size: 0.9em;">Sol ve sağ taraf için bağımsız oyun seçilir, kimse kimseyi beklemez.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. TEKLİ OYUN LİSTESİ EKRANI -->
+        <div id="oyun-liste-ekrani">
+            <h2 style="color: #1e293b; margin-top: 0; text-align: center;">Oynamak İstediğiniz Oyunu Seçin</h2>
+            <p style="color: #64748b; text-align: center; margin-bottom: 25px;">Sisteme eklenmiş tüm aktif oyunlar aşağıdadır:</p>
+            <div id="oyun-kartlari-alani" class="oyun-kartlari"></div>
+        </div>
+
+        <!-- 2. ÇİFTLİ TARAF SEÇİM EKRANI (SOL VE SAĞ AYRI) -->
+        <div id="ciftli-secim-ekrani">
+            <h2 style="color: #1e293b; margin-top: 0; text-align: center;">⚔️ Çiftli Ekran - Taraf Oyunlarını Belirleyin</h2>
+            <p style="color: #64748b; text-align: center; margin-bottom: 15px;">Sol ve sağ ekran için bağımsız oyunlar seçip maçı başlatın:</p>
+            
+            <div class="ciftli-secim-container">
+                <!-- Sol Taraf Seçim -->
+                <div class="taraf-secim-kutu">
+                    <h3 style="color: #2563eb; margin-top: 0; border-bottom: 2px solid #2563eb; padding-bottom: 8px;">🔵 Sol Tarafın Oyunu</h3>
+                    <div id="sol-secilen-bilgi" style="background: #eff6ff; padding: 10px; border-radius: 8px; margin-bottom: 15px; font-weight: bold; color: #1e40af;">Henüz oyun seçilmedi</div>
+                    <div id="sol-oyun-listesi" style="overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 8px; max-height: 350px;"></div>
+                </div>
+
+                <!-- Sağ Taraf Seçim -->
+                <div class="taraf-secim-kutu">
+                    <h3 style="color: #10b981; margin-top: 0; border-bottom: 2px solid #10b981; padding-bottom: 8px;">🟢 Sağ Tarafın Oyunu</h3>
+                    <div id="sag-secilen-bilgi" style="background: #ecfdf5; padding: 10px; border-radius: 8px; margin-bottom: 15px; font-weight: bold; color: #065f46;">Henüz oyun seçilmedi</div>
+                    <div id="sag-oyun-listesi" style="overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 8px; max-height: 350px;"></div>
+                </div>
+            </div>
+
+            <div style="text-align: center; margin-top: 20px;">
+                <button id="btn-ciftli-baslat" class="btn btn-success" style="padding: 12px 30px; font-size: 1.2em; opacity: 0.5; cursor: not-allowed;" disabled>🚀 Çiftli Oyunu Başlat</button>
+            </div>
+        </div>
+
+        <!-- TEKLİ OYUN EKRANI -->
+        <div id="tekli-oyun-alani">
+            <iframe id="tekli-iframe"></iframe>
+        </div>
+
+        <!-- ÇİFTLİ (2'Lİ) BÖLÜNMÜŞ OYUN EKRANI -->
+        <div id="ciftli-oyun-alani">
+            <div class="iframe-kapsayici">
+                <div class="taraf-baslik" style="background: #2563eb;">
+                    <span id="sol-baslik-etiketi">🔵 Sol Taraf</span>
+                    <button class="btn btn-warning" onclick="soluYenidenBaslat()">🔄 Yeniden Başlat</button>
+                </div>
+                <iframe id="ciftli-sol-iframe"></iframe>
+            </div>
+            <div class="iframe-kapsayici">
+                <div class="taraf-baslik" style="background: #10b981;">
+                    <span id="sag-baslik-etiketi">🟢 Sağ Taraf</span>
+                    <button class="btn btn-warning" onclick="sagiYenidenBaslat()">🔄 Yeniden Başlat</button>
+                </div>
+                <iframe id="ciftli-sag-iframe"></iframe>
+            </div>
+        </div>
+    </div>
+
+    <!-- IndexedDB veritabanından eklenen oyunları çeken script -->
+    <script type="module">
+        import { db } from './js/db.js';
+
+        let secilenMod = 'tekli';
+        let ekliOyunlar = [];
+
+        let solSecilenOyun = null;
+        let sagSecilenOyun = null;
+
+        window.modSec = function(mod) {
+            secilenMod = mod;
+            document.getElementById('secim-ekrani').style.display = 'none';
+            document.getElementById('btn-ana-don').style.display = 'block';
+            
+            if(mod === 'ciftli') {
+                document.getElementById('baslik-metin').innerHTML = "⚔️ Çiftli Mod - Taraf Seçimi";
+                document.getElementById('ciftli-secim-ekrani').style.display = 'flex';
+                solSecilenOyun = null;
+                sagSecilenOyun = null;
+                ciftliSecimleriSifirla();
+                ciftliOyunlariYukle();
+            } else {
+                document.getElementById('baslik-metin').innerHTML = "👤 Tekli Mod - Oyun Seçin";
+                document.getElementById('oyun-liste-ekrani').style.display = 'block';
+                tekliOyunlariYukle();
+            }
+        };
+
+        async function tekliOyunlariYukle() {
+            const listeAlani = document.getElementById('oyun-kartlari-alani');
+            try {
+                ekliOyunlar = await db.getAll('uygulama_kalemleri');
+                if (!ekliOyunlar || ekliOyunlar.length === 0) {
+                    listeAlani.innerHTML = `<div class="empty-state" style="grid-column: 1/-1;"><h3>📭 Henüz Oyun Eklenmemiş</h3><p>Lütfen önce Öğretmen Paneli üzerinden oyun ekleyin.</p></div>`;
+                    return;
+                }
+                let html = '';
+                ekliOyunlar.forEach(oyun => {
+                    html += `
+                        <div class="oyun-kart" onclick="tekliOyunuBaslat('${oyun.link}', '${oyun.ad}')">
+                            <div class="oyun-baslik">🎮 ${oyun.ad}</div>
+                            <div class="oyun-aciklama">${oyun.aciklama || 'Sınıf içi interaktif etkinlik oyunu.'}</div>
+                            <div class="oyun-baslat-btn">Oyunu Aç 🚀</div>
+                        </div>
+                    `;
+                });
+                listeAlani.innerHTML = html;
+            } catch (err) {
+                listeAlani.innerHTML = `<div class="empty-state" style="grid-column: 1/-1;"><h3>⚠️ Hata</h3><p>Oyunlar yüklenemedi.</p></div>`;
+            }
+        }
+
+        async function ciftliOyunlariYukle() {
+            const solAlan = document.getElementById('sol-oyun-listesi');
+            const sagAlan = document.getElementById('sag-oyun-listesi');
+            try {
+                ekliOyunlar = await db.getAll('uygulama_kalemleri');
+                if (!ekliOyunlar || ekliOyunlar.length === 0) {
+                    solAlan.innerHTML = '<p style="color:#64748b; text-align:center;">Oyun bulunamadı.</p>';
+                    sagAlan.innerHTML = '<p style="color:#64748b; text-align:center;">Oyun bulunamadı.</p>';
+                    return;
+                }
+
+                let solHtml = '';
+                let sagHtml = '';
+
+                ekliOyunlar.forEach(oyun => {
+                    solHtml += `
+                        <div class="ciftli-secim-item" data-id="${oyun.id}" onclick="solOyunSec('${oyun.id}', '${oyun.ad}', '${oyun.link}')" style="padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; cursor: pointer; background: #f8fafc; transition: 0.2s;">
+                            <strong>🎮 ${oyun.ad}</strong>
+                        </div>
+                    `;
+                    sagHtml += `
+                        <div class="ciftli-secim-item-sag" data-id="${oyun.id}" onclick="sagOyunSec('${oyun.id}', '${oyun.ad}', '${oyun.link}')" style="padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; cursor: pointer; background: #f8fafc; transition: 0.2s;">
+                            <strong>🎮 ${oyun.ad}</strong>
+                        </div>
+                    `;
+                });
+
+                solAlan.innerHTML = solHtml;
+                sagAlan.innerHTML = sagHtml;
+            } catch (err) {
+                solAlan.innerHTML = '<p style="color:red;">Yüklenemedi.</p>';
+                sagAlan.innerHTML = '<p style="color:red;">Yüklenemedi.</p>';
+            }
+        }
+
+        window.solOyunSec = function(id, ad, link) {
+            solSecilenOyun = { id, ad, link };
+            document.getElementById('sol-secilen-bilgi').innerHTML = `Seçilen: 🎮 ${ad}`;
+            document.querySelectorAll('.ciftli-secim-item').forEach(el => {
+                el.style.background = el.getAttribute('data-id') === id ? '#dbeafe' : '#f8fafc';
+                el.style.borderColor = el.getAttribute('data-id') === id ? '#3b82f6' : '#cbd5e1';
+            });
+            ciftliKontrolEt();
+        };
+
+        window.sagOyunSec = function(id, ad, link) {
+            sagSecilenOyun = { id, ad, link };
+            document.getElementById('sag-secilen-bilgi').innerHTML = `Seçilen: 🎮 ${ad}`;
+            document.querySelectorAll('.ciftli-secim-item-sag').forEach(el => {
+                el.style.background = el.getAttribute('data-id') === id ? '#d1fae5' : '#f8fafc';
+                el.style.borderColor = el.getAttribute('data-id') === id ? '#10b981' : '#cbd5e1';
+            });
+            ciftliKontrolEt();
+        };
+
+        function ciftliKontrolEt() {
+            const btn = document.getElementById('btn-ciftli-baslat');
+            if (solSecilenOyun && sagSecilenOyun) {
+                btn.disabled = false;
+                btn.style.opacity = '1';
+                btn.style.cursor = 'pointer';
+            }
+        }
+
+        document.getElementById('btn-ciftli-baslat').addEventListener('click', () => {
+            if (!solSecilenOyun || !sagSecilenOyun) return;
+
+            document.getElementById('ciftli-secim-ekrani').style.display = 'none';
+            document.getElementById('baslik-metin').innerHTML = `⚔️ Çiftli Savaş Ekranı`;
+
+            document.getElementById('sol-baslik-etiketi').innerHTML = `🔵 Sol: ${solSecilenOyun.ad}`;
+            document.getElementById('sag-baslik-etiketi').innerHTML = `🟢 Sağ: ${sagSecilenOyun.ad}`;
+
+            document.getElementById('ciftli-sol-iframe').src = solSecilenOyun.link;
+            document.getElementById('ciftli-sag-iframe').src = sagSecilenOyun.link;
+            document.getElementById('ciftli-oyun-alani').style.display = 'flex';
+        });
+
+        window.soluYenidenBaslat = function() {
+            if (solSecilenOyun) {
+                const iframe = document.getElementById('ciftli-sol-iframe');
+                iframe.src = '';
+                setTimeout(() => { iframe.src = solSecilenOyun.link; }, 50);
+            }
+        };
+
+        window.sagiYenidenBaslat = function() {
+            if (sagSecilenOyun) {
+                const iframe = document.getElementById('ciftli-sag-iframe');
+                iframe.src = '';
+                setTimeout(() => { iframe.src = sagSecilenOyun.link; }, 50);
+            }
+        };
+
+        window.tekliOyunuBaslat = function(link, ad) {
+            document.getElementById('oyun-liste-ekrani').style.display = 'none';
+            document.getElementById('baslik-metin').innerHTML = `🎮 ${ad} (Tekli Ekran)`;
+            document.getElementById('tekli-iframe').src = link;
+            document.getElementById('tekli-oyun-alani').style.display = 'flex';
+        };
+
+        function ciftliSecimleriSifirla() {
+            document.getElementById('sol-secilen-bilgi').innerHTML = "Henüz oyun seçilmedi";
+            document.getElementById('sag-secilen-bilgi').innerHTML = "Henüz oyun seçilmedi";
+            const btn = document.getElementById('btn-ciftli-baslat');
+            btn.disabled = true;
+            btn.style.opacity = '0.5';
+            btn.style.cursor = 'not-allowed';
+        }
+
+        document.getElementById('btn-ana-don').addEventListener('click', () => {
+            document.getElementById('tekli-oyun-alani').style.display = 'none';
+            document.getElementById('ciftli-oyun-alani').style.display = 'none';
+            document.getElementById('oyun-liste-ekrani').style.display = 'none';
+            document.getElementById('ciftli-secim-ekrani').style.display = 'none';
+            
+            document.getElementById('secim-ekrani').style.display = 'flex';
+            document.getElementById('btn-ana-don').style.display = 'none';
+            document.getElementById('baslik-metin').innerHTML = "🎮 Sınıf Serbest Oyun Portalı";
+            
+            document.getElementById('tekli-iframe').src = '';
+            document.getElementById('ciftli-sol-iframe').src = '';
+            document.getElementById('ciftli-sag-iframe').src = '';
+        });
+    </script>
+</body>
+</html>

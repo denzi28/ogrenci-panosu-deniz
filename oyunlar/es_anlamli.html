@@ -195,8 +195,8 @@
 
     <div id="header">
         <div class="header-bilgi">
-            <div class="soru-kutusu">Soru: <span id="soru-sayaci">1/10</span></div>
-            <div class="hedef-kutusu">Maksimum: 100 Puan</div>
+            <div class="soru-kutusu">Soru: <span id="soru-sayaci">1/20</span></div>
+            <div class="hedef-kutusu">Maksimum: 200 Puan</div>
         </div>
         <div class="skor-kutusu" id="skor-kutusu">Puan: <span id="puan-alani">0</span></div>
     </div>
@@ -217,7 +217,7 @@
         <div id="bitis-ekrani">
             <div class="bitis-baslik">Harika İş Çıkardın!</div>
             <div style="font-size: 1.3rem; color: #475569;">Toplam Kazandığın Puan:</div>
-            <div class="bitis-puan" id="sonuc-puani">100</div>
+            <div class="bitis-puan" id="sonuc-puani">200</div>
             <div style="font-size: 1.2rem; color: #16a34a; font-weight: bold; padding: 15px; background: #dcfce7; border-radius: 12px;">
                 Sonuçlar öğretmenine gönderiliyor...
             </div>
@@ -225,40 +225,115 @@
     </div>
 
     <script>
-        // PDF ve ders notlarındaki eş anlamlı kelime çiftleri
+        // Görseldeki tüm eş anlamlı kelime havuzu
         let tumKelimeler = [
-            { kelime: "Doktor", esAnlamli: "Hekim" },
-            { kelime: "Hediye", esAnlamli: "Armağan" },
-            { kelime: "Konut", esAnlamli: "Ev" },
-            { kelime: "İhtiyar", esAnlamli: "Yaşlı" },
-            { kelime: "Kırmızı", esAnlamli: "Al" },
-            { kelime: "Okul", esAnlamli: "Mektep" },
-            { kelime: "Misafir", esAnlamli: "Konuk" },
-            { kelime: "Doğa", esAnlamli: "Tabiat" },
-            { kelime: "Fakir", esAnlamli: "Yoksul" },
-            { kelime: "Hatıra", esAnlamli: "Anı" },
-            { kelime: "Özlem", esAnlamli: "Hasret" },
+            { kelime: "Acemi", esAnlamli: "Toy" },
+            { kelime: "Ad", esAnlamli: "İsim" },
+            { kelime: "Akıl", esAnlamli: "Us" },
+            { kelime: "Al", esAnlamli: "Kırmızı" },
+            { kelime: "Anı", esAnlamli: "Hatıra" },
+            { kelime: "Armağan", esAnlamli: "Hediye" },
+            { kelime: "Ayakkabı", esAnlamli: "Pabuç" },
+            { kelime: "Baytar", esAnlamli: "Veteriner" },
+            { kelime: "Beyaz", esAnlamli: "Ak" },
+            { kelime: "Birey", esAnlamli: "Fert" },
             { kelime: "Büyük", esAnlamli: "İri" },
-            { kelime: "Kelime", esAnlamli: "Sözcük" },
-            { kelime: "Sene", esAnlamli: "Yıl" },
-            { kelime: "Hızlı", esAnlamli: "Çabuk" },
-            { kelime: "Uyarı", esAnlamli: "İkaz" },
-            { kelime: "Sonbahar", esAnlamli: "Güz" },
+            { kelime: "Cevap", esAnlamli: "Yanıt" },
+            { kelime: "Cimri", esAnlamli: "Pinti" },
+            { kelime: "Cömert", esAnlamli: "Bonkör" },
+            { kelime: "Çabuk", esAnlamli: "Tez" },
+            { kelime: "Defa", esAnlamli: "Kez" },
+            { kelime: "Delikanlı", esAnlamli: "Genç" },
+            { kelime: "Deprem", esAnlamli: "Zelzele" },
+            { kelime: "Derman", esAnlamli: "Çare" },
+            { kelime: "Doktor", esAnlamli: "Hekim" },
+            { kelime: "Doğa", esAnlamli: "Tabiat" },
+            { kelime: "Dost", esAnlamli: "Arkadaş" },
+            { kelime: "Duygu", esAnlamli: "His" },
+            { kelime: "Ebeveyn", esAnlamli: "Ana-baba" },
+            { kelime: "Eser", esAnlamli: "Yapıt" },
+            { kelime: "Etki", esAnlamli: "Tesir" },
+            { kelime: "Ev", esAnlamli: "Konut" },
+            { kelime: "Fakir", esAnlamli: "Yoksul" },
             { kelime: "Fayda", esAnlamli: "Yarar" },
+            { kelime: "Fikir", esAnlamli: "Düşünce" },
+            { kelime: "Gam", esAnlamli: "Keder" },
+            { kelime: "Garip", esAnlamli: "Yabancı" },
+            { kelime: "Gerçek", esAnlamli: "Hakikat" },
+            { kelime: "Görev", esAnlamli: "Vazife" },
+            { kelime: "Gölge", esAnlamli: "Saye" },
+            { kelime: "Güç", esAnlamli: "Zor" },
+            { kelime: "Güçlü", esAnlamli: "Kuvvetli" },
+            { kelime: "Haber", esAnlamli: "Malumat" },
+            { kelime: "Hafıza", esAnlamli: "Bellek" },
+            { kelime: "Hakim", esAnlamli: "Yargıç" },
+            { kelime: "Hassas", esAnlamli: "Duyarlı" },
+            { kelime: "Hediye", esAnlamli: "Armağan" },
+            { kelime: "Hikâye", esAnlamli: "Öykü" },
+            { kelime: "Irk", esAnlamli: "Soy" },
+            { kelime: "Irmak", esAnlamli: "Nehir" },
+            { kelime: "Işık", esAnlamli: "Ziya" },
+            { kelime: "İhtiyar", esAnlamli: "Yaşlı" },
+            { kelime: "İl", esAnlamli: "Şehir" },
+            { kelime: "İlâç", esAnlamli: "Deva" },
+            { kelime: "İmkan", esAnlamli: "Olanak" },
+            { kelime: "İmtihan", esAnlamli: "Sınav" },
+            { kelime: "İnce", esAnlamli: "Narin" },
+            { kelime: "İstek", esAnlamli: "Arzu" },
+            { kelime: "İsim", esAnlamli: "Ad" },
+            { kelime: "Kabin", esAnlamli: "Hücre" },
+            { kelime: "Kabile", esAnlamli: "Boy" },
+            { kelime: "Kahraman", esAnlamli: "Yiğit" },
+            { kelime: "Kalp", esAnlamli: "Yürek" },
+            { kelime: "Kanun", esAnlamli: "Yasa" },
+            { kelime: "Kara", esAnlamli: "Siyah" },
+            { kelime: "Kelime", esAnlamli: "Sözcük" },
+            { kelime: "Kırmızı", esAnlamli: "Al" },
+            { kelime: "Konuk", esAnlamli: "Misafir" },
+            { kelime: "Konut", esAnlamli: "Ev" },
+            { kelime: "Korkak", esAnlamli: "Yüreksiz" },
+            { kelime: "Kural", esAnlamli: "Kaide" },
+            { kelime: "Kutup", esAnlamli: "Uç" },
+            { kelime: "Kuvvet", esAnlamli: "Güç" },
+            { kelime: "Kıyı", esAnlamli: "Sahil" },
+            { kelime: "Lisan", esAnlamli: "Dil" },
+            { kelime: "Macera", esAnlamli: "Serüven" },
+            { kelime: "Mektep", esAnlamli: "Okul" },
+            { kelime: "Memleket", esAnlamli: "Vatan" },
+            { kelime: "Medeniyet", esAnlamli: "Uygarlık" },
+            { kelime: "Millet", esAnlamli: "Ulus" },
+            { kelime: "Misafir", esAnlamli: "Konuk" },
+            { kelime: "Mizaç", esAnlamli: "Huy" },
+            { kelime: "Neşe", esAnlamli: "Sevinç" },
             { kelime: "Öğrenci", esAnlamli: "Talebe" },
-            { kelime: "Cümle", esAnlamli: "Tümce" },
-            { kelime: "Islak", esAnlamli: "Yaş" },
-            { kelime: "Siyah", esAnlamli: "Kara" },
-            { kelime: "Surat", esAnlamli: "Yüz" },
+            { kelime: "Öğretmen", esAnlamli: "Muallim" },
+            { kelime: "Ömür", esAnlamli: "Hayat" },
+            { kelime: "Önder", esAnlamli: "Lider" },
             { kelime: "Öykü", esAnlamli: "Hikâye" },
-            { kelime: "Kafa", esAnlamli: "Baş" },
-            { kelime: "Mekân", esAnlamli: "Yer" }
+            { kelime: "Özlem", esAnlamli: "Hasret" },
+            { kelime: "Pabuç", esAnlamli: "Ayakkabı" },
+            { kelime: "Rüya", esAnlamli: "Düş" },
+            { kelime: "Sene", esAnlamli: "Yıl" },
+            { kelime: "Siyah", esAnlamli: "Kara" },
+            { kelime: "Soru", esAnlamli: "Sual" },
+            { kelime: "Sözcük", esAnlamli: "Kelime" },
+            { kelime: "Tabiat", esAnlamli: "Doğa" },
+            { kelime: "Talebe", esAnlamli: "Öğrenci" },
+            { kelime: "Tane", esAnlamli: "Adet" },
+            { kelime: "Ulus", esAnlamli: "Millet" },
+            { kelime: "Uzak", esAnlamli: "Irak" },
+            { kelime: "Vatan", esAnlamli: "Yurt" },
+            { kelime: "Yasa", esAnlamli: "Kanun" },
+            { kelime: "Yaşlı", esAnlamli: "İhtiyar" },
+            { kelime: "Yıl", esAnlamli: "Sene" },
+            { kelime: "Yoksul", esAnlamli: "Fakir" }
         ];
 
         let tumCevaplar = tumKelimeler.map(k => k.esAnlamli);
 
+        // Tüm havuzu karıştırıp her seferinde rastgele 20 soru seçiyoruz
         tumKelimeler.sort(() => Math.random() - 0.5);
-        const aktifSorular = tumKelimeler.slice(0, 10);
+        const aktifSorular = tumKelimeler.slice(0, 20);
 
         let gecerliSoruIndex = 0;
         let puan = 0;
@@ -301,7 +376,7 @@
                 return;
             }
 
-            soruSayaci.innerText = (gecerliSoruIndex + 1) + "/10";
+            soruSayaci.innerText = (gecerliSoruIndex + 1) + "/20";
             
             const soru = aktifSorular[gecerliSoruIndex];
             soruMetni.innerText = soru.kelime;
@@ -371,7 +446,7 @@
                 window.parent.postMessage({ 
                     islem: 'gorev_bitti', 
                     puan: puan, 
-                    limit: 100 
+                    limit: 200 
                 }, '*');
             }
         }

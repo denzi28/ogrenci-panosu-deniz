@@ -195,8 +195,8 @@
 
     <div id="header">
         <div class="header-bilgi">
-            <div class="soru-kutusu">Soru: <span id="soru-sayaci">1/10</span></div>
-            <div class="hedef-kutusu">Maksimum: 100 Puan</div>
+            <div class="soru-kutusu">Soru: <span id="soru-sayaci">1/20</span></div>
+            <div class="hedef-kutusu">Maksimum: 200 Puan</div>
         </div>
         <div class="skor-kutusu" id="skor-kutusu">Puan: <span id="puan-alani">0</span></div>
     </div>
@@ -217,7 +217,7 @@
         <div id="bitis-ekrani">
             <div class="bitis-baslik">Harika İş Çıkardın!</div>
             <div style="font-size: 1.3rem; color: #475569;">Toplam Kazandığın Puan:</div>
-            <div class="bitis-puan" id="sonuc-puani">100</div>
+            <div class="bitis-puan" id="sonuc-puani">200</div>
             <div style="font-size: 1.2rem; color: #16a34a; font-weight: bold; padding: 15px; background: #dcfce7; border-radius: 12px;">
                 Sonuçlar öğretmenine gönderiliyor...
             </div>
@@ -225,34 +225,107 @@
     </div>
 
     <script>
-        // PDF'deki zıt anlamlı kelime çiftleri ve ek alıştırma kelimeleri
+        // Görseldeki tüm zıt anlamlı kelime havuzu
         let tumKelimeler = [
-            { kelime: "İyi", zit: "Kötü" },
-            { kelime: "Az", zit: "Çok" },
-            { kelime: "Gece", zit: "Gündüz" },
-            { kelime: "Büyük", zit: "Küçük" },
-            { kelime: "Kirli", zit: "Temiz" },
-            { kelime: "Şişman", zit: "Zayıf" },
-            { kelime: "Aşağı", zit: "Yukarı" },
-            { kelime: "Açık", zit: "Kapalı" },
-            { kelime: "Yavaş", zit: "Hızlı" },
-            { kelime: "Uzun", zit: "Kısa" },
-            { kelime: "Dolu", zit: "Boş" },
-            { kelime: "Sabah", zit: "Akşam" },
             { kelime: "Acı", zit: "Tatlı" },
-            { kelime: "Gelmek", zit: "Gitmek" },
-            { kelime: "Doğru", zit: "Yanlış" },
-            { kelime: "Kibar", zit: "Kaba" },
+            { kelime: "Açık", zit: "Kapalı" },
             { kelime: "Ağır", zit: "Hafif" },
-            { kelime: "Soğuk", zit: "Sıcak" },
+            { kelime: "Alt", zit: "Üst" },
+            { kelime: "Arka", zit: "Ön" },
+            { kelime: "Aşağı", zit: "Yukarı" },
+            { kelime: "Aynı", zit: "Farklı" },
+            { kelime: "Büyük", zit: "Küçük" },
+            { kelime: "Boş", zit: "Dolu" },
+            { kelime: "Cimri", zit: "Cömert" },
+            { kelime: "Çabuk", zit: "Yavaş" },
+            { kelime: "Çalışkan", zit: "Tembel" },
+            { kelime: "Derin", zit: "Sığ" },
+            { kelime: "Dik", zit: "Eğik" },
+            { kelime: "Doğru", zit: "Yanlış" },
+            { kelime: "Düz", zit: "Eğri" },
             { kelime: "Eski", zit: "Yeni" },
-            { kelime: "Zengin", zit: "Fakir" }
+            { kelime: "Eksik", zit: "Tam" },
+            { kelime: "Erken", zit: "Geç" },
+            { kelime: "Fakir", zit: "Zengin" },
+            { kelime: "Genç", zit: "Yaşlı" },
+            { kelime: "Geniş", zit: "Dar" },
+            { kelime: "Güzel", zit: "Çirkin" },
+            { kelime: "Hızlı", zit: "Yavaş" },
+            { kelime: "Islak", zit: "Kuru" },
+            { kelime: "İleri", zit: "Geri" },
+            { kelime: "İlk", zit: "Son" },
+            { kelime: "İnce", zit: "Kalın" },
+            { kelime: "İyi", zit: "Kötü" },
+            { kelime: "Katı", zit: "Sıvı" },
+            { kelime: "Kısa", zit: "Uzun" },
+            { kelime: "Kolay", zit: "Zor" },
+            { kelime: "Korkak", zit: "Cesur" },
+            { kelime: "Kirli", zit: "Temiz" },
+            { kelime: "Neşeli", zit: "Üzgün" },
+            { kelime: "Pahalı", zit: "Ucuz" },
+            { kelime: "Sert", zit: "Yumuşak" },
+            { kelime: "Sıcak", zit: "Soğuk" },
+            { kelime: "Sık", zit: "Seyrek" },
+            { kelime: "Şişman", zit: "Zayıf" },
+            { kelime: "Taze", zit: "Bayat" },
+            { kelime: "Temiz", zit: "Pis" },
+            { kelime: "Uzak", zit: "Yakın" },
+            { kelime: "Usta", zit: "Acemi" },
+            { kelime: "Yabancı", zit: "Tanıdık" },
+            { kelime: "Yüksek", zit: "Alçak" },
+            { kelime: "Akşam", zit: "Sabah" },
+            { kelime: "Batı", zit: "Doğu" },
+            { kelime: "Gece", zit: "Gündüz" },
+            { kelime: "Giriş", zit: "Çıkış" },
+            { kelime: "Güney", zit: "Kuzey" },
+            { kelime: "İç", zit: "Dış" },
+            { kelime: "Kış", zit: "Yaz" },
+            { kelime: "Önce", zit: "Sonra" },
+            { kelime: "Sağ", zit: "Sol" },
+            { kelime: "Ağlamak", zit: "Gülmek" },
+            { kelime: "Almak", zit: "Vermek" },
+            { kelime: "Açmak", zit: "Kapatmak" },
+            { kelime: "Başlamak", zit: "Bitirmek" },
+            { kelime: "Bulmak", zit: "Kaybetmek" },
+            { kelime: "Çıkmak", zit: "İnmek" },
+            { kelime: "Doğmak", zit: "Ölmek" },
+            { kelime: "Gelmek", zit: "Gitmek" },
+            { kelime: "Girmek", zit: "Çıkmak" },
+            { kelime: "Oturmak", zit: "Kalkmak" },
+            { kelime: "Sevmek", zit: "Nefret etmek" },
+            { kelime: "Susmak", zit: "Konuşmak" },
+            { kelime: "Uyumak", zit: "Uyanmak" },
+            { kelime: "Varmak", zit: "Dönmek" },
+            { kelime: "Ak", zit: "Kara" },
+            { kelime: "Artı", zit: "Eksi" },
+            { kelime: "Barış", zit: "Savaş" },
+            { kelime: "Beyaz", zit: "Siyah" },
+            { kelime: "Ceza", zit: "Ödül" },
+            { kelime: "Çift", zit: "Tek" },
+            { kelime: "Doğal", zit: "Yapay" },
+            { kelime: "Dost", zit: "Düşman" },
+            { kelime: "Evet", zit: "Hayır" },
+            { kelime: "Hayal", zit: "Gerçek" },
+            { kelime: "Hür", zit: "Esir" },
+            { kelime: "Kar", zit: "Zarar" },
+            { kelime: "Övgü", zit: "Yergi" },
+            { kelime: "Soru", zit: "Cevap" },
+            { kelime: "Suçlu", zit: "Suçsuz" },
+            { kelime: "Taban", zit: "Tavan" },
+            { kelime: "Tüm", zit: "Yarım" },
+            { kelime: "Tüketici", zit: "Üretici" },
+            { kelime: "Ucube", zit: "Harika" },
+            { kelime: "Ucuz", zit: "Pahalı" },
+            { kelime: "Üretim", zit: "Tüketim" },
+            { kelime: "Var", zit: "Yok" },
+            { kelime: "Yerli", zit: "Yabancı" }
         ];
 
         let tumCevaplar = tumKelimeler.map(k => k.zit);
 
+        // Tüm havuzu karıştırıp her seferinde rastgele 20 soru seçiyoruz
         tumKelimeler.sort(() => Math.random() - 0.5);
-        const aktifSorular = tumKelimeler.slice(0, 10);
+        const aktifSorular = tumKelimeler.slice(0, 20);
 
         let gecerliSoruIndex = 0;
         let puan = 0;
@@ -295,7 +368,7 @@
                 return;
             }
 
-            soruSayaci.innerText = (gecerliSoruIndex + 1) + "/10";
+            soruSayaci.innerText = (gecerliSoruIndex + 1) + "/20";
             
             const soru = aktifSorular[gecerliSoruIndex];
             soruMetni.innerText = soru.kelime;
@@ -365,7 +438,7 @@
                 window.parent.postMessage({ 
                     islem: 'gorev_bitti', 
                     puan: puan, 
-                    limit: 100 
+                    limit: 200 
                 }, '*');
             }
         }

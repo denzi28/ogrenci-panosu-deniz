@@ -1,92 +1,66 @@
+// Öğrenciler — öğrenci görünümü: kendi bilgileri ve şifre değiştirme
 import { auth } from '../../js/auth.js';
 import { db } from '../../js/db.js';
+import { esc, modulBasligi } from '../../js/arayuz.js';
 
 export async function render(container) {
-    container.innerHTML = '<div class="card"><p>⏳ Profil bilgileriniz yükleniyor...</p></div>';
-    
-    // Buluttaki en güncel veriyi çekelim (Öğretmen bilgileri değiştirmiş olabilir)
-    const users = await db.getAll('users');
-    const user = users.find(u => u.id === auth.currentUser.id) || auth.currentUser;
-    
+    const kullanicilar = await db.getAll('users');
+    const ben = kullanicilar.find(u => u.id === auth.currentUser?.id) || auth.currentUser || {};
+    const gizle = (v) => v ? '•'.repeat(Math.min(String(v).length, 11)) : '';
+
     container.innerHTML = `
-        <div class="card" style="border-left: 4px solid var(--primary); margin-bottom: 20px;">
-            <h2>Öğrenci Profilim</h2>
-            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-top: 15px;">
-                <p style="font-size: 1.2em; margin-bottom: 10px;"><b>Ad Soyad:</b> ${user.name}</p>
-                <p><b>Okul Numarası:</b> ${user.okulno || '<i>Eklenmemiş</i>'}</p>
-                <p><b>TC Kimlik No:</b> ${user.tcno || '<i>Eklenmemiş</i>'}</p>
-            </div>
-            <div style="margin-top: 15px;">
-                <p><b>Sisteme Giriş Kullanıcı Adı:</b> ${user.username}</p>
-            </div>
-            <!-- 'ozellik' alanı öğretmene özel not / veli telefonu içerir; öğrenciye gösterilmez. -->
-        </div>
+        <div id="profil-kok">
+            ${modulBasligi({ baslik: 'Profilim', aciklama: 'Okuldaki bilgilerin ve giriş şifren' })}
+            <section class="panel">
+                <div class="panel-ust"><h2>Bilgilerim</h2></div>
+                <div class="satir"><span class="satir-ad"><small>Ad soyad</small>${esc(ben.name)}</span></div>
+                <div class="satir"><span class="satir-ad"><small>Okul numarası</small>${esc(ben.okulno) || '<span class="bos">Girilmedi</span>'}</span></div>
+                <div class="satir"><span class="satir-ad"><small>Kullanıcı adı</small>${esc(ben.username)}</span></div>
+                <div class="satir">
+                    <span class="satir-ad"><small>TC kimlik no</small><span id="tc-deger" data-acik="${esc(ben.tcno || '')}">${ben.tcno ? gizle(ben.tcno) : '<span class="bos">Girilmedi</span>'}</span></span>
+                    ${ben.tcno ? '<button type="button" class="yazi-dugme" id="tc-goster"><i class="fas fa-eye"></i>Göster</button>' : ''}
+                </div>
+            </section>
+            <section class="panel">
+                <div class="panel-ust"><h2>Şifremi değiştir</h2></div>
+                <form id="form-sifre" class="panel-ic" autocomplete="off">
+                    <div class="form-ikili">
+                        <div class="form-group"><label for="yeni-sifre">Yeni şifre</label><input type="password" id="yeni-sifre" autocomplete="new-password" required></div>
+                        <div class="form-group"><label for="yeni-sifre-tekrar">Yeni şifre tekrar</label><input type="password" id="yeni-sifre-tekrar" autocomplete="new-password" required></div>
+                    </div>
+                    <p class="error" id="sifre-mesaj" role="status"></p>
+                    <button type="submit" class="btn btn-primary" id="sifre-kaydet">Şifremi değiştir</button>
+                </form>
+            </section>
+        </div>`;
 
-        <div class="card" style="border-left: 4px solid var(--success);">
-            <h3 style="color: var(--success); margin-bottom: 10px;">🔒 Şifremi Değiştir</h3>
-            <p style="font-size: 0.9em; color: #666; margin-bottom: 15px;">Sisteme giriş şifrenizi buradan güvenle güncelleyebilirsiniz.</p>
-            
-            <div class="form-group">
-                <label style="font-weight: bold; color: #555;">Yeni Şifre</label>
-                <input type="password" id="yeni-sifre" placeholder="Yeni şifrenizi girin" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 10px;">
-            </div>
-            <div class="form-group">
-                <label style="font-weight: bold; color: #555;">Yeni Şifre (Tekrar)</label>
-                <input type="password" id="yeni-sifre-tekrar" placeholder="Yeni şifrenizi tekrar girin" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
-            </div>
-            
-            <button id="btn-sifre-degistir" class="btn btn-success" style="margin-top: 10px;">Şifremi Güncelle</button>
-            <div id="sifre-mesaj" style="margin-top: 15px; font-weight: bold; font-size: 0.95em;"></div>
-        </div>
-    `;
+    const tc = container.querySelector('#tc-goster');
+    tc?.addEventListener('click', () => {
+        const alan = container.querySelector('#tc-deger');
+        const acik = tc.dataset.acik === '1';
+        alan.textContent = acik ? gizle(alan.dataset.acik) : alan.dataset.acik;
+        tc.dataset.acik = acik ? '0' : '1';
+        tc.innerHTML = acik ? '<i class="fas fa-eye"></i>Göster' : '<i class="fas fa-eye-slash"></i>Gizle';
+    });
 
-    document.getElementById('btn-sifre-degistir').addEventListener('click', async () => {
-        const yeniSifre = document.getElementById('yeni-sifre').value.trim();
-        const yeniSifreTekrar = document.getElementById('yeni-sifre-tekrar').value.trim();
-        const mesajAlani = document.getElementById('sifre-mesaj');
-
-        if (!yeniSifre || !yeniSifreTekrar) {
-            mesajAlani.style.color = 'var(--danger)';
-            mesajAlani.innerText = "Lütfen her iki alanı da doldurun.";
-            return;
-        }
-
-        if (yeniSifre !== yeniSifreTekrar) {
-            mesajAlani.style.color = 'var(--danger)';
-            mesajAlani.innerText = "Şifreler birbiriyle uyuşmuyor. Lütfen kontrol edin!";
-            return;
-        }
-
-        const btn = document.getElementById('btn-sifre-degistir');
-        btn.disabled = true;
-        btn.innerText = "⏳ Güncelleniyor...";
-
+    container.querySelector('#form-sifre').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const yeni = container.querySelector('#yeni-sifre').value.trim();
+        const tekrar = container.querySelector('#yeni-sifre-tekrar').value.trim();
+        const mesaj = container.querySelector('#sifre-mesaj');
+        const yaz = (metin, iyi = false) => { mesaj.textContent = metin; mesaj.style.color = iyi ? 'var(--primary)' : 'var(--danger)'; };
+        if (yeni !== tekrar) return yaz('İki şifre aynı değil');
+        if (yeni === ben.password) return yaz('Yeni şifre eskisiyle aynı');
+        const dugme = container.querySelector('#sifre-kaydet');
+        dugme.disabled = true;
         try {
-            // 1. Buluttaki (Firebase) veriyi güncelle
-            await db.update('users', user.id, { password: yeniSifre });
-            
-            // Giriş hesabının şifresi de db.update içinde Firebase'de güncellendi; oturum açık kalır.
-            user.password = yeniSifre;
-
-            mesajAlani.style.color = 'var(--success)';
-            mesajAlani.innerText = "Şifreniz başarıyla güncellendi! ✔";
-            
-            // Alanları temizle
-            document.getElementById('yeni-sifre').value = '';
-            document.getElementById('yeni-sifre-tekrar').value = '';
-            
-            // 3 saniye sonra mesajı gizle
-            setTimeout(() => {
-                mesajAlani.innerText = "";
-            }, 3000);
-
-        } catch (error) {
-            mesajAlani.style.color = 'var(--danger)';
-            mesajAlani.innerText = error?.message?.match(/[ğüşıöçĞÜŞİÖÇ]/) ? error.message : "Şifre güncellenirken sistemsel bir hata oluştu.";
-            console.error(error);
-        } finally {
-            btn.disabled = false;
-            btn.innerText = "Şifremi Güncelle";
+            await db.update('users', ben.id, { password: yeni });
+            ben.password = yeni;
+            e.target.reset();
+            yaz('Şifren değişti. Bir dahaki girişte yeni şifreni kullan', true);
+        } catch (err) {
+            yaz(err?.message?.match(/[ğüşıöçĞÜŞİÖÇ]/) ? err.message : 'Şifre değiştirilemedi, tekrar dene');
         }
+        dugme.disabled = false;
     });
 }

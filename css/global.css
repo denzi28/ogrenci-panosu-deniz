@@ -124,7 +124,7 @@ img { max-width: 100%; }
 /* ------------------------------------------------------------------ Formlar */
 .form-group { margin-bottom: 16px; }
 .form-group label { display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: var(--text-2); }
-.form-group input, .form-group textarea, select, input[type="text"], input[type="password"], input[type="number"], input[type="date"], input[type="datetime-local"], textarea {
+.form-group input, .form-group textarea, select, input[type="text"], input[type="password"], input[type="number"], input[type="date"], input[type="datetime-local"], input[type="search"], input[type="time"], textarea {
     width: 100%;
     min-height: 40px;
     padding: 8px 12px;
@@ -658,6 +658,25 @@ body.katman-acik { overflow: hidden; }
 .sm-ad.oynadi { border-color: rgba(240, 217, 140, .55); }
 .sm-ad.oynadi small { color: var(--tebesir-sari); }
 @media (max-width: 760px) { .sm-alan.iki { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; } }
+
+/* Öğrenciler */
+.liste-arac { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.liste-arac input[type="search"] { width: 160px; min-height: 32px; padding: 4px 10px; font-size: 14px; }
+.liste-arac select { width: auto; min-height: 32px; padding: 4px 8px; font-size: 14px; }
+.ogr-kayit { display: grid; grid-template-columns: 28px minmax(0, 1fr) minmax(0, 1.4fr) auto; align-items: center; gap: 12px; padding: 10px 20px; border-bottom: 1px solid var(--hairline); min-height: 60px; transition: background-color 300ms var(--egri); }
+.ogr-kayit:last-child { border-bottom: 0; }
+.ogr-kayit.kaydedildi { background: var(--primary-soft); }
+.ogr-kayit .ders-no { width: auto; min-width: 28px; padding: 0 6px; border-radius: 14px; }
+.ogr-gizli { display: flex; flex-wrap: wrap; gap: 4px 20px; font-size: 14px; min-width: 0; font-variant-numeric: tabular-nums; }
+.ogr-gizli span { min-width: 0; overflow-wrap: anywhere; }
+.ogr-gizli small { display: block; font-size: 12px; color: var(--muted); }
+.sorun-liste { margin: 8px 0 0 20px; color: var(--danger); font-size: 14px; }
+@media (max-width: 760px) {
+    .ogr-kayit { grid-template-columns: 28px minmax(0, 1fr) auto; padding: 10px 16px; }
+    .ogr-kayit .ogr-gizli { grid-column: 2 / -1; grid-row: 2; }
+    .ogr-kayit .ogr-gizli:empty { display: none; }
+    .liste-arac input[type="search"] { flex: 1; min-width: 120px; }
+}
 
 /* Ortada açılan küçük pencere (numara tuş takımı) */
 .modal-arka.orta { align-items: center; padding: 16px; }

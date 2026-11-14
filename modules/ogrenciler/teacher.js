@@ -1,382 +1,214 @@
+// Öğrenciler — öğretmen: sınıf listesi, ekle/düzenle/sil, Excel'den toplu ekleme, yazdırma.
+// Gizli bilgiler (TC, şifre, not) tahtaya yansıtılırken görünmesin diye varsayılan olarak kapalıdır.
 import { db } from '../../js/db.js';
+import { esc, sayi, modulBasligi, gorunurlukAnahtari, baglaGorunurlukAnahtari, kaydedildiIsareti, yazdir } from '../../js/arayuz.js';
+import { noSirasi, adSirasi, ogrencileriAyir } from './ortak.js';
 
-// Varsayılan sıralama okul numarası
-let aktifSiralama = 'okulno'; 
+let kok, ogrenciler = [], siralama = 'no', arama = '', gizliAcik = false;
 
 export async function render(container) {
-    container.innerHTML = '<div class="card"><p>⏳ Öğrenci verileri buluttan getiriliyor...</p></div>';
-    
-    const isModuleVisible = await db.getModuleVisibility('ogrenciler');
-    const btnClass = isModuleVisible ? 'btn-success' : 'btn-secondary';
-    const btnText = isModuleVisible ? 'Menüde Görünüyor (Gizle)' : 'Menüde Gizli (Göster)';
-
-    container.innerHTML = `
-        <div class="card" style="background: #e8f4fd; border: 1px solid var(--primary); display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-            <div>
-                <h3 style="margin: 0; color: var(--primary);">👀 Modül Görünürlüğü (Misafirler İçin)</h3>
-                <p style="margin: 5px 0 0 0; font-size: 0.9em;">
-                    Bu butonu açarsanız, misafirler (veliler) sınıf listesini görebilir.<br>
-                    <b>Not:</b> Güvenlik gereği misafirlere sadece "Ad Soyad" ve "Okul No" gösterilir.
-                </p>
-            </div>
-            <div>
-                <button id="toggle-module-btn" class="btn ${btnClass}">${btnText}</button>
-            </div>
-        </div>
-
-        <!-- EXCEL'DEN TOPLU EKLEME ALANI -->
-        <div class="card" style="border-top: 4px solid var(--success); margin-bottom: 20px;">
-            <h3 style="color: var(--success); margin-bottom: 10px;">📥 Excel'den Toplu Öğrenci Ekle</h3>
-            <p style="font-size: 0.85em; color: #555; margin-bottom: 10px;">
-                Excel'deki öğrenci listenizi sırasıyla <b>Ad Soyad, TC No, Okul No, Kullanıcı Adı, Şifre</b> olacak şekilde (5 sütun yan yana) kopyalayıp aşağıdaki alana yapıştırın.
-            </p>
-            <textarea id="bulk-input" rows="4" placeholder="Örn: Ali Yılmaz    12345678901    1453    ali123    sifre123" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-family: monospace; white-space: pre; overflow-wrap: normal; overflow-x: scroll;"></textarea>
-            <button id="btn-bulk-kaydet" class="btn btn-success" style="margin-top: 10px;">Listeyi Toplu Sisteme Kaydet</button>
-        </div>
-
-        <!-- TEK TEK EKLEME / GÜNCELLEME ALANI -->
-        <div class="card" style="border-top: 4px solid var(--primary);">
-            <h3 id="form-baslik">Tekil Öğrenci Ekle / Düzenle</h3>
-            <input type="hidden" id="ogr-id"> 
-            
-            <div class="form-group"><input type="text" id="ogr-ad" placeholder="Öğrencinin Adı Soyadı"></div>
-            <div style="display:flex; gap:15px; margin-bottom:15px;">
-                <div style="flex:1;"><label style="font-size:0.8em; color:#666;">TC Kimlik No</label><input type="text" id="ogr-tcno" placeholder="11 Haneli TC No" maxlength="11" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:4px;"></div>
-                <div style="flex:1;"><label style="font-size:0.8em; color:#666;">Okul Numarası</label><input type="text" id="ogr-okulno" placeholder="Örn: 1453" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:4px;"></div>
-            </div>
-            <div class="form-group"><input type="text" id="ogr-kullanici" placeholder="Sisteme Giriş Kullanıcı Adı" autocomplete="off"></div>
-            <div class="form-group"><input type="text" id="ogr-sifre" placeholder="Şifresi"></div>
-            <div class="form-group"><input type="text" id="ogr-ozellik" placeholder="Veli Telefonu veya Özel Not (İsteğe Bağlı)"></div>
-            
-            <button id="btn-kaydet" class="btn btn-primary">Öğrenciyi Kaydet</button>
-            <button id="btn-iptal" class="btn btn-secondary" style="display:none;">Düzenlemeyi İptal Et</button>
-        </div>
-        
-        <!-- YAZDIRMA VE SIRALAMA BUTONLU LİSTE ALANI -->
-        <div class="card">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
-                <h3 style="margin: 0; color: #333;">📋 Sınıf Listesi</h3>
-                
-                <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-                    <select id="siralama-secim" style="padding: 10px 12px; border-radius: 5px; border: 2px solid #cbd5e1; font-weight: bold; color: #475569; outline: none; cursor: pointer; background: #f8fafc;">
-                        <option value="okulno" ${aktifSiralama === 'okulno' ? 'selected' : ''}>🔢 Okul Numarasına Göre</option>
-                        <option value="alfabetik" ${aktifSiralama === 'alfabetik' ? 'selected' : ''}>🔤 Alfabetik (A-Z)</option>
-                    </select>
-                    
-                    <button id="btn-liste-yazdir" class="btn btn-primary" style="padding: 10px 20px; font-size: 1em; font-weight: bold; background-color: #0284c7; color: white; border: none; border-radius: 5px; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                        🖨️ Yoklama/Boş Liste Yazdır
-                    </button>
+    container.innerHTML = `<div id="ogrenci-kok"></div>`;
+    kok = container.firstElementChild;
+    gizliAcik = false;
+    kok.innerHTML = `
+        ${modulBasligi({
+            baslik: 'Öğrenciler',
+            aciklama: 'Veliler sadece ad ve okul numarasını görür. TC, şifre ve notlar sadece sizde',
+            eylemler: `${await gorunurlukAnahtari('ogrenciler')}<button type="button" class="btn btn-secondary" data-islem="yazdir"><i class="fas fa-print"></i>Liste yazdır</button><button type="button" class="btn btn-primary" data-islem="yeni"><i class="fas fa-user-plus"></i>Öğrenci ekle</button>`,
+        })}
+        <section class="panel" id="ogr-form-panel" hidden>
+            <div class="panel-ust"><h2 id="ogr-form-baslik">Yeni öğrenci</h2></div>
+            <form id="form-ogr" class="panel-ic" autocomplete="off">
+                <input type="hidden" id="ogr-id">
+                <div class="form-group"><label for="ogr-ad">Ad soyad</label><input type="text" id="ogr-ad" required></div>
+                <div class="form-ikili">
+                    <div class="form-group"><label for="ogr-okulno">Okul numarası</label><input type="text" id="ogr-okulno" inputmode="numeric"></div>
+                    <div class="form-group"><label for="ogr-tcno">TC kimlik no</label><input type="text" id="ogr-tcno" inputmode="numeric" maxlength="11"></div>
+                    <div class="form-group"><label for="ogr-kullanici">Kullanıcı adı</label><input type="text" id="ogr-kullanici" autocapitalize="none" spellcheck="false" required></div>
+                    <div class="form-group"><label for="ogr-sifre">Şifre</label><input type="text" id="ogr-sifre" autocapitalize="none" spellcheck="false" required></div>
+                </div>
+                <div class="form-group"><label for="ogr-ozellik">Öğretmen notu <small style="font-weight:400;color:var(--muted)">veli telefonu vb., öğrenci görmez</small></label><input type="text" id="ogr-ozellik"></div>
+                <p class="error" id="ogr-hata" role="alert"></p>
+                <div class="form-eylem">
+                    <button type="submit" class="btn btn-primary" id="ogr-kaydet">Ekle</button>
+                    <button type="button" class="btn btn-secondary" data-islem="vazgec">Vazgeç</button>
+                </div>
+            </form>
+        </section>
+        <details class="panel acilir-panel" id="toplu-panel">
+            <summary class="panel-ust"><h2>Excel'den toplu ekle</h2><small>Ad soyad, TC, okul no, kullanıcı adı, şifre</small></summary>
+            <form id="form-toplu" class="panel-ic">
+                <p style="color:var(--text-2);margin-bottom:12px">Excel'de bu beş sütunu yan yana seçip kopyalayın ve aşağıya yapıştırın. Her satır bir öğrenci</p>
+                <textarea id="toplu-girdi" rows="5" spellcheck="false" style="font-family:ui-monospace,monospace;font-size:14px;white-space:pre;overflow-x:auto" placeholder="Ali Yılmaz&#9;12345678901&#9;1453&#9;ali&#9;1234"></textarea>
+                <p id="toplu-onizleme" style="color:var(--muted);font-size:14px;margin:8px 0 12px"></p>
+                <button type="submit" class="btn btn-primary" id="toplu-kaydet" disabled>Ekle</button>
+                <div id="toplu-sonuc"></div>
+            </form>
+        </details>
+        <section class="panel">
+            <div class="panel-ust">
+                <h2>Sınıf listesi <small id="ogr-sayi" style="font-weight:400"></small></h2>
+                <div class="liste-arac">
+                    <input type="search" id="ogr-ara" placeholder="Ara" aria-label="Öğrenci ara">
+                    <select id="ogr-siralama" aria-label="Sıralama"><option value="no">Okul numarasına göre</option><option value="ad">Ada göre</option></select>
+                    <label class="anahtar"><input type="checkbox" id="gizli-goster"><span class="anahtar-iz" aria-hidden="true"></span><span>TC ve şifreleri göster</span></label>
                 </div>
             </div>
-            <div style="overflow-x: auto;" id="ogrenci-listesi"><p>⏳ Liste yükleniyor...</p></div>
-        </div>
-    `;
+            <div id="ogr-liste"></div>
+        </section>`;
+    baglaGorunurlukAnahtari('ogrenciler');
+    kok.addEventListener('click', tikla);
+    kok.querySelector('#form-ogr').addEventListener('submit', kaydet);
+    kok.querySelector('#form-toplu').addEventListener('submit', topluEkle);
+    kok.querySelector('#toplu-girdi').addEventListener('input', onizle);
+    kok.querySelector('#ogr-ara').addEventListener('input', (e) => { arama = e.target.value; listeyiCiz(); });
+    kok.querySelector('#ogr-siralama').value = siralama;
+    kok.querySelector('#ogr-siralama').addEventListener('change', (e) => { siralama = e.target.value; listeyiCiz(); });
+    kok.querySelector('#gizli-goster').addEventListener('change', (e) => { gizliAcik = e.target.checked; listeyiCiz(); });
+    await yenile();
+}
 
-    // Sıralama Değiştiğinde Listeyi Güncelle
-    document.getElementById('siralama-secim').addEventListener('change', async (e) => {
-        aktifSiralama = e.target.value;
-        await listeyiGuncelle();
+async function yenile(isaretle) {
+    ogrenciler = ogrencileriAyir(await db.getAll('users'));
+    listeyiCiz(isaretle);
+}
+
+const kucuk = (s) => String(s || '').toLocaleLowerCase('tr-TR');
+
+function listeyiCiz(isaretle) {
+    const a = kucuk(arama.trim());
+    const liste = ogrenciler.filter(o => !a || kucuk(o.name).includes(a) || kucuk(o.okulno).includes(a) || kucuk(o.username).includes(a))
+        .sort(siralama === 'ad' ? adSirasi : noSirasi);
+    kok.querySelector('#ogr-sayi').textContent = ogrenciler.length ? `· ${sayi(ogrenciler.length)}` : '';
+    kok.querySelector('#ogr-liste').innerHTML = liste.map(o => `
+        <div class="ogr-kayit" data-id="${esc(o.id)}">
+            <span class="ders-no" title="Okul numarası">${esc(o.okulno || '–')}</span>
+            <span class="ogr-ad"><strong>${esc(o.name)}</strong><small>Kullanıcı adı: ${esc(o.username || '–')}</small></span>
+            <span class="ogr-gizli">${gizliAcik ? `
+                <span><small>TC</small>${esc(o.tcno || '–')}</span>
+                <span><small>Şifre</small>${esc(o.password || '–')}</span>
+                ${o.ozellik ? `<span class="not"><small>Not</small>${esc(o.ozellik)}</span>` : ''}` : ''}
+            </span>
+            <span class="satir-eylem">
+                <button type="button" class="ikon-dugme" data-islem="duzenle" title="Düzenle" aria-label="${esc(o.name)} düzenle"><i class="fas fa-pen"></i></button>
+                <button type="button" class="ikon-dugme tehlike" data-islem="sil" title="Sil" aria-label="${esc(o.name)} sil"><i class="fas fa-trash"></i></button>
+            </span>
+        </div>`).join('') || `<p class="bos-not">${ogrenciler.length ? 'Aramaya uyan öğrenci yok' : 'Henüz öğrenci yok. Sağ üstten ekleyebilir ya da Excel\'den toplu ekleyebilirsiniz'}</p>`;
+    if (isaretle) kaydedildiIsareti(kok.querySelector(`.ogr-kayit[data-id="${CSS.escape(isaretle)}"]`));
+}
+
+// ---------------------------------------------------------------- Tek öğrenci formu
+const ALANLAR = { name: 'ogr-ad', okulno: 'ogr-okulno', tcno: 'ogr-tcno', username: 'ogr-kullanici', password: 'ogr-sifre', ozellik: 'ogr-ozellik' };
+
+function formuAc(o = null) {
+    kok.querySelector('#ogr-id').value = o?.id || '';
+    Object.entries(ALANLAR).forEach(([k, id]) => { kok.querySelector(`#${id}`).value = o?.[k] || ''; });
+    kok.querySelector('#ogr-form-baslik').textContent = o ? `${o.name} bilgileri` : 'Yeni öğrenci';
+    kok.querySelector('#ogr-kaydet').textContent = o ? 'Kaydet' : 'Ekle';
+    kok.querySelector('#ogr-hata').textContent = '';
+    const panel = kok.querySelector('#ogr-form-panel');
+    panel.hidden = false;
+    panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    kok.querySelector('#ogr-ad').focus({ preventScroll: true });
+}
+const formuKapat = () => { kok.querySelector('#ogr-form-panel').hidden = true; };
+
+const adAlinmis = (kullanici, haricId) => ogrenciler.some(o => o.id !== haricId && kucuk(o.username) === kucuk(kullanici));
+
+async function kaydet(e) {
+    e.preventDefault();
+    const id = kok.querySelector('#ogr-id').value;
+    const v = Object.fromEntries(Object.entries(ALANLAR).map(([k, alan]) => [k, kok.querySelector(`#${alan}`).value.trim()]));
+    const hata = kok.querySelector('#ogr-hata');
+    if (v.tcno && !/^\d{11}$/.test(v.tcno)) { hata.textContent = 'TC kimlik numarası 11 rakam olmalı'; return; }
+    if (/\s/.test(v.username)) { hata.textContent = 'Kullanıcı adında boşluk olmasın'; return; }
+    if (adAlinmis(v.username, id)) { hata.textContent = `"${v.username}" kullanıcı adı başka bir öğrencide var`; return; }
+    const dugme = kok.querySelector('#ogr-kaydet');
+    dugme.disabled = true;
+    hata.textContent = '';
+    try {
+        const sonuc = id ? await db.update('users', id, v) : await db.add('users', { ...v, role: 'student' });
+        formuKapat();
+        await yenile(sonuc.id);
+    } catch (err) {
+        hata.textContent = `Kaydedilemedi: ${err.message || 'bilinmeyen hata'}`;
+    }
+    dugme.disabled = false;
+}
+
+// ---------------------------------------------------------------- Toplu ekleme
+function satirlariOku() {
+    return kok.querySelector('#toplu-girdi').value.split('\n').map(s => s.trim()).filter(Boolean).map((s, i) => {
+        const [name = '', tcno = '', okulno = '', username = '', password = ''] = s.split('\t').map(x => x.trim());
+        return { satir: i + 1, name, tcno, okulno, username, password };
     });
-
-    // Modül Aç/Kapa Butonu
-    document.getElementById('toggle-module-btn').addEventListener('click', async (e) => {
-        const currentStatus = await db.getModuleVisibility('ogrenciler');
-        const newStatus = !currentStatus;
-        await db.toggleModuleVisibility('ogrenciler', newStatus);
-        
-        const btn = e.target;
-        if(newStatus) { btn.className = "btn btn-success"; btn.innerText = "Menüde Görünüyor (Gizle)"; } 
-        else { btn.className = "btn btn-secondary"; btn.innerText = "Menüde Gizli (Göster)"; }
-    });
-
-    // TOPLU KAYDETME İŞLEMİ
-    document.getElementById('btn-bulk-kaydet').addEventListener('click', async () => {
-        const text = document.getElementById('bulk-input').value.trim();
-        if(!text) return alert("Lütfen kaydetmeden önce Excel'den verileri kopyalayıp kutuya yapıştırın.");
-        
-        const btn = document.getElementById('btn-bulk-kaydet');
-        btn.disabled = true;
-        btn.innerText = "⏳ Yükleniyor, lütfen bekleyin...";
-        
-        const satirlar = text.split('\n');
-        const mevcutKullanicilar = await db.getAll('users');
-        let basariliAdet = 0;
-        let hataliAdet = 0;
-
-        for(const satir of satirlar) {
-            if(!satir.trim()) continue; 
-            
-            const sutunlar = satir.split('\t').map(s => s.trim());
-            
-            const ad = sutunlar[0] || '';
-            const tcno = sutunlar[1] || '';
-            const okulno = sutunlar[2] || '';
-            const kullanici = sutunlar[3] || '';
-            const sifre = sutunlar[4] || '';
-
-            if(!ad || !kullanici || !sifre) {
-                hataliAdet++;
-                continue;
-            }
-
-            if(mevcutKullanicilar.find(u => u.username === kullanici)) {
-                hataliAdet++;
-                continue;
-            }
-
-            try {
-                await db.add('users', {
-                    name: ad,
-                    tcno: tcno,
-                    okulno: okulno,
-                    username: kullanici,
-                    password: sifre,
-                    ozellik: '',
-                    role: 'student'
-                });
-                mevcutKullanicilar.push({ username: kullanici });
-                basariliAdet++;
-            } catch (err) {
-                console.error(`${kullanici} eklenemedi:`, err);
-                hataliAdet++;
-            }
-        }
-
-        document.getElementById('bulk-input').value = '';
-        btn.disabled = false;
-        btn.innerText = "Listeyi Toplu Sisteme Kaydet";
-
-        alert(`Toplu Yükleme Tamamlandı!\n\n✅ Başarıyla Eklenen: ${basariliAdet}\n❌ Hatalı/Eksik veya Aynı Kullanıcı Adı: ${hataliAdet}`);
-        await listeyiGuncelle();
-    });
-
-    // Tekil Kaydetme İşlemi
-    document.getElementById('btn-kaydet').addEventListener('click', async () => {
-        const id = document.getElementById('ogr-id').value;
-        const ad = document.getElementById('ogr-ad').value;
-        const tcno = document.getElementById('ogr-tcno').value;
-        const okulno = document.getElementById('ogr-okulno').value;
-        const kullanici = document.getElementById('ogr-kullanici').value;
-        const sifre = document.getElementById('ogr-sifre').value;
-        const ozellik = document.getElementById('ogr-ozellik').value;
-
-        if (!ad || !kullanici || !sifre) return alert("Ad, Kullanıcı Adı ve Şifre alanları zorunludur!");
-        
-        const btn = document.getElementById('btn-kaydet');
-        btn.disabled = true; btn.innerText = "Kaydediliyor...";
-
-        const yeniVeri = { name: ad, tcno: tcno, okulno: okulno, username: kullanici, password: sifre, ozellik: ozellik };
-
+}
+function sorun(k, gorulen) {
+    if (!k.name || !k.username || !k.password) return 'ad, kullanıcı adı ya da şifre eksik';
+    if (/\s/.test(k.username)) return 'kullanıcı adında boşluk var';
+    if (adAlinmis(k.username) || gorulen.has(kucuk(k.username))) return `"${k.username}" kullanıcı adı zaten var`;
+    return '';
+}
+function onizle() {
+    const satirlar = satirlariOku();
+    const gorulen = new Set();
+    const hatali = satirlar.filter(k => { const s = sorun(k, gorulen); gorulen.add(kucuk(k.username)); return s; }).length;
+    kok.querySelector('#toplu-onizleme').textContent = satirlar.length ? `${sayi(satirlar.length)} satır okundu${hatali ? `, ${sayi(hatali)} tanesi eklenemeyecek` : ''}` : '';
+    const dugme = kok.querySelector('#toplu-kaydet');
+    dugme.disabled = satirlar.length === hatali;
+    dugme.textContent = satirlar.length - hatali > 0 ? `${sayi(satirlar.length - hatali)} öğrenciyi ekle` : 'Ekle';
+}
+async function topluEkle(e) {
+    e.preventDefault();
+    const satirlar = satirlariOku();
+    const dugme = kok.querySelector('#toplu-kaydet');
+    dugme.disabled = true;
+    const gorulen = new Set(), sorunlar = [];
+    let eklenen = 0;
+    for (const k of satirlar) {
+        const s = sorun(k, gorulen);
+        gorulen.add(kucuk(k.username));
+        if (s) { sorunlar.push(`${k.satir}. satır: ${s}`); continue; }
+        dugme.textContent = `Ekleniyor ${sayi(eklenen + 1)}`;
         try {
-            if (id) {
-                await db.update('users', id, yeniVeri);
-                alert("Öğrenci bilgileri güncellendi.");
-            } else {
-                const mevcutKullanicilar = await db.getAll('users');
-                if(mevcutKullanicilar.find(u => u.username === kullanici)) {
-                    btn.disabled = false; btn.innerText = "Öğrenciyi Kaydet";
-                    return alert("Bu kullanıcı adı zaten kullanılıyor. Lütfen farklı bir tane seçin.");
-                }
-                yeniVeri.role = 'student';
-                await db.add('users', yeniVeri);
-            }
-        } catch (err) {
-            console.error(err);
-            btn.disabled = false; btn.innerText = "Öğrenciyi Kaydet";
-            return alert("Kaydedilemedi: " + (err.message || 'bilinmeyen hata'));
-        }
-        
-        formuTemizle();
-        await listeyiGuncelle();
-    });
-
-    document.getElementById('btn-iptal').addEventListener('click', formuTemizle);
-
-    // YAZDIRMA İŞLEMİ
-    document.getElementById('btn-liste-yazdir').addEventListener('click', async () => {
-        const tumKullanicilar = await db.getAll('users');
-        const ogrenciler = tumKullanicilar.filter(u => u.role === 'student');
-
-        if(ogrenciler.length === 0) {
-            return alert("Yazdırılacak öğrenci bulunmuyor!");
-        }
-
-        // Aktif sıralamaya göre diz
-        if (aktifSiralama === 'alfabetik') {
-            ogrenciler.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'tr-TR'));
-        } else {
-            ogrenciler.sort((a, b) => {
-                const noA = parseInt(a.okulno) || 999999;
-                const noB = parseInt(b.okulno) || 999999;
-                if (noA === noB) return (a.name || '').localeCompare(b.name || '', 'tr-TR');
-                return noA - noB;
-            });
-        }
-
-        let printContent = `
-            <!DOCTYPE html>
-            <html lang="tr">
-            <head>
-                <meta charset="UTF-8">
-                <title>Sınıf Öğrenci Listesi</title>
-                <style>
-                    @page { margin: 1cm; }
-                    body { font-family: Arial, sans-serif; padding: 10px; color: #000; }
-                    h2 { text-align: center; margin: 0 0 8px 0; font-size: 16px; text-transform: uppercase; }
-                    .tarih-alan { display: flex; justify-content: space-between; border-bottom: 2px solid #000; padding-bottom: 8px; margin-bottom: 15px; font-size: 11px; font-weight: bold; }
-                    table { width: 100%; border-collapse: collapse; font-size: 10px; } 
-                    th, td { border: 1px solid #000; padding: 4px 6px; text-align: left; } 
-                    th { background-color: #f1f5f9; font-weight: bold; text-align: center; -webkit-print-color-adjust: exact; color-adjust: exact; }
-                    td.merkez { text-align: center; }
-                    .bos-kutu { width: 50%; } 
-                    tr:nth-child(even) { background-color: #f8fafc !important; -webkit-print-color-adjust: exact; color-adjust: exact; }
-                </style>
-            </head>
-            <body>
-                <h2>SINIF ÖĞRENCİ LİSTESİ</h2>
-                <div class="tarih-alan">
-                    <span>Sıralama: ${aktifSiralama === 'alfabetik' ? 'Alfabetik' : 'Okul Numarası'}</span>
-                    <span>Tarih: ...... / ...... / 20....</span>
-                </div>
-                <table>
-                    <thead>
-                        <tr>
-                            <th style="width: 30px;">SN</th>
-                            <th style="width: 60px;">Okul No</th>
-                            <th>Öğrenci Adı Soyadı</th>
-                            <th class="bos-kutu">Açıklama / Not (Boş Alan)</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-        `;
-
-        ogrenciler.forEach((ogr, index) => {
-            printContent += `
-                <tr>
-                    <td class="merkez">${index + 1}</td>
-                    <td class="merkez"><strong>${ogr.okulno || '-'}</strong></td>
-                    <td><strong>${ogr.name}</strong></td>
-                    <td></td>
-                </tr>
-            `;
-        });
-
-        printContent += `
-                    </tbody>
-                </table>
-                <script>
-                    window.onload = function() { window.print(); setTimeout(() => window.close(), 500); };
-                </script>
-            </body>
-            </html>
-        `;
-
-        const printWindow = window.open('', '_blank');
-        printWindow.document.write(printContent);
-        printWindow.document.close();
-    });
-
-    await listeyiGuncelle();
+            const { satir, ...veri } = k;
+            const yeni = await db.add('users', { ...veri, ozellik: '', role: 'student' });
+            ogrenciler.push(yeni);
+            eklenen++;
+        } catch (err) { sorunlar.push(`${k.satir}. satır: ${err.message || 'eklenemedi'}`); }
+    }
+    kok.querySelector('#toplu-girdi').value = '';
+    onizle();
+    kok.querySelector('#toplu-sonuc').innerHTML = `
+        <p style="margin-top:12px;font-weight:500;color:var(--primary)">${sayi(eklenen)} öğrenci eklendi</p>
+        ${sorunlar.length ? `<ul class="sorun-liste">${sorunlar.map(s => `<li>${esc(s)}</li>`).join('')}</ul>` : ''}`;
+    await yenile();
 }
 
-function formuTemizle() {
-    document.getElementById('ogr-id').value = ''; document.getElementById('ogr-ad').value = '';
-    document.getElementById('ogr-tcno').value = ''; document.getElementById('ogr-okulno').value = '';
-    document.getElementById('ogr-kullanici').value = ''; document.getElementById('ogr-sifre').value = '';
-    document.getElementById('ogr-ozellik').value = '';
-    document.getElementById('form-baslik').innerText = "Tekil Öğrenci Ekle / Düzenle";
-    document.getElementById('btn-kaydet').innerText = "Öğrenciyi Kaydet";
-    document.getElementById('btn-kaydet').disabled = false;
-    document.getElementById('btn-iptal').style.display = 'none';
+// ---------------------------------------------------------------- Olaylar
+async function tikla(e) {
+    const d = e.target.closest('[data-islem]');
+    if (!d) return;
+    const islem = d.dataset.islem;
+    if (islem === 'yeni') return formuAc();
+    if (islem === 'vazgec') return formuKapat();
+    if (islem === 'yazdir') return yazdirListe();
+    const o = ogrenciler.find(x => x.id === d.closest('[data-id]')?.dataset.id);
+    if (!o) return;
+    if (islem === 'duzenle') return formuAc(o);
+    if (islem === 'sil') {
+        if (!confirm(`${o.name} silinsin mi? Giriş hesabı da kapanır`)) return;
+        d.disabled = true;
+        try { await db.delete('users', o.id); }
+        catch (err) { alert(`Silinemedi: ${err.message || 'bilinmeyen hata'}`); }
+        await yenile();
+    }
 }
 
-async function listeyiGuncelle() {
-    const tumKullanicilar = await db.getAll('users');
-    const ogrenciler = tumKullanicilar.filter(u => u.role === 'student');
-    
-    // AKTİF SIRALAMAYA GÖRE LİSTEYİ DİZ
-    if (aktifSiralama === 'alfabetik') {
-        ogrenciler.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'tr-TR'));
-    } else {
-        ogrenciler.sort((a, b) => {
-            const noA = parseInt(a.okulno) || 999999;
-            const noB = parseInt(b.okulno) || 999999;
-            if (noA === noB) return (a.name || '').localeCompare(b.name || '', 'tr-TR');
-            return noA - noB;
-        });
-    }
-
-    let html = `<p style="font-weight:bold; color: #666; margin-bottom:10px;">Toplam: ${ogrenciler.length} Öğrenci</p>`;
-    
-    if (ogrenciler.length === 0) { html += `<p>Sınıfa henüz öğrenci eklenmemiş.</p>`; } 
-    else {
-        html += `<table style="width: 100%; border-collapse: collapse; min-width: 800px; font-size: 0.9em;">
-            <thead><tr style="background: #f8f9fa;">
-                <th style="border: 1px solid #ddd; padding: 10px; width: 40px;">SN</th>
-                <th style="border: 1px solid #ddd; padding: 10px; width: 80px;">Okul No</th>
-                <th style="border: 1px solid #ddd; padding: 10px; width: 110px;">TC No</th>
-                <th style="border: 1px solid #ddd; padding: 10px; text-align: left;">Adı Soyadı</th>
-                <th style="border: 1px solid #ddd; padding: 10px; text-align: left;">Kullanıcı Adı</th>
-                <th style="border: 1px solid #ddd; padding: 10px; text-align: left;">Şifre</th>
-                <th style="border: 1px solid #ddd; padding: 10px; text-align: left;">Not/Özellik</th>
-                <th style="border: 1px solid #ddd; padding: 10px; width: 140px;">İşlemler</th>
-            </tr></thead><tbody>`;
-
-        ogrenciler.forEach((ogr, index) => {
-            let satirArkaPlan = index % 2 === 0 ? '#ffffff' : '#f1f5f9';
-
-            html += `<tr style="background-color: ${satirArkaPlan}; transition: background-color 0.2s;">
-                <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${index + 1}</td>
-                <td style="border: 1px solid #ddd; padding: 8px; text-align: center; font-weight: bold;">${ogr.okulno || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${ogr.tcno || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px; font-weight: bold; color: var(--primary);">${ogr.name}</td>
-                <td style="border: 1px solid #ddd; padding: 8px;">${ogr.username}</td>
-                <td style="border: 1px solid #ddd; padding: 8px;">${ogr.password}</td>
-                <td style="border: 1px solid #ddd; padding: 8px; font-size: 0.9em; color: var(--secondary);">${ogr.ozellik || '-'}</td>
-                <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">
-                    <div style="display:flex; gap:5px; justify-content:center;">
-                        <button class="btn btn-secondary btn-duzenle" data-id="${ogr.id}" style="padding: 4px 8px; font-size: 0.85em;">Düzenle</button>
-                        <button class="btn btn-danger btn-sil" data-id="${ogr.id}" style="padding: 4px 8px; font-size: 0.85em;">Sil</button>
-                    </div>
-                </td>
-            </tr>`;
-        });
-        html += `</tbody></table>`;
-    }
-    
-    document.getElementById('ogrenci-listesi').innerHTML = html;
-
-    document.querySelectorAll('.btn-sil').forEach(btn => {
-        btn.addEventListener('click', async (e) => {
-            if(confirm("Silmek istediğinize emin misiniz?")) {
-                e.target.innerText = "...";
-                try { await db.delete('users', e.target.getAttribute('data-id')); }
-                catch (err) { alert("Silinemedi: " + (err.message || 'bilinmeyen hata')); }
-                await listeyiGuncelle();
-            }
-        });
-    });
-
-    document.querySelectorAll('.btn-duzenle').forEach(btn => {
-        btn.addEventListener('click', async (e) => {
-            const id = e.target.getAttribute('data-id');
-            const tumKullanicilar = await db.getAll('users');
-            const ogrenci = tumKullanicilar.find(u => u.id === id);
-            
-            if (ogrenci) {
-                document.getElementById('ogr-id').value = ogrenci.id;
-                document.getElementById('ogr-ad').value = ogrenci.name;
-                document.getElementById('ogr-tcno').value = ogrenci.tcno || '';
-                document.getElementById('ogr-okulno').value = ogrenci.okulno || '';
-                document.getElementById('ogr-kullanici').value = ogrenci.username;
-                document.getElementById('ogr-sifre').value = ogrenci.password;
-                document.getElementById('ogr-ozellik').value = ogrenci.ozellik || '';
-                
-                document.getElementById('form-baslik').innerText = "Öğrenci Bilgilerini Güncelle";
-                document.getElementById('btn-kaydet').innerText = "Değişiklikleri Kaydet";
-                document.getElementById('btn-iptal').style.display = 'inline-block';
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-            }
-        });
-    });
+function yazdirListe() {
+    const liste = [...ogrenciler].sort(siralama === 'ad' ? adSirasi : noSirasi);
+    if (!liste.length) return alert('Yazdırılacak öğrenci yok');
+    yazdir('Sınıf listesi', `
+        <table><thead><tr><th style="width:40px">Sıra</th><th style="width:80px">Okul no</th><th>Ad soyad</th><th style="width:45%"></th></tr></thead>
+        <tbody>${liste.map((o, i) => `<tr><td>${i + 1}</td><td>${esc(o.okulno || '')}</td><td>${esc(o.name)}</td><td></td></tr>`).join('')}</tbody></table>`);
 }

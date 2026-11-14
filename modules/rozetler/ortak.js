@@ -12,6 +12,7 @@ export const KATEGORILER = {
     gelisim:     { ad: 'Çaba ve gelişim',            renk: '#a16207' },
     sorumluluk:  { ad: 'Sorumluluk ve düzen',        renk: '#6d28d9' },
     yaraticilik: { ad: 'Yaratıcılık ve iş birliği',  renk: '#047857' },
+    ozel:        { ad: 'Özel günler',                renk: '#be123c' },
 };
 export const kategoriAl = (r) => KATEGORILER[r.kategori] ? r.kategori : 'akademik';
 
@@ -82,11 +83,25 @@ export const HAZIR_ROZETLER = [
     { dosya: 'el-becerisi', ad: 'El becerisi', kategori: 'yaraticilik', aciklama: 'El işinde çok başarılıydı' },
     { dosya: 'kucuk-mimar', ad: 'Küçük mimar', kategori: 'yaraticilik', aciklama: 'Harika yapılar inşa etti' },
     { dosya: 'genc-sair', ad: 'Genç şair', kategori: 'yaraticilik', aciklama: 'Güzel bir şiir yazdı' },
+    { dosya: 'cumhuriyet-bayrami',   ad: 'Cumhuriyet Bayramı',   kategori: 'ozel', aciklama: '29 Ekim kutlamalarına katıldı' },
+    { dosya: 'cocuk-bayrami',        ad: '23 Nisan',             kategori: 'ozel', aciklama: 'Ulusal Egemenlik ve Çocuk Bayramı etkinliklerine katıldı' },
+    { dosya: 'genclik-spor-bayrami', ad: '19 Mayıs',             kategori: 'ozel', aciklama: 'Gençlik ve Spor Bayramı etkinliklerine katıldı' },
+    { dosya: 'istiklal-marsi',       ad: 'İstiklal Marşı',       kategori: 'ozel', aciklama: 'İstiklal Marşı’nı güzel okudu' },
+    { dosya: 'kizilay-haftasi',      ad: 'Kızılay Haftası',      kategori: 'ozel', aciklama: 'Yardımlaşma etkinliğine katıldı' },
+    { dosya: 'ogretmenler-gunu',     ad: 'Öğretmenler Günü',     kategori: 'ozel', aciklama: '24 Kasım kutlamalarına katıldı' },
+    { dosya: 'yerli-mali-haftasi',   ad: 'Yerli Malı Haftası',   kategori: 'ozel', aciklama: 'Yerli malı etkinliğine katıldı' },
+    { dosya: 'kutuphane-haftasi',    ad: 'Kütüphane Haftası',    kategori: 'ozel', aciklama: 'Kütüphane Haftası etkinliklerine katıldı' },
+    { dosya: 'orman-haftasi',        ad: 'Orman Haftası',        kategori: 'ozel', aciklama: 'Fidan dikti, doğayı korudu' },
+    { dosya: 'karne-gunu',           ad: 'Karne Günü',           kategori: 'ozel', aciklama: 'Dönemi başarıyla tamamladı' },
 ].map(h => ({ ...h, resim: `assets/rozetler/${h.dosya}.webp` }));
 
 // Eski (emojili) rozetler için görsel önerisi: önce aynı ad, sonra addaki anahtar kelime, sonra emoji.
 const kucuk = (t) => String(t || '').toLocaleLowerCase('tr-TR').trim();
 const ANAHTAR_KELIMELER = [
+    ['cumhuriyet', 'cumhuriyet-bayrami'], ['29 ekim', 'cumhuriyet-bayrami'], ['23 nisan', 'cocuk-bayrami'], ['çocuk bayram', 'cocuk-bayrami'],
+    ['19 mayıs', 'genclik-spor-bayrami'], ['gençlik ve spor', 'genclik-spor-bayrami'], ['istiklal', 'istiklal-marsi'], ['kızılay', 'kizilay-haftasi'],
+    ['öğretmenler', 'ogretmenler-gunu'], ['24 kasım', 'ogretmenler-gunu'], ['yerli malı', 'yerli-mali-haftasi'], ['kütüphane', 'kutuphane-haftasi'],
+    ['orman', 'orman-haftasi'], ['fidan', 'orman-haftasi'], ['karne', 'karne-gunu'],
     ['hazırlık', 'duzenli'], ['ödev', 'odev-yildizi'], ['ezber', 'hizli-ogrenen'], ['iyilik', 'yardimsever'],
     ['yardım', 'yardimsever'], ['arkadaş', 'iyi-arkadas'], ['parlayan', 'haftanin-yildizi'], ['tören', 'sinif-yardimcisi'],
     ['düzen', 'sinif-yardimcisi'], ['takım', 'takim-oyuncusu'], ['kitap', 'kitap-dostu'], ['matematik', 'matematik-ustasi'],
@@ -100,7 +115,7 @@ const EMOJILER = {
     '🎓': 'hizli-ogrenen', '🌱': 'gelisiyor', '🧹': 'temizlik-kahramani',
 };
 // Özel günler gibi karşılığı olmayan rozetlere öneri yapılmaz
-const ONERILMEZ = ['bayram', 'cumhuriyet', '23 nisan', '19 mayıs', '30 ağustos', 'atatürk'];
+const ONERILMEZ = ['30 ağustos', 'atatürk', '10 kasım'];
 
 export function onerilenGorsel(r) {
     const ad = kucuk(r.ad);

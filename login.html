@@ -2,48 +2,80 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Giriş · 3/D Sınıf Panosu</title>
+    <meta name="theme-color" content="#3563d9">
     <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="3/D Panosu">
-<link rel="apple-touch-icon" href="assets/icon.png">
-<link rel="manifest" href="manifest.json">
-    <title>Sisteme Giriş</title>
+    <meta name="apple-mobile-web-app-title" content="3/D Panosu">
+    <link rel="apple-touch-icon" href="assets/icon.png">
+    <link rel="icon" type="image/png" href="assets/icon-192.png">
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="css/global.css">
 </head>
 <body class="login-body">
-    <div class="login-container card">
-        <h2 style="text-align: center; margin-bottom: 20px;">Kullanıcı Girişi</h2>
-        <form id="login-form">
-            <div class="form-group">
-                <label>Kullanıcı Adı</label>
-                <input type="text" id="username" required autocomplete="off">
+    <main class="login-container">
+        <div class="giris-kart">
+            <div class="giris-ust">
+                <div class="marka-rozet">3/D</div>
+                <h1>Sınıf Panosuna Giriş</h1>
+                <p>Öğrenci veya öğretmen bilgilerinle giriş yap</p>
             </div>
-            <div class="form-group">
-                <label>Şifre</label>
-                <input type="password" id="password" required>
-            </div>
-            <div id="error-message" class="error"></div>
-            <button type="submit" class="btn btn-primary w-100">Giriş Yap</button>
-        </form>
-        <div style="margin-top: 15px; text-align: center;">
-            <a href="index.html">← Misafir Panosuna Dön</a>
-        </div>
-    </div>
 
-<script type="module">
+            <form id="login-form" novalidate>
+                <div class="form-group">
+                    <label for="username">Kullanıcı adı</label>
+                    <input type="text" id="username" required autocomplete="username" autocapitalize="none" spellcheck="false">
+                </div>
+                <div class="form-group">
+                    <label for="password">Şifre</label>
+                    <div class="sifre-alan">
+                        <input type="password" id="password" required autocomplete="current-password">
+                        <button type="button" class="sifre-goster" id="sifre-goster" aria-label="Şifreyi göster"><i class="fas fa-eye"></i></button>
+                    </div>
+                </div>
+                <div id="error-message" class="error" role="alert"></div>
+                <button type="submit" id="giris-btn" class="btn btn-primary btn-buyuk w-100">Giriş Yap</button>
+            </form>
+
+            <p class="giris-ipucu">Şifreni unuttuysan öğretmenine sorabilirsin.</p>
+        </div>
+        <div class="giris-alt">
+            <a href="index.html"><i class="fas fa-arrow-left"></i> Sınıf panosuna dön</a>
+        </div>
+    </main>
+
+    <script type="module">
         import { auth } from './js/auth.js';
 
-        // Fonksiyonun başına "async" ekledik
-        document.getElementById('login-form').addEventListener('submit', async (e) => {
+        const form = document.getElementById('login-form');
+        const hata = document.getElementById('error-message');
+        const btn = document.getElementById('giris-btn');
+        const sifre = document.getElementById('password');
+
+        document.getElementById('sifre-goster').addEventListener('click', (e) => {
+            const goster = sifre.type === 'password';
+            sifre.type = goster ? 'text' : 'password';
+            e.currentTarget.innerHTML = `<i class="fas fa-eye${goster ? '-slash' : ''}"></i>`;
+            e.currentTarget.setAttribute('aria-label', goster ? 'Şifreyi gizle' : 'Şifreyi göster');
+        });
+
+        form.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const user = document.getElementById('username').value;
-            const pass = document.getElementById('password').value;
-            
-            // "await" ekledik, çünkü Firebase'den yanıt gelmesini bekleyeceğiz
-            const success = await auth.login(user, pass); 
-            if (!success) {
-                document.getElementById('error-message').innerText = "Hatalı kullanıcı adı veya şifre!";
+            const kullanici = document.getElementById('username').value.trim();
+            const parola = sifre.value;
+            if (!kullanici || !parola) { hata.textContent = 'Kullanıcı adı ve şifreyi yaz.'; return; }
+
+            hata.textContent = '';
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Giriş yapılıyor...';
+
+            const basarili = await auth.login(kullanici, parola);
+            if (!basarili) {
+                hata.textContent = navigator.onLine ? 'Kullanıcı adı veya şifre hatalı.' : 'İnternet bağlantısı yok.';
+                btn.disabled = false;
+                btn.textContent = 'Giriş Yap';
+                sifre.select();
             }
         });
     </script>

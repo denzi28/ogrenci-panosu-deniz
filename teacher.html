@@ -2,204 +2,60 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Öğretmen Paneli · 3/D Sınıf Panosu</title>
+    <meta name="theme-color" content="#3563d9">
     <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="3/D Panosu">
-<link rel="apple-touch-icon" href="assets/icon.png">
-<link rel="manifest" href="manifest.json">
-    <title>Öğretmen Paneli</title>
-    <link rel="stylesheet" href="css/global.css">
-    <!-- FontAwesome İkonları İçin -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="3/D Panosu">
+    <link rel="apple-touch-icon" href="assets/icon.png">
+    <link rel="icon" type="image/png" href="assets/icon-192.png">
+    <link rel="manifest" href="manifest.json">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/global.css">
 </head>
-<body style="padding-bottom: 80px;">
+<body data-rol="teacher">
 
-    <!-- Mobil Üst Başlık (Header) -->
-    <header class="top-header">
-        <div class="header-left">
-            <h1 id="page-title" style="font-size: 1.1em; font-weight: 800;">👨‍🏫 Öğretmen Paneli</h1>
-        </div>
-        <div class="header-actions">
-            <span id="user-info" style="font-size: 0.8em; font-weight: bold; color: #475569;"></span>
-            <button id="btn-logout" class="btn btn-danger" style="padding: 6px 12px; font-size: 0.8em;">Çıkış Yap</button>
-        </div>
+    <header class="ust-bar">
+        <a class="marka" href="teacher.html">
+            <span class="marka-rozet">3/D</span>
+            <span class="marka-yazi"><strong>Sınıf Panosu</strong><small id="rol-etiketi"></small></span>
+        </a>
+        <div class="ust-eylemler" id="ust-eylemler"></div>
     </header>
 
-    <!-- Gizli Sidebar (app.js uyumluluğu için) -->
-    <aside class="sidebar" style="display: none;">
-        <nav id="menu-container"></nav>
-    </aside>
+    <div class="duzen">
+        <aside class="sidebar yan-menu" aria-label="Bölümler"><nav id="menu-container"></nav></aside>
+        <main class="content-area">
+            <div id="app-content" class="icerik-kap">
+                <div class="iskelet" style="height:150px;margin-bottom:16px"></div>
+                <div class="iskelet" style="height:260px"></div>
+            </div>
+        </main>
+    </div>
 
-    <!-- Ana İçerik Alanı -->
-    <main id="app-content" class="content-area" style="padding: 15px;">
-        <div class="card" style="text-align: center; padding: 25px 20px; background: linear-gradient(135deg, #2c3e50, #34495e); color: white; border-radius: 16px; margin-bottom: 15px;">
-            <h2 style="color: white; margin-bottom: 8px; font-size: 1.3em;">Yönetim Paneline Hoş Geldiniz</h2>
-            <p style="color: rgba(255,255,255,0.9); font-size: 0.85em; margin: 0;">Sınıf yönetim modüllerine aşağıdan hızlıca ulaşabilirsiniz.</p>
-        </div>
-        
-        <!-- Öğretmen Modül Kutularının Listeleneceği Alan -->
-        <div id="teacher-moduller-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
-            <div class="card" style="grid-column: span 2; text-align: center;"><p>⏳ Modüller yükleniyor...</p></div>
-        </div>
-    </main>
-
-    <!-- Mobil Alt Navigasyon Çubuğu (Tab Bar) -->
-    <nav class="mobile-nav">
-        <a href="teacher.html" class="active">
-            <i class="fas fa-house"></i>
-            <span>Ana Sayfa</span>
-        </a>
-        <a href="javascript:void(0);" id="btn-tum-moduller">
-            <i class="fas fa-th-large"></i>
-            <span>Menü</span>
-        </a>
+    <!-- Telefon alt menüsü -->
+    <nav class="mobile-nav" aria-label="Alt menü">
+        <a href="teacher.html" class="active"><i class="fas fa-house"></i><span>Ana Sayfa</span></a>
+        <a href="javascript:void(0);" id="btn-tum-moduller"><i class="fas fa-grip"></i><span>Bölümler</span></a>
+        <a href="index.html"><i class="fas fa-eye"></i><span>Veli Görünümü</span></a>
     </nav>
 
-    <!-- Tüm Modüllerin Listeleneceği Açılır Pencere (Modal) -->
-    <div id="modul-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:3000; align-items:flex-end; justify-content:center;">
-        <div style="background:white; width:100%; max-height:80vh; border-radius:20px 20px 0 0; padding:20px; overflow-y:auto; box-shadow: 0 -5px 20px rgba(0,0,0,0.15);">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; border-bottom:1px solid #eee; padding-bottom:10px;">
-                <h3 style="margin:0; font-size:1.1em; color:var(--primary);">📋 Tüm Sistem Modülleri</h3>
-                <button id="modal-kapat" style="background:none; border:none; font-size:1.2em; cursor:pointer; color:#666;"><i class="fas fa-times"></i></button>
+    <!-- Telefonda alttan açılan bölüm listesi -->
+    <div id="modul-modal" class="modal-arka" role="dialog" aria-modal="true" aria-label="Bölümler">
+        <div class="modal-kutu">
+            <div class="modal-tutamak"></div>
+            <div class="modal-ust">
+                <h3>Bölümler</h3>
+                <button id="modal-kapat" class="ikon-btn" aria-label="Kapat"><i class="fas fa-xmark"></i></button>
             </div>
-            <div id="modal-modul-listesi" style="display:grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
-                <!-- Modüller buraya dinamik eklenecek -->
-            </div>
+            <div id="modal-modul-listesi" style="display:flex; flex-direction:column; gap:2px;"></div>
         </div>
     </div>
 
-    <!-- CSS ile Alt Menüyü Sabitleme -->
-    <style>
-        .mobile-nav {
-            height: 70px;
-            background-color: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border-top: 1px solid #eaeaea;
-            position: fixed;
-            bottom: 0;
-            width: 100%;
-            display: flex;
-            justify-content: space-around;
-            align-items: center;
-            z-index: 2000;
-            box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
-        }
-        .mobile-nav a {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            color: #95a5a6;
-            text-decoration: none;
-            font-size: 0.7em;
-            font-weight: 700;
-            gap: 4px;
-        }
-        .mobile-nav a.active { color: var(--primary); }
-        .mobile-nav a i { font-size: 1.4em; }
-
-        .modul-kutu {
-            background: white;
-            border: 1px solid #e2e8f0;
-            border-radius: 14px;
-            padding: 15px;
-            text-decoration: none;
-            color: #1e293b;
-            display: flex;
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 8px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.02);
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-        .modul-kutu:active {
-            transform: scale(0.97);
-        }
-    </style>
-
-<script type="module">
-        import { initApp } from './js/app.js';
-        import { auth } from './js/auth.js';
-        import { appConfig } from './js/config.js';
-
-        if (!auth.currentUser || auth.currentUser.role !== 'teacher') {
-            window.location.replace('index.html');
-            throw new Error('Yetkisiz erişim, ana sayfaya yönlendiriliyor.'); // yönlendirme bitmeden modül yüklenmesin
-        }
-
-        const userInfoEl = document.getElementById('user-info');
-        if (userInfoEl && auth.currentUser) {
-            userInfoEl.innerText = auth.currentUser.name;
-        }
-        
-        document.getElementById('btn-logout').addEventListener('click', () => {
-            auth.logout();
-        });
-
-        const mainContentArea = document.getElementById('app-content');
-
-        function renderTeacherAnaSayfaKutulari() {
-            mainContentArea.innerHTML = `
-                <div class="card" style="text-align: center; padding: 25px 20px; background: linear-gradient(135deg, #2c3e50, #34495e); color: white; border-radius: 16px; margin-bottom: 15px;">
-                    <h2 style="color: white; margin-bottom: 8px; font-size: 1.3em;">Yönetim Paneline Hoş Geldiniz</h2>
-                    <p style="color: rgba(255,255,255,0.9); font-size: 0.85em; margin: 0;">Sınıf yönetim modüllerine aşağıdan hızlıca ulaşabilirsiniz.</p>
-                </div>
-                <div id="teacher-moduller-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;"></div>
-            `;
-
-            const gridContainer = document.getElementById('teacher-moduller-grid');
-            let html = '';
-            appConfig.modules.forEach(mod => {
-                html += `
-                    <a href="#${mod.id}" class="modul-kutu">
-                        <span style="font-size: 2em;">${mod.icon}</span>
-                        <strong style="font-size: 0.95em; color: var(--primary);">${mod.name}</strong>
-                        <span style="font-size: 0.75em; color: #64748b;">Yönet / Düzenle →</span>
-                    </a>
-                `;
-            });
-            gridContainer.innerHTML = html;
-        }
-
-        // Eğer URL'de hash yoksa kutuları göster, varsa app.js modülü yüklesin
-        if (!window.location.hash) renderTeacherAnaSayfaKutulari();
-        initApp('teacher', { otomatikYonlendirme: false });
-
-        window.addEventListener('hashchange', () => {
-            if (!window.location.hash.substring(1)) renderTeacherAnaSayfaKutulari();
-        });
-
-        // Tüm Modüller Modalını Açma / Kapatma
-        const modal = document.getElementById('modul-modal');
-        document.getElementById('btn-tum-moduller').addEventListener('click', () => {
-            const listeContainer = document.getElementById('modal-modul-listesi');
-            let html = '';
-            appConfig.modules.forEach(mod => {
-                html += `
-                    <a href="#${mod.id}" class="modal-modul-link" style="display:flex; align-items:center; gap:10px; padding:12px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; text-decoration:none; color:#1e293b; font-weight:600; font-size:0.85em;">
-                        <span style="font-size:1.4em;">${mod.icon}</span>
-                        <span>${mod.name}</span>
-                    </a>
-                `;
-            });
-            listeContainer.innerHTML = html;
-            modal.style.display = 'flex';
-
-            document.querySelectorAll('.modal-modul-link').forEach(link => {
-                link.addEventListener('click', () => {
-                    modal.style.display = 'none';
-                });
-            });
-        });
-
-        document.getElementById('modal-kapat').addEventListener('click', () => {
-            modal.style.display = 'none';
-        });
-
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) modal.style.display = 'none';
-        });
+    <script type="module">
+        import { kabukBaslat } from './js/kabuk.js';
+        kabukBaslat({ rol: 'teacher' });
     </script>
 </body>
 </html>

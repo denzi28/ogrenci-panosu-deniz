@@ -1,13 +1,15 @@
-import { appConfig } from './config.js';
+import { appConfig, acikTon } from './config.js';
 import { db } from './db.js';
 
 let currentRole = 'guest';
 let dinleyicilerEklendi = false;
+let hazirModulListesi = null; // kabuk.js görünür modülleri zaten hesapladıysa tekrar sorgulanmaz
 
 // initApp sayfa başına BİR KEZ çağrılmalı. Dinleyiciler de yalnızca bir kez eklenir;
 // aksi halde her sayfa geçişinde modül N kez üst üste yükleniyordu.
 // otomatikYonlendirme=false: adres çubuğunda modül yoksa ilk modüle atlama, ana sayfa kutularında kal.
-export async function initApp(role, { otomatikYonlendirme = true } = {}) {
+export async function initApp(role, { otomatikYonlendirme = true, gorunurModuller = null } = {}) {
+    hazirModulListesi = gorunurModuller;
     // --- 1 HAFTALIK "BENİ HATIRLA" KONTROLÜ ---
     const HAFTA_MILISANIYE = 7 * 24 * 60 * 60 * 1000; // 7 günün milisaniye karşılığı
     const simdi = Date.now();
@@ -62,31 +64,31 @@ async function renderMenu() {
     const container = document.getElementById('menu-container');
     if (!container) return;
 
-    let html = '';
-    
-    // HIZLANDIRMA: Tüm menü görünürlükleri aynı anda çekiliyor
-    let visibilityResults = [];
-    if (currentRole === 'guest') {
-        const visibilityPromises = appConfig.modules.map(mod => db.getModuleVisibility(mod.id));
-        visibilityResults = await Promise.all(visibilityPromises);
+    let moduller = hazirModulListesi;
+    if (!moduller) {
+        moduller = appConfig.modules;
+        if (currentRole === 'guest') {
+            const gorunur = await Promise.all(appConfig.modules.map(mod => db.getModuleVisibility(mod.id)));
+            moduller = appConfig.modules.filter((_, i) => gorunur[i]);
+        }
     }
 
-    appConfig.modules.forEach((mod, index) => {
-        if (currentRole === 'guest' && !visibilityResults[index]) {
-            return; 
-        }
-        
-        html += `<a href="#${mod.id}" class="menu-item" data-module="${mod.id}">
-                    <span class="icon">${mod.icon}</span> ${mod.name}
+    let html = `<div class="yan-menu-ana"><a href="#" class="menu-item${window.location.hash.length > 1 ? '' : ' aktif'}" data-module="" style="--modul-renk-acik:${acikTon('#3563d9')}">
+                    <span class="icon">🏠</span><span>Ana Sayfa</span></a></div>
+                <div class="yan-menu-baslik">Bölümler</div>`;
+    moduller.forEach(mod => {
+        html += `<a href="#${mod.id}" class="menu-item" data-module="${mod.id}" style="--modul-renk:${mod.renk};--modul-renk-acik:${acikTon(mod.renk)}">
+                    <span class="icon">${mod.icon}</span><span>${mod.name}</span>
                  </a>`;
     });
-    
+
     container.innerHTML = html;
 
     const menuItems = document.querySelectorAll('.menu-item');
     menuItems.forEach(item => {
         item.addEventListener('click', (e) => {
             const modId = item.getAttribute('data-module');
+            if (!modId) { e.preventDefault(); history.pushState('', '', location.pathname); window.dispatchEvent(new HashChangeEvent('hashchange')); return; }
             if (window.location.hash.substring(1) === modId) {
                 e.preventDefault();
                 loadModule(modId);
@@ -94,7 +96,7 @@ async function renderMenu() {
         });
     });
 
-    if (menuItems.length === 0 && currentRole === 'guest') {
+    if (moduller.length === 0 && currentRole === 'guest' && !hazirModulListesi) {
         const appContent = document.getElementById('app-content');
         if (appContent) {
             appContent.innerHTML = `
@@ -109,11 +111,13 @@ async function loadModule(moduleId) {
     const container = document.getElementById('app-content');
     if (!container) return;
     
-    container.innerHTML = '<div class="card"><p>⚡ Yükleniyor...</p></div>';
+    container.innerHTML = `<div aria-busy="true" aria-label="Yükleniyor">
+        <div class="iskelet" style="height:64px;margin-bottom:14px"></div>
+        <div class="iskelet" style="height:220px;margin-bottom:14px"></div>
+        <div class="iskelet" style="height:120px"></div></div>`;
 
-    document.querySelectorAll('.menu-item').forEach(btn => btn.style.backgroundColor = 'transparent');
-    const activeItem = document.querySelector(`.menu-item[data-module="${moduleId}"]`);
-    if (activeItem) activeItem.style.backgroundColor = 'rgba(0, 0, 0, 0.05)';
+    document.querySelectorAll('#menu-container .menu-item').forEach(el => el.classList.toggle('aktif', el.dataset.module === moduleId));
+    window.scrollTo({ top: 0 });
 
     let linkId = `css-${moduleId}`;
     if (!document.getElementById(linkId)) {

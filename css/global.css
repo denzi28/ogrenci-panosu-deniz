@@ -525,6 +525,14 @@ details.satir-detay > summary:hover { background: var(--surface-2); }
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .madalya.kilitli { filter: grayscale(1); opacity: .35; }
+.madalya.resimli { background: none; box-shadow: none; border-radius: 50%; }
+.madalya.resimli img { width: 100%; height: 100%; display: block; }
+.madalya.resimli .madalya-yazi { bottom: 2%; font-size: max(7px, calc(var(--b) * .14)); padding: 0 4px; box-shadow: 0 1px 2px rgba(0,0,0,.15); }
+.hazir-secici { display: grid; grid-template-columns: repeat(auto-fill, minmax(52px, 1fr)); gap: 8px; }
+.hazir-secici button { aspect-ratio: 1; border: 1px solid var(--hairline); border-radius: var(--r-kart); background: #fff; padding: 4px; cursor: pointer; transition: border-color 150ms var(--egri), background-color 150ms var(--egri); }
+.hazir-secici button:hover { background: var(--surface-2); }
+.hazir-secici button[aria-pressed="true"] { border-color: var(--primary); box-shadow: 0 0 0 2px var(--primary-soft); }
+.hazir-secici img { width: 100%; height: 100%; display: block; }
 .madalya-serit { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; min-width: 0; }
 .kategori-nokta { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 8px; vertical-align: 1px; }
 .rozet-izgara { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; padding: 16px 20px 20px; }

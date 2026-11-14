@@ -2,12 +2,13 @@
 // Öğrenciler: kimde hangi rozet var, öğrenciye rozet ver. Rozetler: stüdyoda tasarla, düzenle, sil, öğrencilere ver.
 import { db } from '../../js/db.js';
 import { esc, sayi, modulBasligi, gorunurlukAnahtari, baglaGorunurlukAnahtari, sekmeler, baglaSekmeler, kaydedildiIsareti } from '../../js/arayuz.js';
-import { verileriGetir, sahiplik, sahipMi, kategoriyeGore, kategoriAl, rozetGorseli, KATEGORILER, SEKILLER, IKONLAR, VERILDI } from './ortak.js';
+import { verileriGetir, sahiplik, sahipMi, kategoriyeGore, kategoriAl, rozetGorseli, KATEGORILER, SEKILLER, IKONLAR, HAZIR_ROZETLER, VERILDI } from './ortak.js';
 
 let siralamaTuru = 'ad';
 let veri, sahip, kok;
 let duzenlenen = null; // stüdyoda düzenlenen rozet
-const BOS_TASARIM = { ad: '', kategori: 'davranis', icon: '⭐', shape: '50%', style1: '#fbbf24', style2: '#d97706', altYazi: '', aciklama: '' };
+const BOS_TASARIM = { mod: 'hazir', resim: '', ad: '', kategori: 'davranis', icon: '⭐', shape: '50%', style1: '#fbbf24', style2: '#d97706', altYazi: '', aciklama: '' };
+let sonOneri = null; // hazır rozet seçilince doldurulan öneri (ad/açıklama elle değiştirilmediyse yenisiyle değişir)
 let tasarim = { ...BOS_TASARIM };
 
 export async function render(container) {
@@ -75,21 +76,28 @@ function katalogCiz() {
             <div class="panel-ust"><h2>${duzenlenen ? 'Rozeti düzenle' : 'Yeni rozet'}</h2>${duzenlenen ? '<small>Kaydedince rozeti kazanmış öğrencilerde de güncellenir</small>' : ''}</div>
             <form class="studyo" id="form-rozet">
                 <div class="alan-izgara">
+                    <div class="form-group tam"><label>Görünüm</label>
+                        <div class="sekmeler" style="margin:0">
+                            <button type="button" class="sekme" data-mod="hazir" aria-selected="${tasarim.mod === 'hazir'}">Hazır rozet</button>
+                            <button type="button" class="sekme" data-mod="ozel" aria-selected="${tasarim.mod === 'ozel'}">Kendin tasarla</button>
+                        </div></div>
+                    <div class="form-group tam" data-sadece="hazir" ${tasarim.mod === 'hazir' ? '' : 'hidden'}><label>Rozet seç</label>
+                        <div class="hazir-secici">${HAZIR_ROZETLER.map(h => `<button type="button" data-hazir="${h.dosya}" aria-pressed="${tasarim.resim === h.resim}" title="${esc(h.ad)}" aria-label="${esc(h.ad)}"><img src="${h.resim}" alt="" loading="lazy"></button>`).join('')}</div></div>
                     <div class="form-group tam"><label for="r-ad">Rozetin adı</label><input type="text" id="r-ad" name="ad" maxlength="40" value="${esc(tasarim.ad)}" placeholder="Örneğin: Matematik yıldızı"></div>
                     <div class="form-group"><label for="r-kategori">Kategori</label>
                         <select id="r-kategori" name="kategori">${Object.entries(KATEGORILER).map(([id, k]) => `<option value="${id}" ${tasarim.kategori === id ? 'selected' : ''}>${k.ad}</option>`).join('')}</select></div>
-                    <div class="form-group"><label for="r-sekil">Şekil</label>
+                    <div class="form-group" data-sadece="ozel" ${tasarim.mod === 'ozel' ? '' : 'hidden'}><label for="r-sekil">Şekil</label>
                         <select id="r-sekil" name="shape">${Object.entries(SEKILLER).map(([id, ad]) => `<option value="${id}" ${tasarim.shape === id ? 'selected' : ''}>${ad}</option>`).join('')}</select></div>
-                    <div class="form-group"><label for="r-renk1">Üst renk</label><input type="color" id="r-renk1" name="style1" value="${esc(tasarim.style1)}"></div>
-                    <div class="form-group"><label for="r-renk2">Alt renk</label><input type="color" id="r-renk2" name="style2" value="${esc(tasarim.style2)}"></div>
-                    <div class="form-group tam"><label>İkon</label>
+                    <div class="form-group" data-sadece="ozel" ${tasarim.mod === 'ozel' ? '' : 'hidden'}><label for="r-renk1">Üst renk</label><input type="color" id="r-renk1" name="style1" value="${esc(tasarim.style1)}"></div>
+                    <div class="form-group" data-sadece="ozel" ${tasarim.mod === 'ozel' ? '' : 'hidden'}><label for="r-renk2">Alt renk</label><input type="color" id="r-renk2" name="style2" value="${esc(tasarim.style2)}"></div>
+                    <div class="form-group tam" data-sadece="ozel" ${tasarim.mod === 'ozel' ? '' : 'hidden'}><label>İkon</label>
                         <div class="ikon-secici">${IKONLAR.map(i => `<button type="button" data-ikon="${i}" aria-pressed="${tasarim.icon === i}" aria-label="${i}">${i}</button>`).join('')}
                             <input type="text" id="r-ikon" name="icon" value="${esc(tasarim.icon)}" maxlength="4" aria-label="Başka bir emoji" style="width:64px;min-height:36px;text-align:center" title="Listede olmayan bir emoji yazabilirsiniz"></div></div>
-                    <div class="form-group"><label for="r-yazi">Rozetin üstündeki yazı</label><input type="text" id="r-yazi" name="altYazi" maxlength="10" value="${esc(tasarim.altYazi)}" placeholder="İsteğe bağlı"></div>
+                    <div class="form-group"><label for="r-yazi">Rozetin üstündeki yazı</label><input type="text" id="r-yazi" name="altYazi" maxlength="10" value="${esc(tasarim.altYazi)}" placeholder="Ör. 20 kitap"></div>
                     <div class="form-group"><label for="r-aciklama">Ne zaman verilir</label><input type="text" id="r-aciklama" name="aciklama" maxlength="80" value="${esc(tasarim.aciklama)}" placeholder="Örneğin: 50 soru çözdü"></div>
                 </div>
                 <div class="studyo-onizleme">
-                    <span id="r-onizleme">${rozetGorseli(tasarim, 96)}</span>
+                    <span id="r-onizleme">${onizlemeHtml()}</span>
                     <strong id="r-onizleme-ad">${esc(tasarim.ad) || 'Rozetin adı'}</strong>
                     <button class="btn btn-primary w-100" type="submit">${duzenlenen ? 'Kaydet' : 'Kataloğa ekle'}</button>
                     ${duzenlenen ? '<button class="btn btn-secondary w-100" type="button" data-islem="duzenle-vazgec">Vazgeç</button>' : ''}
@@ -115,11 +123,33 @@ function katalogCiz() {
             </section>`).join('') || '<div class="panel"><p class="bos-not">Henüz rozet tasarlanmadı</p></div>'}`;
 }
 
+function onizlemeHtml() {
+    if (tasarim.mod === 'hazir' && !tasarim.resim)
+        return `<span class="madalya" style="--b:96px;border-radius:50%;background:var(--surface-2);box-shadow:none;border:2px dashed var(--hairline-strong)"></span>`;
+    return rozetGorseli(tasarim.mod === 'hazir' ? tasarim : { ...tasarim, resim: '' }, 96);
+}
+
+// Hazır rozet seçilince ad, kategori ve açıklamayı öner (elle değiştirilmişse dokunma)
+function hazirSec(dosya) {
+    const h = HAZIR_ROZETLER.find(x => x.dosya === dosya);
+    if (!h) return;
+    const f = document.getElementById('form-rozet');
+    const ad = f.querySelector('#r-ad'), aciklama = f.querySelector('#r-aciklama');
+    if (!ad.value.trim() || ad.value === sonOneri?.ad) { ad.value = h.ad; f.querySelector('#r-kategori').value = h.kategori; }
+    if (!aciklama.value.trim() || aciklama.value === sonOneri?.aciklama) aciklama.value = h.aciklama;
+    sonOneri = h;
+    tasarim.resim = h.resim;
+    onizlemeGuncelle();
+}
+
 function onizlemeGuncelle() {
     const f = document.getElementById('form-rozet');
     if (!f) return;
     tasarim = { ...tasarim, ...Object.fromEntries(new FormData(f).entries()) };
-    document.getElementById('r-onizleme').innerHTML = rozetGorseli(tasarim, 96);
+    document.getElementById('r-onizleme').innerHTML = onizlemeHtml();
+    f.querySelectorAll('[data-mod]').forEach(b => b.setAttribute('aria-selected', b.dataset.mod === tasarim.mod));
+    f.querySelectorAll('[data-sadece]').forEach(el => { el.hidden = el.dataset.sadece !== tasarim.mod; });
+    f.querySelectorAll('[data-hazir]').forEach(b => b.setAttribute('aria-pressed', `assets/rozetler/${b.dataset.hazir}.webp` === tasarim.resim));
     document.getElementById('r-onizleme-ad').textContent = tasarim.ad || 'Rozetin adı';
     f.querySelectorAll('[data-ikon]').forEach(b => b.setAttribute('aria-pressed', b.dataset.ikon === tasarim.icon));
 }
@@ -203,6 +233,8 @@ function olaylariBagla() {
         const d = e.target.closest('button');
         if (!d) return;
         if (d.dataset.ikon) { document.getElementById('r-ikon').value = d.dataset.ikon; return onizlemeGuncelle(); }
+        if (d.dataset.mod) { tasarim.mod = d.dataset.mod; return onizlemeGuncelle(); }
+        if (d.dataset.hazir) return hazirSec(d.dataset.hazir);
         const { islem, ogr, rozet } = d.dataset;
         if (islem === 'ver') return rozetVer(d);
         if (islem === 'ogr-detay') return ogrenciDetay(ogr);
@@ -215,11 +247,12 @@ function olaylariBagla() {
         }
         if (islem === 'rozet-duzenle') {
             duzenlenen = veri.rozetler.find(r => r.id === rozet);
-            tasarim = { ...BOS_TASARIM, ...duzenlenen, kategori: kategoriAl(duzenlenen) };
+            tasarim = { ...BOS_TASARIM, ...duzenlenen, kategori: kategoriAl(duzenlenen), mod: duzenlenen.resim ? 'hazir' : 'ozel', resim: duzenlenen.resim || '' };
+            sonOneri = null;
             katalogCiz();
             return document.getElementById('studyo-panel').scrollIntoView({ block: 'start' });
         }
-        if (islem === 'duzenle-vazgec') { duzenlenen = null; tasarim = { ...BOS_TASARIM }; return katalogCiz(); }
+        if (islem === 'duzenle-vazgec') { duzenlenen = null; tasarim = { ...BOS_TASARIM }; sonOneri = null; return katalogCiz(); }
         if (islem === 'rozet-sil') {
             const r = veri.rozetler.find(x => x.id === rozet);
             if (!confirm(`“${r?.ad}” rozeti katalogdan silinsin mi? Bu rozeti kazanan öğrencilerin listesinden de kalkar`)) return;
@@ -232,7 +265,9 @@ function olaylariBagla() {
         if (e.target.id !== 'form-rozet') return;
         e.preventDefault();
         onizlemeGuncelle();
+        if (tasarim.mod === 'hazir' && !tasarim.resim) return alert('Önce listeden bir rozet seçin');
         const kayit = {
+            resim: tasarim.mod === 'hazir' ? tasarim.resim : '',
             ad: tasarim.ad.trim(), kategori: tasarim.kategori, icon: (tasarim.icon || '⭐').trim(), shape: tasarim.shape,
             style1: tasarim.style1, style2: tasarim.style2, altYazi: tasarim.altYazi.trim(), aciklama: tasarim.aciklama.trim(),
         };
@@ -242,7 +277,7 @@ function olaylariBagla() {
         try {
             if (duzenlenen) await db.update('rozetler_kalemleri', duzenlenen.id, kayit);
             else await db.add('rozetler_kalemleri', kayit);
-            duzenlenen = null; tasarim = { ...BOS_TASARIM };
+            duzenlenen = null; tasarim = { ...BOS_TASARIM }; sonOneri = null;
             await yenile(); ogrencileriCiz(); katalogCiz();
         } catch (err) { alert('Kaydedilemedi, tekrar deneyin'); dugme.disabled = false; }
     });

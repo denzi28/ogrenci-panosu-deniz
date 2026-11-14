@@ -20,6 +20,30 @@ export const SEKILLER = {
     tirtikli: 'Tırtıklı', yildizpatlama: 'Yıldız patlaması', sekizgen: 'Sekizgen',
 };
 
+// Hazır rozet görselleri (assets/rozetler). Seçilince ad, kategori ve açıklama öneri olarak dolar.
+export const HAZIR_ROZETLER = [
+    { dosya: 'yardimsever',        ad: 'Yardımsever',          kategori: 'davranis',    aciklama: 'Arkadaşlarına yardım etti' },
+    { dosya: 'saygili',            ad: 'Saygılı',              kategori: 'davranis',    aciklama: 'Herkese saygıyla davrandı' },
+    { dosya: 'durust',             ad: 'Dürüst',               kategori: 'davranis',    aciklama: 'Her zaman doğruyu söyledi' },
+    { dosya: 'nazik',              ad: 'Nazik',                kategori: 'davranis',    aciklama: 'Kibar ve anlayışlı davrandı' },
+    { dosya: 'sabirli',            ad: 'Sabırlı',              kategori: 'davranis',    aciklama: 'Sırasını sabırla bekledi' },
+    { dosya: 'kitap-kurdu',        ad: 'Kitap kurdu',          kategori: 'akademik',    aciklama: 'Kitap okumayı çok seviyor' },
+    { dosya: 'matematik-ustasi',   ad: 'Matematik ustası',     kategori: 'akademik',    aciklama: 'Matematikte başarılı oldu' },
+    { dosya: 'fen-kasifi',         ad: 'Fen kâşifi',           kategori: 'akademik',    aciklama: 'Doğayı ve bilimi merak etti' },
+    { dosya: 'genc-yazar',         ad: 'Genç yazar',           kategori: 'akademik',    aciklama: 'Güzel bir yazı yazdı' },
+    { dosya: 'harika-soru',        ad: 'Harika soru',          kategori: 'akademik',    aciklama: 'Derste düşündüren bir soru sordu' },
+    { dosya: 'azimli',             ad: 'Azimli',               kategori: 'gelisim',     aciklama: 'Zorlandığında vazgeçmedi' },
+    { dosya: 'gelisiyor',          ad: 'Gelişiyor',            kategori: 'gelisim',     aciklama: 'Kendini çok geliştirdi' },
+    { dosya: 'hedefe-ulasti',      ad: 'Hedefe ulaştı',        kategori: 'gelisim',     aciklama: 'Koyduğu hedefe ulaştı' },
+    { dosya: 'super-caba',         ad: 'Süper çaba',           kategori: 'gelisim',     aciklama: 'Çok çalıştı ve emek verdi' },
+    { dosya: 'haftanin-yildizi',   ad: 'Haftanın yıldızı',     kategori: 'gelisim',     aciklama: 'Bu haftanın yıldızı oldu' },
+    { dosya: 'duzenli',            ad: 'Düzenli',              kategori: 'sorumluluk',  aciklama: 'Eşyalarını düzenli tuttu' },
+    { dosya: 'temizlik-kahramani', ad: 'Temizlik kahramanı',   kategori: 'sorumluluk',  aciklama: 'Sınıfın temizliğine yardım etti' },
+    { dosya: 'dakik',              ad: 'Dakik',                kategori: 'sorumluluk',  aciklama: 'Derslere hep zamanında geldi' },
+    { dosya: 'sanatci',            ad: 'Sanatçı',              kategori: 'yaraticilik', aciklama: 'Yaratıcı bir eser ortaya koydu' },
+    { dosya: 'takim-oyuncusu',     ad: 'Takım oyuncusu',       kategori: 'yaraticilik', aciklama: 'Grup çalışmasında uyumlu oldu' },
+].map(h => ({ ...h, resim: `assets/rozetler/${h.dosya}.webp` }));
+
 export const IKONLAR = ['⭐', '🏆', '🥇', '📚', '✏️', '💡', '🎯', '🚀', '🎨', '🔍', '🤝', '👥', '❤️', '⏰', '🎒', '🎓', '👑', '🌱', '🧹', '🧮'];
 
 export async function verileriGetir() {
@@ -49,6 +73,11 @@ export function kategoriyeGore(rozetler) {
 
 // ÖNE ÇIKAN AN: rozetin kendisi. Öğretmenin seçtiği iki renk, şekil, ikon ve iç yazıyla madalya.
 export function rozetGorseli(r, boyut = 48, kilitli = false) {
+    const yazi = r.altYazi ? `<span class="madalya-yazi">${esc(r.altYazi)}</span>` : '';
+    // Hazır görselli rozet (üstüne yazı şeridi eklenebilir, ör. "20 kitap")
+    if (r.resim) {
+        return `<span class="madalya resimli${kilitli ? ' kilitli' : ''}" aria-hidden="true" style="--b:${boyut}px"><img src="${esc(r.resim)}" alt="" loading="lazy" decoding="async">${yazi}</span>`;
+    }
     const ikon = r.icon || '⭐';
     // Eski kayıtlarda resim yolu olabilir
     if (!r.style1 && (ikon.endsWith('.png') || ikon.includes('/'))) {
@@ -58,7 +87,6 @@ export function rozetGorseli(r, boyut = 48, kilitli = false) {
     const sekil = String(r.shape || '50%').replace(/^shape-/, ''); // 'shape-kalkan' gibi eski yazımları da tanı
     const sinif = ['tirtikli', 'yildizpatlama', 'sekizgen', 'kalkan'].includes(sekil) ? ` shape-${sekil}` : '';
     const radius = sinif ? '' : `border-radius:${sekil === '50%' ? '50%' : esc(sekil)};`;
-    const yazi = r.altYazi ? `<span class="madalya-yazi">${esc(r.altYazi)}</span>` : '';
     return `<span class="madalya${sinif}${kilitli ? ' kilitli' : ''}" aria-hidden="true"
         style="--b:${boyut}px;${radius}background:linear-gradient(145deg, ${esc(c1)}, ${esc(c2)})">
         <span class="madalya-ikon${r.altYazi ? ' yazili' : ''}">${esc(ikon)}</span>${yazi}</span>`;

@@ -8,10 +8,12 @@ const acikPaneller = new Set(); // sayfa yenilense de açık kalan değerlendirm
 let veri, harita, kok;
 
 export async function render(container) {
-    kok = container;
     const [anahtar] = await Promise.all([gorunurlukAnahtari('davranis'), yenile()]);
 
-    container.innerHTML = `
+    // Olaylar modüle özel kapsayıcıya bağlanır; modülden çıkınca kapsayıcıyla birlikte silinir.
+    container.innerHTML = `<div id="davranis-kok"></div>`;
+    kok = container.firstElementChild;
+    kok.innerHTML = `
         <div id="ana-gorunum">
             ${modulBasligi({
                 baslik: 'Davranış panosu',
@@ -25,7 +27,7 @@ export async function render(container) {
         <div id="view-puanlama" hidden></div>`;
 
     baglaGorunurlukAnahtari('davranis');
-    baglaSekmeler(container.querySelector('#ana-gorunum'));
+    baglaSekmeler(kok.querySelector('#ana-gorunum'));
     document.getElementById('btn-yazdir').addEventListener('click', panoyuYazdir);
 
     panoyuCiz();

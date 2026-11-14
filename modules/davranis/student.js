@@ -1,56 +1,34 @@
+// Davranış panosu — öğrenci görünümü (kendi yıldızları)
 import { auth } from '../../js/auth.js';
 import { db } from '../../js/db.js';
+import { esc, sayi, modulBasligi } from '../../js/arayuz.js';
+import { puanHaritasi, puanAl, yildizGosterge, ENCOK_YILDIZ } from './ortak.js';
 
 export async function render(container) {
-    container.innerHTML = '<div class="card"><p>⏳ Puan durumunuz yükleniyor...</p></div>';
+    const benim = auth.currentUser?.id;
+    const [kriterler, matris] = await Promise.all([db.getAll('davranis_kriterleri'), db.getAll('davranis_matrisi')]);
+    const harita = puanHaritasi(matris);
+    const toplam = kriterler.reduce((t, k) => t + puanAl(harita, benim, k.id), 0);
+    const enFazla = kriterler.length * ENCOK_YILDIZ;
 
-    const userId = auth.currentUser.id;
-    const kriterler = await db.getAll('davranis_kriterleri');
-    const matris = await db.getAll('davranis_matrisi');
-
-    let totalScore = 0;
-    kriterler.forEach(k => {
-        const kayit = matris.find(m => m.ogrId === userId && m.targetId === k.id);
-        if (kayit && kayit.deger) {
-            totalScore += parseInt(kayit.deger) || 0;
-        }
-    });
-
-    let html = `
-        <div class="card" style="border-left: 4px solid var(--primary); text-align: center; margin-bottom: 20px;">
-            <h2 style="color: var(--primary);">⭐ Davranış Yıldızlarım</h2>
-            <div style="font-size: 4em; font-weight: 900; color: var(--danger); margin: 15px 0;">${totalScore} <span style="font-size: 0.5em;">⭐</span></div>
-            <p style="color: #666; font-weight: bold;">Sınıf İçinde Topladığınız Yıldızlar</p>
-        </div>
-
-        <div class="card">
-            <h3>Detaylı Kriter Dağılımı</h3>
-            <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 15px;">
-    `;
-
-    if (kriterler.length === 0) {
-        html += `<p style="color: #888;">Henüz değerlendirme kriteri bulunmuyor.</p>`;
-    } else {
-        kriterler.forEach(k => {
-            let numPuan = parseInt(matris.find(m => m.ogrId === userId && m.targetId === k.id)?.deger || '0');
-            
-            let starGorsel = '';
-            if (numPuan === 0) {
-                starGorsel = '<span style="color: #aaa; font-size: 0.9em; font-style: italic;">Değerlendirilmedi</span>';
-            } else {
-                for(let i = 1; i <= 5; i++) {
-                    starGorsel += i <= numPuan ? '⭐' : '<span style="color:#e5e7eb; font-size:1.2em;">★</span>';
-                }
-            }
-
-            html += `
-            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #eee;">
-                <span style="font-weight: bold; font-size: 1.1em; color: #333;">${k.ad}</span>
-                <span style="display: flex; align-items: center; gap: 2px;">${starGorsel}</span>
-            </div>`;
-        });
-    }
-
-    html += `</div></div>`;
-    container.innerHTML = html;
+    container.innerHTML = `
+        ${modulBasligi({ baslik: 'Yıldızlarım', aciklama: 'Öğretmeninin her davranış için verdiği yıldızlar' })}
+        <section class="tahta" style="margin-bottom:24px">
+            <div class="tahta-ust"><h2>Toplam yıldız</h2><small>${kriterler.length ? `En fazla ${sayi(enFazla)}` : ''}</small></div>
+            <div style="display:flex;align-items:center;gap:16px">
+                <span class="yildiz-cikartma" style="width:44px;height:44px" aria-hidden="true"></span>
+                <span style="font-size:48px;font-weight:500;line-height:1">${sayi(toplam)}</span>
+            </div>
+        </section>
+        <section class="panel">
+            <div class="panel-ust"><h2>Davranışlar</h2></div>
+            ${kriterler.length ? kriterler.map(k => {
+                const deger = puanAl(harita, benim, k.id);
+                return `
+                <div class="satir">
+                    <span class="satir-ad">${esc(k.ad)}</span>
+                    ${deger ? yildizGosterge(deger) : '<small style="color:var(--muted)">Henüz değerlendirilmedi</small>'}
+                </div>`;
+            }).join('') : '<p class="bos-not">Henüz davranış eklenmedi</p>'}
+        </section>`;
 }

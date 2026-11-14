@@ -358,6 +358,110 @@ a.bilgi-satir:hover { background: var(--surface-2); }
 .bos-durum { text-align: center; padding: 32px 16px; color: var(--muted); }
 .iskelet { background: var(--surface-2); border-radius: var(--r-kart); opacity: .7; }
 
+
+/* ==========================================================================
+   MODÜL BİLEŞENLERİ (tüm modüllerde ortak)
+   ========================================================================== */
+.modul-ust { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; margin: 8px 0 24px; }
+.modul-ust h1 { font-size: 28px; font-weight: 500; }
+.modul-ust p { color: var(--text-2); margin-top: 4px; max-width: 40rem; }
+.modul-ust-eylem { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+/* Açma/kapama anahtarı (ör. velilere açık) */
+.anahtar { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; font-size: 14px; font-weight: 500; color: var(--text-2); user-select: none; min-height: 36px; }
+.anahtar input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.anahtar-iz { width: 36px; height: 20px; border-radius: 10px; background: var(--hairline-strong); position: relative; transition: background-color 150ms var(--egri); flex-shrink: 0; }
+.anahtar-iz::after { content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: var(--shadow-sm); transition: transform 150ms var(--egri); }
+.anahtar input:checked + .anahtar-iz { background: var(--primary); }
+.anahtar input:checked + .anahtar-iz::after { transform: translateX(16px); }
+.anahtar input:focus-visible + .anahtar-iz { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+/* Sekmeler */
+.sekmeler { display: inline-flex; padding: 4px; gap: 4px; background: var(--surface-2); border-radius: 10px; margin-bottom: 16px; }
+.sekme { border: 0; background: transparent; min-height: 32px; padding: 4px 16px; border-radius: 6px; font-size: 14px; font-weight: 500; color: var(--text-2); cursor: pointer; transition: background-color 150ms var(--egri), color 150ms var(--egri); }
+.sekme:hover { color: var(--ink); }
+.sekme[aria-selected="true"] { background: var(--surface); color: var(--ink); box-shadow: var(--shadow-sm), inset 0 0 0 1px var(--hairline); }
+
+/* Panel: içinde satırlar olan kart */
+.panel { background: var(--surface); border: 1px solid var(--hairline); border-radius: var(--r-kart); box-shadow: var(--shadow-sm); margin-bottom: 16px; }
+.panel-ust { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 16px 20px; border-bottom: 1px solid var(--hairline); flex-wrap: wrap; }
+.panel-ust h2 { font-size: 16px; font-weight: 600; }
+.panel-ust small { color: var(--muted); font-size: 13px; }
+.panel-ic { padding: 16px 20px; }
+.satir { display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 8px 20px; border-bottom: 1px solid var(--hairline); transition: background-color 300ms var(--egri); }
+.satir:last-child { border-bottom: 0; }
+.satir.kaydedildi { background: var(--primary-soft); }
+.satir-ad { flex: 1; min-width: 0; font-size: 16px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.satir-ad small { display: block; font-size: 13px; color: var(--muted); font-weight: 400; }
+.satir-sira { width: 28px; flex-shrink: 0; text-align: right; color: var(--muted); font-size: 15px; }
+.bos-not { padding: 32px 20px; text-align: center; color: var(--muted); }
+.satir-grup { border-bottom: 1px solid var(--hairline); }
+.satir-grup:last-child { border-bottom: 0; }
+.satir-grup > .satir { border-bottom: 0; }
+[hidden] { display: none !important; }
+
+/* Yazı düğmesi ve ikon düğmesi */
+.yazi-dugme { background: none; border: 0; padding: 4px 8px; border-radius: var(--r-kucuk); font-size: 14px; font-weight: 500; color: var(--text-2); cursor: pointer; min-height: 32px; display: inline-flex; align-items: center; gap: 8px; }
+.yazi-dugme:hover { background: var(--surface-2); color: var(--ink); }
+.yazi-dugme.tehlike:hover { color: var(--danger); }
+.ikon-dugme { background: none; border: 0; width: 32px; height: 32px; border-radius: var(--r-kontrol); color: var(--muted); cursor: pointer; display: inline-grid; place-items: center; font-size: 14px; flex-shrink: 0; }
+.ikon-dugme:hover { background: var(--surface-2); color: var(--ink); }
+.ikon-dugme.tehlike:hover { color: var(--danger); }
+
+/* Satır içi form */
+.satir-form { display: flex; gap: 8px; }
+.satir-form input { flex: 1; }
+
+/* Yıldız puanı (1-5) */
+.yildizlar { display: inline-flex; gap: 2px; align-items: center; }
+.yildiz-dugme { background: none; border: 0; padding: 4px; cursor: pointer; color: var(--hairline-strong); font-size: 20px; line-height: 1; border-radius: var(--r-kucuk); transition: color 120ms var(--egri), transform 120ms var(--egri); }
+.yildiz-dugme:hover { color: var(--yildiz-kenar); }
+.yildiz-dugme:active { transform: scale(.92); }
+.yildiz-dugme.dolu, .yildiz-gosterge.dolu { color: var(--yildiz); }
+.yildiz-gosterge { color: var(--hairline-strong); font-size: 16px; }
+.yildizlar.buyuk .yildiz-dugme { font-size: 28px; padding: 4px 6px; }
+
+/* Toplam yıldız göstergesi */
+.toplam { display: inline-flex; align-items: center; gap: 8px; font-size: 20px; font-weight: 500; min-width: 64px; justify-content: flex-end; }
+.toplam .yildiz-cikartma { width: 18px; height: 18px; }
+
+/* Davranış panosu: podyum (öne çıkan an) */
+.podyum { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: end; gap: 12px; margin-bottom: 16px; }
+.podyum-sutun { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px; min-width: 0; }
+.podyum-adlar { font-size: 15px; font-weight: 500; line-height: 1.3; word-break: break-word; }
+.podyum-adlar span { display: block; }
+.podyum-basamak {
+    width: 100%; border-radius: var(--r-kart) var(--r-kart) 4px 4px;
+    background: var(--tahta); color: var(--tebesir);
+    display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 4px; padding-top: 16px;
+    border: 4px solid var(--tahta-cerceve); border-bottom-width: 0;
+}
+.podyum-basamak b { font-size: 13px; font-weight: 500; color: var(--tebesir-soluk); }
+.podyum-basamak strong { display: flex; align-items: center; gap: 8px; font-size: 28px; font-weight: 500; color: var(--tebesir); }
+.podyum-basamak strong .yildiz-cikartma { width: 22px; height: 22px; }
+.podyum-sutun.s1 .podyum-basamak { height: 132px; }
+.podyum-sutun.s2 .podyum-basamak { height: 104px; }
+.podyum-sutun.s3 .podyum-basamak { height: 84px; }
+.podyum-zemin { grid-column: 1 / -1; height: 8px; border-radius: 4px; background: var(--tahta-cerceve); opacity: .5; margin-top: -12px; }
+
+/* Satır altında açılan değerlendirme paneli */
+.acilir { border-top: 1px dashed var(--hairline-strong); background: var(--bg); padding: 8px 20px 12px 60px; }
+.acilir-satir { display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 44px; border-bottom: 1px solid var(--hairline); }
+.acilir-satir:last-child { border-bottom: 0; }
+.acilir-satir span { font-size: 15px; color: var(--text-2); }
+
+@media (min-width: 1000px) {
+    .modul-ust h1 { font-size: 32px; }
+    .satir-ad { font-size: 17px; }
+    .podyum { max-width: 720px; margin-left: auto; margin-right: auto; gap: 16px; }
+    .podyum-adlar { font-size: 17px; }
+}
+@media (max-width: 520px) {
+    .satir, .panel-ust, .panel-ic { padding-left: 16px; padding-right: 16px; }
+    .acilir { padding-left: 16px; padding-right: 16px; }
+    .podyum-basamak strong { font-size: 22px; }
+}
+
 /* ==========================================================================
    GİRİŞ SAYFASI
    ========================================================================== */

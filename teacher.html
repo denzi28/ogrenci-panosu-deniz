@@ -124,7 +124,8 @@
         import { appConfig } from './js/config.js';
 
         if (!auth.currentUser || auth.currentUser.role !== 'teacher') {
-            window.location.href = 'index.html';
+            window.location.replace('index.html');
+            throw new Error('Yetkisiz erişim, ana sayfaya yönlendiriliyor.'); // yönlendirme bitmeden modül yüklenmesin
         }
 
         const userInfoEl = document.getElementById('user-info');
@@ -162,22 +163,11 @@
         }
 
         // Eğer URL'de hash yoksa kutuları göster, varsa app.js modülü yüklesin
-        if (!window.location.hash) {
-            renderTeacherAnaSayfaKutulari();
-            // Öğretmen için arayüzü başlat ama otomatik ilk modüle atlamasını engellemek adına role 'guest' gibi davranmasını sağlayabiliriz veya initApp'i sadece hash varken çalıştırabiliriz.
-            initApp('guest'); // Misafir gibi başlatıp kutularda kalmasını sağlıyoruz
-        } else {
-            initApp('teacher');
-        }
+        if (!window.location.hash) renderTeacherAnaSayfaKutulari();
+        initApp('teacher', { otomatikYonlendirme: false });
 
         window.addEventListener('hashchange', () => {
-            const hash = window.location.hash.substring(1);
-            if (!hash) {
-                renderTeacherAnaSayfaKutulari();
-            } else {
-                // Modüle tıklandığında tam yetkili öğretmen moduna geç
-                initApp('teacher');
-            }
+            if (!window.location.hash.substring(1)) renderTeacherAnaSayfaKutulari();
         });
 
         // Tüm Modüller Modalını Açma / Kapatma

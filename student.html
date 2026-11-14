@@ -124,7 +124,8 @@
         import { appConfig } from './js/config.js';
 
         if (!auth.currentUser || auth.currentUser.role !== 'student') {
-            window.location.href = 'index.html';
+            window.location.replace('index.html');
+            throw new Error('Yetkisiz erişim, ana sayfaya yönlendiriliyor.'); // yönlendirme bitmeden modül yüklenmesin
         }
 
         const userInfoEl = document.getElementById('user-info');
@@ -161,20 +162,11 @@
             gridContainer.innerHTML = html;
         }
 
-        if (!window.location.hash) {
-            renderStudentAnaSayfaKutulari();
-            initApp('guest'); // Otomatik duyurulara atlamaması için ilk açılışta guest gibi kutularda tutuyoruz
-        } else {
-            initApp('student');
-        }
+        if (!window.location.hash) renderStudentAnaSayfaKutulari();
+        initApp('student', { otomatikYonlendirme: false });
 
         window.addEventListener('hashchange', () => {
-            const hash = window.location.hash.substring(1);
-            if (!hash) {
-                renderStudentAnaSayfaKutulari();
-            } else {
-                initApp('student');
-            }
+            if (!window.location.hash.substring(1)) renderStudentAnaSayfaKutulari();
         });
 
         // Tüm Modüller Modalını Açma / Kapatma

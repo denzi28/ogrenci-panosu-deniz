@@ -19,7 +19,7 @@ export async function render(container) {
             <div style="margin-top: 15px;">
                 <p><b>Sisteme Giriş Kullanıcı Adı:</b> ${user.username}</p>
             </div>
-            ${user.ozellik ? `<hr style="margin: 15px 0; border-top: 1px solid #eee;"><p style="color: var(--secondary);"><b>Öğretmen Notu:</b> ${user.ozellik}</p>` : ''}
+            <!-- 'ozellik' alanı öğretmene özel not / veli telefonu içerir; öğrenciye gösterilmez. -->
         </div>
 
         <div class="card" style="border-left: 4px solid var(--success);">

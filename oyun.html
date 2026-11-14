@@ -362,6 +362,8 @@
         let ekliOyunlar = [];
 
         let solSecilenOyun = null;
+        // Veritabanından gelen metni HTML'e güvenle basmak için
+        const esc = (v) => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
         let sagSecilenOyun = null;
 
         window.modSec = function(mod) {
@@ -392,11 +394,11 @@
                     return;
                 }
                 let html = '';
-                ekliOyunlar.forEach(oyun => {
+                ekliOyunlar.forEach((oyun, i) => {
                     html += `
-                        <div class="oyun-kart" onclick="tekliOyunuBaslat('${oyun.link}', '${oyun.ad}')">
-                            <div class="oyun-baslik">🎮 ${oyun.ad}</div>
-                            <div class="oyun-aciklama">${oyun.aciklama || 'Sınıf içi interaktif etkinlik oyunu.'}</div>
+                        <div class="oyun-kart" onclick="tekliOyunuBaslat(${i})">
+                            <div class="oyun-baslik">🎮 ${esc(oyun.ad)}</div>
+                            <div class="oyun-aciklama">${esc(oyun.aciklama || 'Sınıf içi interaktif etkinlik oyunu.')}</div>
                             <div class="oyun-baslat-btn">Oyunu Aç 🚀</div>
                         </div>
                     `;
@@ -421,15 +423,15 @@
                 let solHtml = '';
                 let sagHtml = '';
 
-                ekliOyunlar.forEach(oyun => {
+                ekliOyunlar.forEach((oyun, i) => {
                     solHtml += `
-                        <div class="ciftli-secim-item" data-id="${oyun.id}" onclick="solOyunSec('${oyun.id}', '${oyun.ad}', '${oyun.link}')" style="padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; cursor: pointer; background: #f8fafc; transition: 0.2s;">
-                            <strong>🎮 ${oyun.ad}</strong>
+                        <div class="ciftli-secim-item" data-id="${esc(oyun.id)}" onclick="solOyunSec(${i})" style="padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; cursor: pointer; background: #f8fafc; transition: 0.2s;">
+                            <strong>🎮 ${esc(oyun.ad)}</strong>
                         </div>
                     `;
                     sagHtml += `
-                        <div class="ciftli-secim-item-sag" data-id="${oyun.id}" onclick="sagOyunSec('${oyun.id}', '${oyun.ad}', '${oyun.link}')" style="padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; cursor: pointer; background: #f8fafc; transition: 0.2s;">
-                            <strong>🎮 ${oyun.ad}</strong>
+                        <div class="ciftli-secim-item-sag" data-id="${esc(oyun.id)}" onclick="sagOyunSec(${i})" style="padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; cursor: pointer; background: #f8fafc; transition: 0.2s;">
+                            <strong>🎮 ${esc(oyun.ad)}</strong>
                         </div>
                     `;
                 });
@@ -442,9 +444,10 @@
             }
         }
 
-        window.solOyunSec = function(id, ad, link) {
+        window.solOyunSec = function(i) {
+            const { id, ad, link } = ekliOyunlar[i];
             solSecilenOyun = { id, ad, link };
-            document.getElementById('sol-secilen-bilgi').innerHTML = `Seçilen: 🎮 ${ad}`;
+            document.getElementById('sol-secilen-bilgi').textContent = `Seçilen: 🎮 ${ad}`;
             document.querySelectorAll('.ciftli-secim-item').forEach(el => {
                 el.style.background = el.getAttribute('data-id') === id ? '#dbeafe' : '#f8fafc';
                 el.style.borderColor = el.getAttribute('data-id') === id ? '#3b82f6' : '#cbd5e1';
@@ -452,9 +455,10 @@
             ciftliKontrolEt();
         };
 
-        window.sagOyunSec = function(id, ad, link) {
+        window.sagOyunSec = function(i) {
+            const { id, ad, link } = ekliOyunlar[i];
             sagSecilenOyun = { id, ad, link };
-            document.getElementById('sag-secilen-bilgi').innerHTML = `Seçilen: 🎮 ${ad}`;
+            document.getElementById('sag-secilen-bilgi').textContent = `Seçilen: 🎮 ${ad}`;
             document.querySelectorAll('.ciftli-secim-item-sag').forEach(el => {
                 el.style.background = el.getAttribute('data-id') === id ? '#d1fae5' : '#f8fafc';
                 el.style.borderColor = el.getAttribute('data-id') === id ? '#10b981' : '#cbd5e1';
@@ -477,8 +481,8 @@
             document.getElementById('ciftli-secim-ekrani').style.display = 'none';
             document.getElementById('baslik-metin').innerHTML = `⚔️ Çiftli Savaş Ekranı`;
 
-            document.getElementById('sol-baslik-etiketi').innerHTML = `🔵 Sol: ${solSecilenOyun.ad}`;
-            document.getElementById('sag-baslik-etiketi').innerHTML = `🟢 Sağ: ${sagSecilenOyun.ad}`;
+            document.getElementById('sol-baslik-etiketi').textContent = `🔵 Sol: ${solSecilenOyun.ad}`;
+            document.getElementById('sag-baslik-etiketi').textContent = `🟢 Sağ: ${sagSecilenOyun.ad}`;
 
             document.getElementById('ciftli-sol-iframe').src = solSecilenOyun.link;
             document.getElementById('ciftli-sag-iframe').src = sagSecilenOyun.link;
@@ -501,9 +505,10 @@
             }
         };
 
-        window.tekliOyunuBaslat = function(link, ad) {
+        window.tekliOyunuBaslat = function(i) {
+            const { link, ad } = ekliOyunlar[i];
             document.getElementById('oyun-liste-ekrani').style.display = 'none';
-            document.getElementById('baslik-metin').innerHTML = `🎮 ${ad} (Tekli Ekran)`;
+            document.getElementById('baslik-metin').textContent = `🎮 ${ad} (Tekli Ekran)`;
             document.getElementById('tekli-iframe').src = link;
             document.getElementById('tekli-oyun-alani').style.display = 'flex';
         };

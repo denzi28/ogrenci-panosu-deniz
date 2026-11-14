@@ -2,8 +2,12 @@ import { appConfig } from './config.js';
 import { db } from './db.js';
 
 let currentRole = 'guest';
+let dinleyicilerEklendi = false;
 
-export async function initApp(role) {
+// initApp sayfa başına BİR KEZ çağrılmalı. Dinleyiciler de yalnızca bir kez eklenir;
+// aksi halde her sayfa geçişinde modül N kez üst üste yükleniyordu.
+// otomatikYonlendirme=false: adres çubuğunda modül yoksa ilk modüle atlama, ana sayfa kutularında kal.
+export async function initApp(role, { otomatikYonlendirme = true } = {}) {
     // --- 1 HAFTALIK "BENİ HATIRLA" KONTROLÜ ---
     const HAFTA_MILISANIYE = 7 * 24 * 60 * 60 * 1000; // 7 günün milisaniye karşılığı
     const simdi = Date.now();
@@ -28,14 +32,14 @@ export async function initApp(role) {
     // ------------------------------------------
 
     await renderMenu();
-    setupMobileMenu();
+    if (!dinleyicilerEklendi) setupMobileMenu();
 
     const hash = window.location.hash.substring(1);
     if (hash) {
         loadModule(hash);
     } else {
         // Eğer kullanıcı misafir (guest) değilse ilk modüle yönlendir, misafirse ana sayfa kutularında bırak
-        if (role !== 'guest') {
+        if (role !== 'guest' && otomatikYonlendirme) {
             const firstMenuItem = document.querySelector('.menu-item');
             if (firstMenuItem) {
                 const defaultModule = firstMenuItem.getAttribute('data-module');
@@ -45,6 +49,8 @@ export async function initApp(role) {
         }
     }
 
+    if (dinleyicilerEklendi) return;
+    dinleyicilerEklendi = true;
     window.addEventListener('hashchange', () => {
         const targetModule = window.location.hash.substring(1);
         if (targetModule) {
@@ -119,8 +125,23 @@ async function loadModule(moduleId) {
         document.head.appendChild(link);
     }
 
+    let module;
     try {
-        const module = await import(`../modules/${moduleId}/${currentRole}.js`);
+        module = await import(`../modules/${moduleId}/${currentRole}.js`);
+    } catch (err) {
+        console.error("Modül bulunamadı:", err);
+        module = null;
+    }
+
+    if (!module) {
+        container.innerHTML = `<div class="card" style="border-left:4px solid red;">
+            <h3>Sayfa Bulunamadı</h3><p>Ulaşmaya çalıştığınız (<b>${moduleId}</b>) sayfası şu an aktif değil veya yetkiniz yok.</p>
+            <button onclick="window.history.back()" style="padding: 8px 15px; margin-top: 10px; cursor: pointer; border-radius: 5px;">Geri Dön</button>
+            </div>`;
+        return;
+    }
+
+    try {
         if (module.render) {
             await module.render(container);
         } else {
@@ -128,10 +149,12 @@ async function loadModule(moduleId) {
                 <h3>Eksik Fonksiyon</h3><p><b>${currentRole}.js</b> dosyası var ancak <code>render</code> fonksiyonu yok.</p></div>`;
         }
     } catch (err) {
-        console.error("Modül yükleme hatası:", err);
-        container.innerHTML = `<div class="card" style="border-left:4px solid red;">
-            <h3>Sayfa Bulunamadı</h3><p>Ulaşmaya çalıştığınız (<b>${moduleId}</b>) sayfası şu an aktif değil veya yetkiniz yok.</p>
-            <button onclick="window.history.back()" style="padding: 8px 15px; margin-top: 10px; cursor: pointer; border-radius: 5px;">Geri Dön</button>
+        console.error("Modül çalışırken hata:", err);
+        const internetYok = !navigator.onLine;
+        container.innerHTML = `<div class="card" style="border-left:4px solid orange;">
+            <h3>${internetYok ? '📡 İnternet bağlantısı yok' : '⚠️ Veriler yüklenemedi'}</h3>
+            <p>${internetYok ? 'Bağlantınızı kontrol edip tekrar deneyin.' : 'Sunucuya ulaşılamadı veya beklenmeyen bir hata oluştu. Lütfen biraz sonra tekrar deneyin.'}</p>
+            <button onclick="location.reload()" style="padding: 8px 15px; margin-top: 10px; cursor: pointer; border-radius: 5px;">Tekrar Dene</button>
             </div>`;
     }
 }

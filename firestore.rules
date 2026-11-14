@@ -1,0 +1,84 @@
+rules_version = '2';
+
+// SINIF PANOSU — VERİTABANI ERİŞİM KURALLARI
+// Firebase Console > Firestore Database > Rules sekmesine bu dosyanın tamamı yapıştırılıp "Publish" edilir.
+//
+// Özet:
+//  - Misafir (veli): duyuru/etkinliklerin "herkese açık" olanlarını, panoları ve öğrenci adlarını görebilir. Hiçbir şey yazamaz.
+//  - Öğrenci: kendi gizli bilgisini (TC, EBA şifresi) görür, kendi şifresini ve kendi oyun puanını yazabilir.
+//  - Öğretmen: her şeyi görür ve yönetir.
+//  - TC, şifreler, EBA şifreleri, öğretmen notları (users_gizli) başkasına asla gösterilmez.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function rolKaydi() {
+      return get(/databases/$(database)/documents/roller/$(request.auth.uid)).data;
+    }
+    // Firebase'e giriş yapmış VE sınıfa kayıtlı (rolü olan) kullanıcı.
+    // Rolü olmayan, dışarıdan açılmış hesaplar hiçbir yetki kazanmaz.
+    function uye() {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/roller/$(request.auth.uid));
+    }
+    function ogretmen() {
+      return uye() && rolKaydi().role == 'teacher';
+    }
+    function benim(userId) {
+      return uye() && rolKaydi().userId == userId;
+    }
+    // İlk kurulum: kurucu öğretmen hesabı ("ogretmen" kullanıcı adı) kendi öğretmen rolünü bir kez oluşturabilir.
+    function kurucu() {
+      return request.auth != null
+        && request.auth.token.email == 'k6f677265746d656e@sinifpanosu.app';
+    }
+
+    // Hangi giriş hesabı hangi kişi, rolü ne
+    match /roller/{uid} {
+      allow read: if (request.auth != null && request.auth.uid == uid) || ogretmen();
+      allow create: if ogretmen()
+        || (kurucu() && uid == request.auth.uid && request.resource.data.role == 'teacher');
+      allow update, delete: if ogretmen();
+    }
+
+    // Herkese açık kişi bilgisi: ad, okul no, rol
+    match /users/{id} {
+      allow read: if true;
+      allow write: if ogretmen();
+    }
+
+    // Gizli kişi bilgisi: TC, kullanıcı adı, şifre, EBA şifresi, öğretmen notu
+    match /users_gizli/{id} {
+      allow read: if ogretmen() || benim(id);
+      allow create, delete: if ogretmen();
+      allow update: if ogretmen()
+        || (benim(id) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['password']));
+    }
+
+    // Duyuru ve etkinlikler: misafir sadece "herkese açık" işaretli olanları görür
+    match /duyurular/{id} {
+      allow read: if uye() || resource.data.visibleToGuest == true;
+      allow write: if ogretmen();
+    }
+    match /etkinlikler/{id} {
+      allow read: if uye() || resource.data.visibleToGuest == true;
+      allow write: if ogretmen();
+    }
+
+    // Oyun puanları: öğrenci sadece KENDİ puanını yazabilir
+    match /uygulama_matrisi/{id} {
+      allow read: if true;
+      allow create, update: if ogretmen()
+        || (benim(request.resource.data.ogrId)
+            && id == request.resource.data.ogrId + '_' + request.resource.data.targetId);
+      allow delete: if ogretmen();
+    }
+
+    // Diğer tüm sınıf içerikleri (davranış, kitap, rozet, ihtiyaç, beslenme, ders programı, ayarlar...):
+    // herkes okuyabilir, sadece öğretmen değiştirebilir.
+    // (Yukarıdaki özel tablolar burada hariç tutulur; Firestore'da kurallardan biri izin verirse erişim açılır.)
+    match /{tablo}/{id} {
+      allow read: if !(tablo in ['roller', 'users_gizli', 'duyurular', 'etkinlikler']);
+      allow write: if ogretmen() && !(tablo in ['roller', 'users_gizli']);
+    }
+  }
+}

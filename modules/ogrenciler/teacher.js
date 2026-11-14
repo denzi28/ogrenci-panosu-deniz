@@ -124,18 +124,22 @@ export async function render(container) {
                 continue;
             }
 
-            await db.add('users', {
-                name: ad,
-                tcno: tcno,
-                okulno: okulno,
-                username: kullanici,
-                password: sifre,
-                ozellik: '',
-                role: 'student'
-            });
-
-            mevcutKullanicilar.push({ username: kullanici });
-            basariliAdet++;
+            try {
+                await db.add('users', {
+                    name: ad,
+                    tcno: tcno,
+                    okulno: okulno,
+                    username: kullanici,
+                    password: sifre,
+                    ozellik: '',
+                    role: 'student'
+                });
+                mevcutKullanicilar.push({ username: kullanici });
+                basariliAdet++;
+            } catch (err) {
+                console.error(`${kullanici} eklenemedi:`, err);
+                hataliAdet++;
+            }
         }
 
         document.getElementById('bulk-input').value = '';
@@ -163,17 +167,23 @@ export async function render(container) {
 
         const yeniVeri = { name: ad, tcno: tcno, okulno: okulno, username: kullanici, password: sifre, ozellik: ozellik };
 
-        if (id) {
-            await db.update('users', id, yeniVeri);
-            alert("Öğrenci bilgileri güncellendi.");
-        } else {
-            const mevcutKullanicilar = await db.getAll('users');
-            if(mevcutKullanicilar.find(u => u.username === kullanici)) {
-                btn.disabled = false; btn.innerText = "Öğrenciyi Kaydet";
-                return alert("Bu kullanıcı adı zaten kullanılıyor. Lütfen farklı bir tane seçin.");
+        try {
+            if (id) {
+                await db.update('users', id, yeniVeri);
+                alert("Öğrenci bilgileri güncellendi.");
+            } else {
+                const mevcutKullanicilar = await db.getAll('users');
+                if(mevcutKullanicilar.find(u => u.username === kullanici)) {
+                    btn.disabled = false; btn.innerText = "Öğrenciyi Kaydet";
+                    return alert("Bu kullanıcı adı zaten kullanılıyor. Lütfen farklı bir tane seçin.");
+                }
+                yeniVeri.role = 'student';
+                await db.add('users', yeniVeri);
             }
-            yeniVeri.role = 'student';
-            await db.add('users', yeniVeri);
+        } catch (err) {
+            console.error(err);
+            btn.disabled = false; btn.innerText = "Öğrenciyi Kaydet";
+            return alert("Kaydedilemedi: " + (err.message || 'bilinmeyen hata'));
         }
         
         formuTemizle();
@@ -340,7 +350,8 @@ async function listeyiGuncelle() {
         btn.addEventListener('click', async (e) => {
             if(confirm("Silmek istediğinize emin misiniz?")) {
                 e.target.innerText = "...";
-                await db.delete('users', e.target.getAttribute('data-id'));
+                try { await db.delete('users', e.target.getAttribute('data-id')); }
+                catch (err) { alert("Silinemedi: " + (err.message || 'bilinmeyen hata')); }
                 await listeyiGuncelle();
             }
         });

@@ -1,49 +1,67 @@
-import { db } from './db.js';
+// Giriş / çıkış. Şifre kontrolü artık tarayıcıda değil, Firebase Authentication'da yapılır.
+// Tarayıcıda (localStorage) sadece ekranda göstermek için ad, rol ve kayıt numarası tutulur; şifre tutulmaz.
+// Asıl yetki kontrolü veritabanı kurallarındadır (firestore.rules), localStorage'ı değiştirmek yetki kazandırmaz.
+import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { firestore, firebaseAuth } from './firebase.js';
+import { kullaniciEpostasi, firebaseSifresi } from './hesaplar.js';
+
+const PANEL_SAYFALARI = ['teacher.html', 'student.html'];
 
 class Auth {
     constructor() {
-        this.currentUser = JSON.parse(localStorage.getItem('currentUser')) || null;
-        this.initDefaultTeacher();
-    }
+        try { this.currentUser = JSON.parse(localStorage.getItem('currentUser')) || null; }
+        catch { this.currentUser = null; }
 
-    async initDefaultTeacher() {
-        try {
-            const users = await db.getAll('users');
-            if (!users.find(u => u.role === 'teacher')) {
-                await db.add('users', { name: 'Sınıf Öğretmeni', username: 'ogretmen', password: 'r123', role: 'teacher' });
-                console.log("Varsayılan öğretmen hesabı oluşturuldu.");
+        // Firebase oturumu düşmüşse (çıkış yapılmış, şifre değişmiş vb.) eski ekran bilgisini de temizle.
+        onAuthStateChanged(firebaseAuth, (fbKullanici) => {
+            if (!fbKullanici && this.currentUser) {
+                this._yerelTemizle();
+                const sayfa = location.pathname.split('/').pop();
+                if (PANEL_SAYFALARI.includes(sayfa)) location.replace('login.html');
             }
-        } catch (error) {
-            console.error("Öğretmen kontrolü sırasında hata oluştu:", error);
-        }
+        });
     }
 
     async login(username, password) {
+        let kimlik;
         try {
-            const users = await db.getAll('users');
-            const user = users.find(u => u.username === username && u.password === password);
-            
-            if (user) {
-                this.currentUser = user;
-                localStorage.setItem('currentUser', JSON.stringify(user));
-                
-                // EKSİK OLAN PARÇA: Giriş yapıldığı anın tarihini mühürlüyoruz
-                localStorage.setItem('sonGirisTarihi', Date.now().toString());
-                
-                window.location.href = user.role === 'teacher' ? 'teacher.html' : 'student.html';
-                return true;
-            }
-            return false;
+            kimlik = await signInWithEmailAndPassword(firebaseAuth, kullaniciEpostasi(username), firebaseSifresi(password));
         } catch (error) {
-            console.error("Giriş işlemi sırasında hata:", error);
+            if (!String(error.code).includes('invalid-credential')) console.error("Giriş hatası:", error);
+            return false;
+        }
+
+        try {
+            const rolSnap = await getDoc(doc(firestore, 'roller', kimlik.user.uid));
+            if (!rolSnap.exists()) { await signOut(firebaseAuth); return false; }
+            const { role, userId } = rolSnap.data();
+            const kayitSnap = await getDoc(doc(firestore, 'users', userId));
+            const kayit = kayitSnap.exists() ? kayitSnap.data() : {};
+
+            const user = { id: userId, name: kayit.name || username, okulno: kayit.okulno || '', role, username };
+            this.currentUser = user;
+            localStorage.setItem('currentUser', JSON.stringify(user));
+            localStorage.setItem('sonGirisTarihi', Date.now().toString());
+
+            window.location.href = role === 'teacher' ? 'teacher.html' : 'student.html';
+            return true;
+        } catch (error) {
+            console.error("Giriş sonrası bilgiler okunamadı:", error);
+            await signOut(firebaseAuth).catch(() => {});
             return false;
         }
     }
 
-    logout() {
+    _yerelTemizle() {
         this.currentUser = null;
         localStorage.removeItem('currentUser');
-        localStorage.removeItem('sonGirisTarihi'); // Çıkış yapınca tarihi de temizle
+        localStorage.removeItem('sonGirisTarihi');
+    }
+
+    async logout() {
+        await signOut(firebaseAuth).catch(() => {});
+        this._yerelTemizle();
         window.location.href = 'index.html';
     }
 }

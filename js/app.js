@@ -16,10 +16,9 @@ export async function initApp(role, { otomatikYonlendirme = true } = {}) {
     // Eğer sisteme giriş yapılmışsa (misafir değilse) süreyi ölç
     if (role !== 'guest' && localStorage.getItem('currentUser')) {
         if (sonGiris && (simdi - parseInt(sonGiris) > HAFTA_MILISANIYE)) {
-            // 1 haftadan fazla zaman geçmiş -> Bilgileri sil, oturumu kapat
-            localStorage.removeItem('currentUser');
-            localStorage.removeItem('sonGirisTarihi');
-            window.location.reload(); // Sayfayı yenileyerek giriş ekranına atar
+            // 1 haftadan fazla zaman geçmiş -> Firebase oturumunu da kapat
+            const { auth } = await import('./auth.js');
+            await auth.logout();
             return;
         } else {
             // 1 hafta dolmamış -> Siteye tekrar girdiği için süreyi bugünden itibaren 1 hafta daha uzat

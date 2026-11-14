@@ -65,11 +65,8 @@ export async function render(container) {
             // 1. Buluttaki (Firebase) veriyi güncelle
             await db.update('users', user.id, { password: yeniSifre });
             
-            // 2. Mevcut tarayıcıdaki oturum bilgilerini (auth objesi ve localStorage) güncelle
-            // Bu sayede sayfa yenilendiğinde eski şifresiyle oturumdan atılmaz
+            // Giriş hesabının şifresi de db.update içinde Firebase'de güncellendi; oturum açık kalır.
             user.password = yeniSifre;
-            auth.currentUser = user;
-            localStorage.setItem('currentUser', JSON.stringify(user));
 
             mesajAlani.style.color = 'var(--success)';
             mesajAlani.innerText = "Şifreniz başarıyla güncellendi! ✔";
@@ -85,7 +82,7 @@ export async function render(container) {
 
         } catch (error) {
             mesajAlani.style.color = 'var(--danger)';
-            mesajAlani.innerText = "Şifre güncellenirken sistemsel bir hata oluştu.";
+            mesajAlani.innerText = error?.message?.match(/[ğüşıöçĞÜŞİÖÇ]/) ? error.message : "Şifre güncellenirken sistemsel bir hata oluştu.";
             console.error(error);
         } finally {
             btn.disabled = false;

@@ -63,3 +63,19 @@ export function girisOynat(kapsayici) {
     clearTimeout(kapsayici._girisZaman);
     kapsayici._girisZaman = setTimeout(() => kapsayici.classList.remove('giris'), 900);
 }
+
+// Kısa bildirim: ekranın altında birkaç saniye görünür (ör. "Ada, Kitap Dostu rozetini kazandı")
+export function bildirim(html, { sure = 4000, yildiz = true } = {}) {
+    let kap = document.getElementById('bildirimler');
+    if (!kap) {
+        kap = Object.assign(document.createElement('div'), { id: 'bildirimler' });
+        kap.setAttribute('aria-live', 'polite');
+        document.body.appendChild(kap);
+    }
+    const b = document.createElement('div');
+    b.className = 'bildirim';
+    b.innerHTML = `${yildiz ? '<span class="yildiz-cikartma" aria-hidden="true"></span>' : ''}<span>${html}</span>`;
+    kap.appendChild(b);
+    if (yildiz) requestAnimationFrame(() => kutla(b.querySelector('.yildiz-cikartma')));
+    setTimeout(() => { b.classList.add('gidiyor'); setTimeout(() => b.remove(), hareketAz() ? 0 : 250); }, sure);
+}

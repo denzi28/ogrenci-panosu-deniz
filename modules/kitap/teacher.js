@@ -3,7 +3,8 @@
 // Kitaplık: kitap ekle (tek ya da toplu), düzenle, sil; en az okuma süresi kuralı.
 import { db } from '../../js/db.js';
 import { esc, sayi, modulBasligi, gorunurlukAnahtari, baglaGorunurlukAnahtari, sekmeler, baglaSekmeler, kaydedildiIsareti, yazdir } from '../../js/arayuz.js';
-import { sayiSay } from '../../js/hareket.js';
+import { sayiSay, bildirim } from '../../js/hareket.js';
+import { kitapRozetleriniVer } from '../rozetler/ortak.js';
 import { verileriGetir, durumHaritasi, durumAl, ogrenciOzeti, kitapOzeti, kitapAdiHtml, kitapAdiDuz, numarasiVar, sureMetni, gunFarki, SIRALAMALAR, OKUYOR, OKUDU, NUMARASIZ } from './ortak.js';
 
 let siralamaTuru = 'ad';
@@ -287,7 +288,18 @@ async function okumaBitir(ogrId, kitapId, deger) {
         await durumYaz(ogrId, kitapId, deger);
         sayilariCiz(); ogrencileriCiz(); kitapligiCiz();
         kaydedildiIsareti(kok.querySelector(`.ogr-satir[data-ogr="${CSS.escape(ogrId)}"]`));
-    } catch (e) { alert('Kaydedilemedi. İnternet bağlantınızı kontrol edin'); }
+    } catch (e) { alert('Kaydedilemedi. İnternet bağlantınızı kontrol edin'); return; }
+    if (deger === OKUDU) kitapRozetiKontrol(ogrId);
+}
+
+// Okuduğu kitap sayısı bir rozetin hedefine ulaştıysa rozeti kendiliğinden ver
+async function kitapRozetiKontrol(ogrId) {
+    const o = veri.ogrenciler.find(x => x.id === ogrId);
+    if (!o) return;
+    try {
+        const verilen = await kitapRozetleriniVer(ogrId, ogrenciOzeti(o, veri.kalemler, h).okunan.length);
+        verilen.forEach(r => bildirim(`${esc(o.name)} <b>${esc(r.ad)}</b> rozetini kazandı`));
+    } catch (e) { console.warn('Kitap rozeti verilemedi:', e); }
 }
 
 async function durumDegistir(dugme) {
@@ -297,7 +309,8 @@ async function durumDegistir(dugme) {
     const yeni = simdiki === '' ? OKUYOR : simdiki === OKUYOR ? OKUDU : '';
     dugme.disabled = true;
     try { await durumYaz(detayOgr.id, kitapId, yeni); detayCiz(); }
-    catch (e) { alert('Kaydedilemedi. İnternet bağlantınızı kontrol edin'); dugme.disabled = false; }
+    catch (e) { alert('Kaydedilemedi. İnternet bağlantınızı kontrol edin'); dugme.disabled = false; return; }
+    if (yeni === OKUDU) kitapRozetiKontrol(detayOgr.id);
 }
 
 function numaraAyir(satir) {

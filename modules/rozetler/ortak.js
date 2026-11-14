@@ -175,3 +175,27 @@ export function rozetGorseli(r, boyut = 48, kilitli = false) {
         style="--b:${boyut}px;${radius}background:linear-gradient(145deg, ${esc(c1)}, ${esc(c2)})">
         <span class="madalya-ikon${r.altYazi ? ' yazili' : ''}">${esc(ikon)}</span>${yazi}</span>`;
 }
+
+// ------------------------------------------------------------------ KİTAP ROZETLERİ (otomatik)
+// Rozette kitapHedefi (ör. 20) varsa, öğrenci o kadar kitabı bitirince rozet kendiliğinden verilir.
+export const kitapHedefi = (r) => { const n = parseInt(r?.kitapHedefi); return n > 0 ? n : null; };
+
+// Hedefi olmayan eski rozetlerde "20 kitap", "50 KİTAP" gibi yazılardan hedef tahmini
+export function kitapHedefiTahmini(r) {
+    const metin = [r.altYazi, r.ad, r.aciklama].filter(Boolean).join(' ').toLocaleLowerCase('tr-TR');
+    const m = /(\d{1,3})\s*(?:\.\s*)?(?:kitap|kitab)/.exec(metin);
+    return m && +m[1] > 0 ? +m[1] : null;
+}
+
+// Öğrencinin okuduğu kitap sayısına göre hak ettiği ama henüz almadığı kitap rozetlerini verir.
+// rozetler/matris verilmezse veritabanından okunur. Verilen rozetlerin listesini döndürür.
+export async function kitapRozetleriniVer(ogrId, okunanSayisi, { rozetler = null, matris = null } = {}) {
+    rozetler = rozetler || await db.getAll('rozetler_kalemleri');
+    const hedefli = rozetler.filter(r => kitapHedefi(r) && okunanSayisi >= kitapHedefi(r));
+    if (!hedefli.length) return [];
+    matris = matris || await db.getAll('rozet_matrisi');
+    const sahip = sahiplik(matris);
+    const verilecek = hedefli.filter(r => !sahipMi(sahip, ogrId, r.id));
+    for (const r of verilecek) await db.saveMatrixStatus('rozet_matrisi', String(ogrId), String(r.id), VERILDI);
+    return verilecek;
+}

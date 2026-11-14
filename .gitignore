@@ -2,3 +2,7 @@
 __MACOSX/
 *.log
 node_modules/
+
+# Gercek ogrenci verisi iceren yedekler ASLA repoya girmesin
+Sinif_Akilli_Yedek_*.json
+*yedek*.json

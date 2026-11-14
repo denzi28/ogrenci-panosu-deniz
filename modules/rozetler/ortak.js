@@ -84,6 +84,35 @@ export const HAZIR_ROZETLER = [
     { dosya: 'genc-sair', ad: 'Genç şair', kategori: 'yaraticilik', aciklama: 'Güzel bir şiir yazdı' },
 ].map(h => ({ ...h, resim: `assets/rozetler/${h.dosya}.webp` }));
 
+// Eski (emojili) rozetler için görsel önerisi: önce aynı ad, sonra addaki anahtar kelime, sonra emoji.
+const kucuk = (t) => String(t || '').toLocaleLowerCase('tr-TR').trim();
+const ANAHTAR_KELIMELER = [
+    ['hazırlık', 'duzenli'], ['ödev', 'odev-yildizi'], ['ezber', 'hizli-ogrenen'], ['iyilik', 'yardimsever'],
+    ['yardım', 'yardimsever'], ['arkadaş', 'iyi-arkadas'], ['parlayan', 'haftanin-yildizi'], ['tören', 'sinif-yardimcisi'],
+    ['düzen', 'sinif-yardimcisi'], ['takım', 'takim-oyuncusu'], ['kitap', 'kitap-dostu'], ['matematik', 'matematik-ustasi'],
+    ['temizlik', 'temizlik-kahramani'], ['saygı', 'saygili'], ['dürüst', 'durust'], ['sabır', 'sabirli'], ['resim', 'sanatci'],
+    ['müzik', 'muzisyen'], ['spor', 'sporcu'], ['şiir', 'genc-sair'], ['okuma', 'sesli-okuma'], ['yıldız', 'haftanin-yildizi'],
+];
+const EMOJILER = {
+    '📚': 'kitap-kurdu', '🧮': 'matematik-ustasi', '🤝': 'saygili', '⭐': 'haftanin-yildizi', '🏆': 'sampiyon', '🎨': 'sanatci',
+    '🔍': 'fen-kasifi', '⏰': 'dakik', '🎒': 'duzenli', '👥': 'takim-oyuncusu', '💡': 'harika-soru', '✏️': 'genc-yazar',
+    '🥇': 'basari-madalyasi', '❤️': 'yardimsever', '🚀': 'super-caba', '🎯': 'hedefe-ulasti', '👑': 'sinif-lideri',
+    '🎓': 'hizli-ogrenen', '🌱': 'gelisiyor', '🧹': 'temizlik-kahramani',
+};
+// Özel günler gibi karşılığı olmayan rozetlere öneri yapılmaz
+const ONERILMEZ = ['bayram', 'cumhuriyet', '23 nisan', '19 mayıs', '30 ağustos', 'atatürk'];
+
+export function onerilenGorsel(r) {
+    const ad = kucuk(r.ad);
+    if (ONERILMEZ.some(k => ad.includes(k))) return null;
+    const ayni = HAZIR_ROZETLER.find(h => kucuk(h.ad) === ad);
+    if (ayni) return ayni;
+    const kelime = ANAHTAR_KELIMELER.find(([k]) => ad.includes(k));
+    if (kelime) return HAZIR_ROZETLER.find(h => h.dosya === kelime[1]) || null;
+    const emoji = EMOJILER[r.icon];
+    return emoji ? HAZIR_ROZETLER.find(h => h.dosya === emoji) || null : null;
+}
+
 export const IKONLAR = ['⭐', '🏆', '🥇', '📚', '✏️', '💡', '🎯', '🚀', '🎨', '🔍', '🤝', '👥', '❤️', '⏰', '🎒', '🎓', '👑', '🌱', '🧹', '🧮'];
 
 export async function verileriGetir() {

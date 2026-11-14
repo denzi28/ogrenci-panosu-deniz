@@ -3,7 +3,7 @@
 import { db } from '../../js/db.js';
 import { esc, sayi, modulBasligi, gorunurlukAnahtari, baglaGorunurlukAnahtari, sekmeler, baglaSekmeler, kaydedildiIsareti } from '../../js/arayuz.js';
 import { oynat, kutla } from '../../js/hareket.js';
-import { verileriGetir, sahiplik, sahipMi, kategoriyeGore, kategoriAl, rozetGorseli, KATEGORILER, SEKILLER, IKONLAR, HAZIR_ROZETLER, VERILDI } from './ortak.js';
+import { verileriGetir, sahiplik, sahipMi, kategoriyeGore, kategoriAl, rozetGorseli, KATEGORILER, SEKILLER, IKONLAR, HAZIR_ROZETLER, VERILDI, onerilenGorsel } from './ortak.js';
 
 let siralamaTuru = 'ad';
 let veri, sahip, kok;
@@ -73,6 +73,7 @@ function ogrencileriCiz() {
 function katalogCiz() {
     const alan = document.getElementById('view-r-katalog');
     alan.innerHTML = `
+        ${eskiRozetPaneli()}
         <section class="panel" id="studyo-panel">
             <div class="panel-ust"><h2>${duzenlenen ? 'Rozeti düzenle' : 'Yeni rozet'}</h2>${duzenlenen ? '<small>Kaydedince rozeti kazanmış öğrencilerde de güncellenir</small>' : ''}</div>
             <form class="studyo" id="form-rozet">
@@ -157,6 +158,54 @@ function onizlemeGuncelle() {
     f.querySelectorAll('[data-ikon]').forEach(b => b.setAttribute('aria-pressed', b.dataset.ikon === tasarim.icon));
 }
 
+
+// ------------------------------------------------------------------ ESKİ ROZETLERİ YENİ GÖRSELLERE GEÇİR
+// Rozeti kazanan öğrenciler rozetin kimliğine bağlı olduğu için görsel değişince herkeste değişir.
+const gorselSecenekleri = (secili) => `<option value="">Değiştirme</option>` + Object.entries(KATEGORILER).map(([kat, k]) =>
+    `<optgroup label="${k.ad}">${HAZIR_ROZETLER.filter(h => h.kategori === kat).map(h => `<option value="${h.resim}" ${h.resim === secili ? 'selected' : ''}>${esc(h.ad)}</option>`).join('')}</optgroup>`).join('');
+
+function eskiRozetPaneli() {
+    const eskiler = veri.rozetler.filter(r => !r.resim);
+    if (!eskiler.length) return '';
+    return `
+        <section class="panel" id="eski-rozetler">
+            <div class="panel-ust">
+                <div><h2>Eski rozetleri yeni görsellere geçir</h2>
+                    <small>${sayi(eskiler.length)} rozet hâlâ emojili. Ad, açıklama, üstteki yazı ve rozeti kazanan öğrenciler aynen kalır</small></div>
+                <button class="btn btn-primary btn-kucuk" data-islem="gorsel-hepsi">Seçilenlerin hepsini uygula</button>
+            </div>
+            ${eskiler.map(r => {
+                const oneri = onerilenGorsel(r);
+                return `
+                <div class="satir" data-eski="${esc(r.id)}" style="flex-wrap:wrap">
+                    ${rozetGorseli(r, 40)}
+                    <i class="fas fa-arrow-right" style="color:var(--muted);font-size:12px" aria-hidden="true"></i>
+                    <span class="gorsel-onizleme">${oneri ? rozetGorseli({ ...r, resim: oneri.resim }, 40) : '<span class="madalya" style="--b:40px;border-radius:50%;background:var(--surface-2);box-shadow:none;border:1px dashed var(--hairline-strong)"></span>'}</span>
+                    <span class="satir-ad" style="white-space:normal">${esc(r.ad)}<small>${oneri ? 'Önerilen görsel' : 'Uygun görsel bulunamadı, isterseniz listeden seçin'}</small></span>
+                    <select class="gorsel-sec" aria-label="${esc(r.ad)} için görsel" style="width:auto;max-width:220px;min-height:32px;padding:4px 8px">${gorselSecenekleri(oneri?.resim)}</select>
+                    <button class="btn btn-secondary btn-kucuk" data-islem="gorsel-uygula" data-rozet="${esc(r.id)}">Uygula</button>
+                </div>`;
+            }).join('')}
+        </section>`;
+}
+
+async function gorselleriUygula(idler) {
+    const isler = idler.map(id => {
+        const sec = kok.querySelector(`[data-eski="${CSS.escape(id)}"] .gorsel-sec`)?.value;
+        return sec ? { id, resim: sec } : null;
+    }).filter(Boolean);
+    if (!isler.length) return alert('Uygulanacak görsel seçilmedi');
+    try {
+        for (const is of isler) await db.update('rozetler_kalemleri', is.id, { resim: is.resim });
+        await yenile(); ogrencileriCiz(); katalogCiz();
+        // Güncellenen rozetler katalogda kısa bir damga hareketiyle görünsün
+        isler.forEach(is => {
+            const r = veri.rozetler.find(x => x.id === is.id);
+            kok.querySelectorAll('#view-r-katalog .satir').forEach(sat => { if (r && sat.querySelector('.satir-ad')?.firstChild?.textContent?.trim() === r.ad) oynat(sat.querySelector('.madalya'), 'damga'); });
+        });
+    } catch (e) { alert('Bazı görseller kaydedilemedi, tekrar deneyin'); await yenile(); katalogCiz(); }
+}
+
 // ------------------------------------------------------------------ DETAY: öğrenciden rozete / rozetten öğrenciye
 function detayGoster(html) {
     document.getElementById('ana-gorunum').hidden = true;
@@ -236,6 +285,11 @@ function olaylariBagla() {
     kok.addEventListener('change', (e) => {
         if (e.target.id === 'rozet-siralama') { siralamaTuru = e.target.value; ogrencileriCiz(); }
         else if (e.target.closest('#form-rozet')) onizlemeGuncelle();
+        else if (e.target.classList.contains('gorsel-sec')) {
+            const satir = e.target.closest('[data-eski]');
+            const r = veri.rozetler.find(x => x.id === satir.dataset.eski);
+            satir.querySelector('.gorsel-onizleme').innerHTML = e.target.value ? rozetGorseli({ ...r, resim: e.target.value }, 40) : rozetGorseli(r, 40);
+        }
     });
 
     kok.addEventListener('click', async (e) => {
@@ -246,6 +300,14 @@ function olaylariBagla() {
         if (d.dataset.hazir) return hazirSec(d.dataset.hazir);
         const { islem, ogr, rozet } = d.dataset;
         if (islem === 'ver') return rozetVer(d);
+        if (islem === 'gorsel-uygula') return gorselleriUygula([rozet]);
+        if (islem === 'gorsel-hepsi') {
+            const idler = [...kok.querySelectorAll('[data-eski]')].map(x => x.dataset.eski);
+            const secili = idler.filter(id => kok.querySelector(`[data-eski="${CSS.escape(id)}"] .gorsel-sec`)?.value).length;
+            if (!secili) return alert('Uygulanacak görsel seçilmedi');
+            if (!confirm(`${secili} rozetin görseli değiştirilsin mi? Daha sonra her rozeti düzenleyip “Kendin tasarla” ile eski haline döndürebilirsiniz`)) return;
+            return gorselleriUygula(idler);
+        }
         if (islem === 'ogr-detay') return ogrenciDetay(ogr);
         if (islem === 'rozet-detay') return rozetDetay(rozet);
         if (islem === 'detay-geri') {

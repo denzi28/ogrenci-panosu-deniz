@@ -1,0 +1,7 @@
+# Sitede yayınlanmayacak dosyalar (sadece repoda durur)
+araclar/
+ar*iv.zip
+firestore.rules
+sunucu_baslat.command
+sunucu_baslat.bat
+.gitignore

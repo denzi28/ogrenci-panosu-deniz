@@ -82,7 +82,9 @@ function katalogCiz() {
                             <button type="button" class="sekme" data-mod="ozel" aria-selected="${tasarim.mod === 'ozel'}">Kendin tasarla</button>
                         </div></div>
                     <div class="form-group tam" data-sadece="hazir" ${tasarim.mod === 'hazir' ? '' : 'hidden'}><label>Rozet seç</label>
-                        <div class="hazir-secici">${HAZIR_ROZETLER.map(h => `<button type="button" data-hazir="${h.dosya}" aria-pressed="${tasarim.resim === h.resim}" title="${esc(h.ad)}" aria-label="${esc(h.ad)}"><img src="${h.resim}" alt="" loading="lazy"></button>`).join('')}</div></div>
+                        ${Object.entries(KATEGORILER).map(([kat, k]) => `
+                            <div class="hazir-grup-baslik"><span class="kategori-nokta" style="background:${k.renk}"></span>${k.ad}</div>
+                            <div class="hazir-secici">${HAZIR_ROZETLER.filter(h => h.kategori === kat).map(h => `<button type="button" data-hazir="${h.dosya}" aria-pressed="${tasarim.resim === h.resim}" title="${esc(h.ad)}" aria-label="${esc(h.ad)}"><img src="${h.resim}" alt="" loading="lazy"></button>`).join('')}</div>`).join('')}</div>
                     <div class="form-group tam"><label for="r-ad">Rozetin adı</label><input type="text" id="r-ad" name="ad" maxlength="40" value="${esc(tasarim.ad)}" placeholder="Örneğin: Matematik yıldızı"></div>
                     <div class="form-group"><label for="r-kategori">Kategori</label>
                         <select id="r-kategori" name="kategori">${Object.entries(KATEGORILER).map(([id, k]) => `<option value="${id}" ${tasarim.kategori === id ? 'selected' : ''}>${k.ad}</option>`).join('')}</select></div>

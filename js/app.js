@@ -120,15 +120,6 @@ async function loadModule(moduleId) {
     document.querySelectorAll('#menu-container .menu-item').forEach(el => el.classList.toggle('aktif', el.dataset.module === moduleId));
     window.scrollTo({ top: 0 });
 
-    let linkId = `css-${moduleId}`;
-    if (!document.getElementById(linkId)) {
-        const link = document.createElement('link');
-        link.id = linkId;
-        link.rel = 'stylesheet';
-        link.href = `modules/${moduleId}/style.css`;
-        document.head.appendChild(link);
-    }
-
     let module;
     try {
         module = await import(`../modules/${moduleId}/${currentRole}.js`);

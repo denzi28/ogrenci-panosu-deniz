@@ -4,6 +4,7 @@ import { appConfig } from './config.js';
 import { db } from './db.js';
 import { initApp } from './app.js';
 import { girisOynat, sayilariSaydir } from './hareket.js';
+import { gectiMi } from '../modules/etkinlikler/ortak.js';
 
 const esc = (v) => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const GUN_ANAHTAR = ['pazar', 'pazartesi', 'sali', 'carsamba', 'persembe', 'cuma', 'cumartesi'];
@@ -169,8 +170,7 @@ function bilgiListesiniCiz(etkinlikler, duyurular, etkinlikAcik, duyuruAcik) {
     const satirlar = [];
 
     if (etkinlikAcik) {
-        const simdi = new Date();
-        const siradaki = etkinlikler.filter(e => new Date(e.tarih) >= simdi).sort((a, b) => new Date(a.tarih) - new Date(b.tarih))[0];
+        const siradaki = etkinlikler.filter(e => !gectiMi(e)).sort((a, b) => new Date(a.tarih) - new Date(b.tarih))[0];
         satirlar.push(siradaki
             ? `<a class="bilgi-satir" href="#etkinlikler"><i class="fas fa-calendar-days"></i><div><small>Sıradaki etkinlik · ${new Date(siradaki.tarih).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' })}</small><strong>${esc(siradaki.baslik)}</strong></div></a>`
             : `<div class="bilgi-satir"><i class="fas fa-calendar-days"></i><div><small>Sıradaki etkinlik</small><strong>Planlanmış etkinlik yok</strong></div></div>`);

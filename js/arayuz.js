@@ -82,3 +82,19 @@ export function yazdir(baslik, govdeHtml) {
         </body></html>`);
     pencere.document.close();
 }
+
+// Serbest metin: önce HTML'den arındır, sonra adresleri tıklanabilir yap (satır sonları CSS ile korunur)
+export function metinHtml(metin) {
+    return esc(metin).replace(/(https?:\/\/[^\s<]+)/g, (u) => `<a href="${u}" target="_blank" rel="noopener">${u}</a>`);
+}
+
+// Kullanıcının yazdığı bağlantıyı güvenli bir adrese çevir (javascript: vb. reddedilir)
+export function guvenliAdres(link) {
+    const l = String(link || '').trim();
+    if (!l) return '';
+    const adres = /^[a-z][a-z0-9+.-]*:/i.test(l) ? l : `https://${l}`;
+    return /^https?:\/\//i.test(adres) ? adres : '';
+}
+
+const tarihBicim = new Intl.DateTimeFormat('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' });
+export const tarihMetni = (t) => { const d = new Date(t); return isNaN(d) ? '' : tarihBicim.format(d); };

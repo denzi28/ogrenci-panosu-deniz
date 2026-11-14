@@ -3,8 +3,8 @@
   "short_name": "Sınıf Panosu",
   "start_url": "index.html",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#4a90e2",
+  "background_color": "#f7f4ee",
+  "theme_color": "#2e6b4e",
   "icons": [
     {
       "src": "assets/icon-192.png",

@@ -1,4 +1,4 @@
-import { appConfig, acikTon } from './config.js';
+import { appConfig } from './config.js';
 import { db } from './db.js';
 
 let currentRole = 'guest';
@@ -73,12 +73,12 @@ async function renderMenu() {
         }
     }
 
-    let html = `<div class="yan-menu-ana"><a href="#" class="menu-item${window.location.hash.length > 1 ? '' : ' aktif'}" data-module="" style="--modul-renk-acik:${acikTon('#3563d9')}">
-                    <span class="icon">🏠</span><span>Ana Sayfa</span></a></div>
+    let html = `<a href="#" class="menu-item${window.location.hash.length > 1 ? '' : ' aktif'}" data-module="">
+                    <i class="fas fa-house icon"></i><span>Ana sayfa</span></a>
                 <div class="yan-menu-baslik">Bölümler</div>`;
     moduller.forEach(mod => {
-        html += `<a href="#${mod.id}" class="menu-item" data-module="${mod.id}" style="--modul-renk:${mod.renk};--modul-renk-acik:${acikTon(mod.renk)}">
-                    <span class="icon">${mod.icon}</span><span>${mod.name}</span>
+        html += `<a href="#${mod.id}" class="menu-item" data-module="${mod.id}">
+                    <i class="fas ${mod.ikon} icon"></i><span>${mod.name}</span>
                  </a>`;
     });
 

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Giriş · 3/D Sınıf Panosu</title>
-    <meta name="theme-color" content="#3563d9">
+    <meta name="theme-color" content="#f7f4ee">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="3/D Panosu">
     <link rel="apple-touch-icon" href="assets/icon.png">
@@ -18,8 +18,8 @@
         <div class="giris-kart">
             <div class="giris-ust">
                 <div class="marka-rozet">3/D</div>
-                <h1>Sınıf Panosuna Giriş</h1>
-                <p>Öğrenci veya öğretmen bilgilerinle giriş yap</p>
+                <h1>Sınıf panosuna giriş</h1>
+                <p>Öğrenci ya da öğretmen hesabınla gir</p>
             </div>
 
             <form id="login-form" novalidate>
@@ -35,10 +35,10 @@
                     </div>
                 </div>
                 <div id="error-message" class="error" role="alert"></div>
-                <button type="submit" id="giris-btn" class="btn btn-primary btn-buyuk w-100">Giriş Yap</button>
+                <button type="submit" id="giris-btn" class="btn btn-primary btn-buyuk w-100">Giriş yap</button>
             </form>
 
-            <p class="giris-ipucu">Şifreni unuttuysan öğretmenine sorabilirsin.</p>
+            <p class="giris-ipucu">Şifreni unuttuysan öğretmenine sor</p>
         </div>
         <div class="giris-alt">
             <a href="index.html"><i class="fas fa-arrow-left"></i> Sınıf panosuna dön</a>
@@ -64,17 +64,17 @@
             e.preventDefault();
             const kullanici = document.getElementById('username').value.trim();
             const parola = sifre.value;
-            if (!kullanici || !parola) { hata.textContent = 'Kullanıcı adı ve şifreyi yaz.'; return; }
+            if (!kullanici || !parola) { hata.textContent = 'Kullanıcı adını ve şifreni yaz'; return; }
 
             hata.textContent = '';
             btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Giriş yapılıyor...';
+            btn.textContent = 'Giriş yapılıyor';
 
             const basarili = await auth.login(kullanici, parola);
             if (!basarili) {
-                hata.textContent = navigator.onLine ? 'Kullanıcı adı veya şifre hatalı.' : 'İnternet bağlantısı yok.';
+                hata.textContent = navigator.onLine ? 'Kullanıcı adı ya da şifre hatalı' : 'İnternet bağlantısı yok';
                 btn.disabled = false;
-                btn.textContent = 'Giriş Yap';
+                btn.textContent = 'Giriş yap';
                 sifre.select();
             }
         });

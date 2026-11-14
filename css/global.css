@@ -274,7 +274,6 @@ th { font-weight: 600; }
 .modal-ust { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
 .modal-kutu .menu-item { min-height: 44px; font-size: 15px; }
 .ikon-btn { background: transparent; border: 1px solid var(--hairline-strong); width: 32px; height: 32px; border-radius: var(--r-kontrol); cursor: pointer; color: var(--text-2); font-size: 14px; }
-@keyframes belir { from { opacity: 0; } }
 @keyframes yukari { from { transform: translateY(12px); opacity: 0; } }
 
 /* ==========================================================================
@@ -426,7 +425,7 @@ a.bilgi-satir:hover { background: var(--surface-2); }
 .toplam .yildiz-cikartma { width: 18px; height: 18px; }
 
 /* Davranış panosu: podyum (öne çıkan an) */
-.podyum { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: end; gap: 12px; margin-bottom: 16px; }
+.podyum { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: end; gap: 12px; margin-bottom: 16px; overflow: hidden; padding-top: 8px; }
 .podyum-sutun { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px; min-width: 0; }
 .podyum-adlar { font-size: 15px; font-weight: 500; line-height: 1.3; word-break: break-word; }
 .podyum-adlar span { display: block; }
@@ -442,7 +441,7 @@ a.bilgi-satir:hover { background: var(--surface-2); }
 .podyum-sutun.s1 .podyum-basamak { height: 132px; }
 .podyum-sutun.s2 .podyum-basamak { height: 104px; }
 .podyum-sutun.s3 .podyum-basamak { height: 84px; }
-.podyum-zemin { grid-column: 1 / -1; height: 8px; border-radius: 4px; background: var(--tahta-cerceve); opacity: .5; margin-top: -12px; }
+.podyum-zemin { grid-column: 1 / -1; height: 8px; border-radius: 4px; background: color-mix(in srgb, var(--tahta-cerceve) 55%, var(--bg)); margin-top: -12px; position: relative; z-index: 1; }
 
 /* Satır altında açılan değerlendirme paneli */
 .acilir { border-top: 1px dashed var(--hairline-strong); background: var(--bg); padding: 8px 20px 12px 60px; }
@@ -622,6 +621,72 @@ input[type="color"] { width: 100%; height: 40px; padding: 2px; border: 1px solid
     .menu-item { min-height: 44px; }
     .btn { min-height: 44px; }
 }
+
+
+/* ==========================================================================
+   HAREKET
+   Sadece transform ve opacity canlandırılır (ekran kartı yapar, cihazı yormaz).
+   Tek eğri (--egri), üç süre. Döngü yok. "Hareketi azalt" açıksa hepsi kapanır.
+   1) Giriş: bölüm açılınca içerik hafifçe belirir; listelerde ilk 6 satır sırayla.
+      Sadece #app-content.giris varken çalışır, sonradan yeniden çizimlerde tekrarlanmaz.
+   2) Geri bildirim: yıldız zıplaması, sayıların sayarak değişmesi (js/hareket.js).
+   3) Kutlama: podyum basamakları, rozet damgası ve yıldız saçılması, yeni rozet parıltısı.
+   ========================================================================== */
+:root { --sure-kisa: 150ms; --sure-orta: 250ms; --sure-giris: 400ms; }
+
+@keyframes yukselBelir { from { opacity: 0; transform: translateY(8px); } }
+@keyframes belir { from { opacity: 0; } }
+/* Dış bloklar kayarak gelir (modül kapsayıcısının kendisi değil, içindekiler) */
+#app-content.giris > :not([id$="-kok"]),
+#app-content.giris > [id$="-kok"] > * { animation: yukselBelir var(--sure-giris) var(--egri) both; }
+/* İçlerindeki satır ve kartlar sadece sırayla belirir (kayma iki kez üst üste binmesin) */
+#app-content.giris :is(.panel, .modul-grid, .bilgi-liste, .sayilar, .rozet-izgara) > :is(.satir, .satir-grup, .ogr-satir, details, .modul-kutu, .bilgi-satir, .sayi-kart, .rozet-kart):nth-child(-n+7) {
+    animation: belir var(--sure-giris) var(--egri) both;
+}
+#app-content.giris :is(.panel, .modul-grid, .bilgi-liste, .sayilar, .rozet-izgara) > :nth-child(2) { animation-delay: 40ms; }
+#app-content.giris :is(.panel, .modul-grid, .bilgi-liste, .sayilar, .rozet-izgara) > :nth-child(3) { animation-delay: 80ms; }
+#app-content.giris :is(.panel, .modul-grid, .bilgi-liste, .sayilar, .rozet-izgara) > :nth-child(4) { animation-delay: 120ms; }
+#app-content.giris :is(.panel, .modul-grid, .bilgi-liste, .sayilar, .rozet-izgara) > :nth-child(5) { animation-delay: 160ms; }
+#app-content.giris :is(.panel, .modul-grid, .bilgi-liste, .sayilar, .rozet-izgara) > :nth-child(6) { animation-delay: 200ms; }
+#app-content.giris :is(.panel, .modul-grid, .bilgi-liste, .sayilar, .rozet-izgara) > :nth-child(7) { animation-delay: 240ms; }
+
+/* Podyum: basamaklar sırayla yükselir (3., 2., 1.) */
+@keyframes basamak { from { opacity: 0; transform: translateY(32px); } }
+#app-content.giris .podyum-sutun { animation: basamak 500ms var(--egri) both; }
+#app-content.giris .podyum-sutun.s3 { animation-delay: 80ms; }
+#app-content.giris .podyum-sutun.s2 { animation-delay: 200ms; }
+#app-content.giris .podyum-sutun.s1 { animation-delay: 320ms; }
+
+/* Yıldıza basınca kısa zıplama */
+@keyframes zipla { 50% { transform: scale(1.32); } }
+.zipla { animation: zipla 220ms var(--egri); }
+
+/* Rozet verilince: madalya damga gibi iner, etrafına altın yıldızlar saçılır */
+@keyframes damga { 0% { transform: scale(1.4); opacity: .3; } 60% { transform: scale(.94); opacity: 1; } }
+.damga { animation: damga 420ms var(--egri); }
+.kivilcimlar { position: fixed; width: 0; height: 0; pointer-events: none; z-index: 5000; }
+.kivilcim {
+    position: absolute; left: -6px; top: -6px; width: 12px; height: 12px;
+    background: var(--yildiz);
+    clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+    animation: sacil 620ms var(--egri) forwards;
+}
+@keyframes sacil {
+    0% { transform: rotate(var(--aci)) translateY(0) scale(.4); opacity: 1; }
+    100% { transform: rotate(var(--aci)) translateY(calc(var(--uzaklik) * -1)) scale(1); opacity: 0; }
+}
+
+/* Öğrencinin son kazandığı rozet: sayfa ilk açılınca bir kez parlar */
+@keyframes parilti-gec { to { transform: translateX(120%); } }
+.rozet-kart.yeni .madalya { overflow: hidden; }
+.rozet-kart.yeni .madalya::after {
+    content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+    background: linear-gradient(110deg, transparent 35%, rgba(255, 255, 255, .6) 50%, transparent 65%);
+    transform: translateX(-120%);
+    animation: parilti-gec 900ms 350ms var(--egri) forwards;
+}
+.rozet-kart.yeni { border-color: color-mix(in srgb, var(--yildiz-kenar) 45%, var(--hairline)); }
+.rozet-kart .yeni-etiket { font-size: 12px; color: var(--warning); }
 
 @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation: none !important; transition: none !important; }

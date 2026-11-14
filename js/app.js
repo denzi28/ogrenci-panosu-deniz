@@ -1,5 +1,6 @@
 import { appConfig } from './config.js';
 import { db } from './db.js';
+import { girisOynat } from './hareket.js';
 
 let currentRole = 'guest';
 let dinleyicilerEklendi = false;
@@ -147,6 +148,7 @@ async function loadModule(moduleId) {
     try {
         if (module.render) {
             await module.render(container);
+            girisOynat(container);
         } else {
             container.innerHTML = `<div class="card" style="border-left:4px solid orange;">
                 <h3>Eksik Fonksiyon</h3><p><b>${currentRole}.js</b> dosyası var ancak <code>render</code> fonksiyonu yok.</p></div>`;

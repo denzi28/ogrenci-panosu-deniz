@@ -2,6 +2,7 @@
 import { auth } from '../../js/auth.js';
 import { db } from '../../js/db.js';
 import { esc, sayi, modulBasligi } from '../../js/arayuz.js';
+import { sayilariSaydir } from '../../js/hareket.js';
 import { puanHaritasi, puanAl, yildizGosterge, ENCOK_YILDIZ } from './ortak.js';
 
 export async function render(container) {
@@ -17,7 +18,7 @@ export async function render(container) {
             <div class="tahta-ust"><h2>Toplam yıldız</h2><small>${kriterler.length ? `En fazla ${sayi(enFazla)}` : ''}</small></div>
             <div style="display:flex;align-items:center;gap:16px">
                 <span class="yildiz-cikartma" style="width:44px;height:44px" aria-hidden="true"></span>
-                <span style="font-size:48px;font-weight:500;line-height:1">${sayi(toplam)}</span>
+                <span style="font-size:48px;font-weight:500;line-height:1" data-say="${toplam}">${sayi(toplam)}</span>
             </div>
         </section>
         <section class="panel">
@@ -31,4 +32,5 @@ export async function render(container) {
                 </div>`;
             }).join('') : '<p class="bos-not">Henüz davranış eklenmedi</p>'}
         </section>`;
+    sayilariSaydir(container);
 }

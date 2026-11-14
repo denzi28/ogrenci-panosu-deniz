@@ -2,6 +2,7 @@
 // Pano: sıralama ve her öğrenciyi hızlı değerlendirme. Davranışlar: ekle, sil, tüm sınıfı tek davranıştan puanla.
 import { db } from '../../js/db.js';
 import { esc, sayi, modulBasligi, gorunurlukAnahtari, baglaGorunurlukAnahtari, sekmeler, baglaSekmeler, kaydedildiIsareti, yazdir } from '../../js/arayuz.js';
+import { oynat, sayiSay } from '../../js/hareket.js';
 import { verileriGetir, puanHaritasi, puanAl, siralama, podyumHtml, toplamHtml, yildizDugmeleri, yildizlariBoya, ENCOK_YILDIZ } from './ortak.js';
 
 const acikPaneller = new Set(); // sayfa yenilense de açık kalan değerlendirme panelleri
@@ -166,7 +167,8 @@ async function puanVer(ogrId, kriterId, deger, tiklanan) {
     // Toplamı yerinde güncelle. Satırlar puanlanırken yer değiştirmesin diye yeniden sıralama panel kapanınca yapılır.
     const toplam = veri.kriterler.reduce((t, k) => t + puanAl(harita, ogrId, k.id), 0);
     const toplamEl = document.querySelector(`.satir-grup[data-ogr="${CSS.escape(ogrId)}"] .toplam`);
-    if (toplamEl) toplamEl.outerHTML = toplamHtml(toplam);
+    if (toplamEl) { toplamEl.setAttribute('aria-label', `${toplam} yıldız`); sayiSay(toplamEl.querySelector('.sayi-deger'), toplam); }
+    if (deger > 0) oynat(tiklanan.closest('.yildizlar')?.querySelectorAll('.yildiz-dugme')[deger - 1], 'zipla');
 
     try {
         await db.saveMatrixStatus('davranis_matrisi', String(ogrId), String(kriterId), String(deger));

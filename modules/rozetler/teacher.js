@@ -2,6 +2,7 @@
 // Öğrenciler: kimde hangi rozet var, öğrenciye rozet ver. Rozetler: stüdyoda tasarla, düzenle, sil, öğrencilere ver.
 import { db } from '../../js/db.js';
 import { esc, sayi, modulBasligi, gorunurlukAnahtari, baglaGorunurlukAnahtari, sekmeler, baglaSekmeler, kaydedildiIsareti } from '../../js/arayuz.js';
+import { oynat, kutla } from '../../js/hareket.js';
 import { verileriGetir, sahiplik, sahipMi, kategoriyeGore, kategoriAl, rozetGorseli, KATEGORILER, SEKILLER, IKONLAR, HAZIR_ROZETLER, VERILDI } from './ortak.js';
 
 let siralamaTuru = 'ad';
@@ -212,7 +213,13 @@ async function rozetVer(d) {
     const yeni = !sahipMi(sahip, ogr, rozet);
     const anahtar = `${ogr}_${rozet}`;
     yeni ? sahip.add(anahtar) : sahip.delete(anahtar);
+    const satir = d.closest('.satir');
     d.outerHTML = verDugmesi(ogr, rozet);
+    if (yeni) {
+        const madalya = satir?.querySelector('.madalya');
+        oynat(madalya, 'damga');
+        kutla(madalya || satir?.querySelector('.ver-dugme'));
+    }
     try {
         await db.saveMatrixStatus('rozet_matrisi', String(ogr), String(rozet), yeni ? VERILDI : '');
         kaydedildiIsareti(kok.querySelector(`[data-ogr="${CSS.escape(ogr)}"][data-rozet="${CSS.escape(rozet)}"]`)?.closest('.satir'));

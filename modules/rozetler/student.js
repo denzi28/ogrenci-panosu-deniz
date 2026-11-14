@@ -13,13 +13,21 @@ export async function render(container) {
     const { rozetler, ogrenciler, matris } = await verileriGetir();
     const sahip = sahiplik(matris);
     const kazandiklarim = rozetler.filter(r => sahipMi(sahip, benim, r.id));
+    // En son kazanılan rozet: bu cihazda daha önce gösterilmediyse bir kez parlar
+    const sonKayit = matris.filter(m => m.ogrId === benim && m.deger === '✔️' && m.tarih).sort((a, b) => String(b.tarih).localeCompare(String(a.tarih)))[0];
+    let yeniRozetId = null;
+    try {
+        const anahtar = `gorulen-rozet-${benim}`;
+        if (sonKayit && localStorage.getItem(anahtar) !== sonKayit.targetId) { yeniRozetId = sonKayit.targetId; localStorage.setItem(anahtar, sonKayit.targetId); }
+    } catch { /* gizli sekmede localStorage olmayabilir */ }
+    if (yeniRozetId) kazandiklarim.sort((a, b) => (b.id === yeniRozetId) - (a.id === yeniRozetId));
 
     container.innerHTML = `
         ${modulBasligi({ baslik: 'Rozetlerim', aciklama: rozetler.length ? `${sayi(rozetler.length)} rozetin ${sayi(kazandiklarim.length)} tanesini kazandın` : '' })}
         ${kazandiklarim.length ? `
             <section class="panel">
                 <div class="panel-ust"><h2>Kazandıkların</h2></div>
-                <div class="rozet-izgara">${kazandiklarim.map(r => `<div class="rozet-kart">${rozetGorseli(r, 72)}<strong>${esc(r.ad)}</strong><small>${esc(r.aciklama || '')}</small></div>`).join('')}</div>
+                <div class="rozet-izgara">${kazandiklarim.map(r => `<div class="rozet-kart${r.id === yeniRozetId ? ' yeni' : ''}">${rozetGorseli(r, 72)}<strong>${esc(r.ad)}</strong><small>${esc(r.aciklama || '')}</small>${r.id === yeniRozetId ? '<small class="yeni-etiket">Yeni kazandın</small>' : ''}</div>`).join('')}</div>
             </section>` : `<div class="panel"><p class="bos-not">Henüz rozetin yok. Aşağıdaki rozetleri kazanmaya çalışabilirsin</p></div>`}
         ${kategoriyeGore(rozetler.filter(r => !sahipMi(sahip, benim, r.id))).map(([kat, rl]) => `
             <section class="panel">

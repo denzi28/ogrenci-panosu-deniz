@@ -3,6 +3,7 @@
 // Kitaplık: kitap ekle (tek ya da toplu), düzenle, sil; en az okuma süresi kuralı.
 import { db } from '../../js/db.js';
 import { esc, sayi, modulBasligi, gorunurlukAnahtari, baglaGorunurlukAnahtari, sekmeler, baglaSekmeler, kaydedildiIsareti, yazdir } from '../../js/arayuz.js';
+import { sayiSay } from '../../js/hareket.js';
 import { verileriGetir, durumHaritasi, durumAl, ogrenciOzeti, kitapOzeti, kitapAdiHtml, kitapAdiDuz, numarasiVar, sureMetni, gunFarki, SIRALAMALAR, OKUYOR, OKUDU, NUMARASIZ } from './ortak.js';
 
 let siralamaTuru = 'ad';
@@ -73,12 +74,14 @@ function sayilariCiz() {
         if (d.deger === OKUYOR) okunuyor++;
         if (d.deger === OKUDU && d.tarih) { const t = new Date(d.tarih); if (t.getMonth() === ay && t.getFullYear() === yil) buAy++; }
     });
-    document.getElementById('kitap-sayilar').innerHTML = `
+    const alan = document.getElementById('kitap-sayilar');
+    const yeni = [['Kitaplıktaki kitap', veri.kalemler.length], ['Şu an okunan', okunuyor], ['Bu ay bitirilen', buAy]];
+    const eski = [...alan.querySelectorAll('[data-say]')].map(el => parseInt(el.dataset.say));
+    alan.innerHTML = `
         <div class="sayilar" style="margin-bottom:24px">
-            <div class="sayi-kart"><small>Kitaplıktaki kitap</small><strong>${sayi(veri.kalemler.length)}</strong></div>
-            <div class="sayi-kart"><small>Şu an okunan</small><strong>${sayi(okunuyor)}</strong></div>
-            <div class="sayi-kart"><small>Bu ay bitirilen</small><strong>${sayi(buAy)}</strong></div>
+            ${yeni.map(([ad, n]) => `<div class="sayi-kart"><small>${ad}</small><strong><span data-say="${n}">${sayi(n)}</span></strong></div>`).join('')}
         </div>`;
+    alan.querySelectorAll('[data-say]').forEach((el, i) => sayiSay(el, yeni[i][1], eski[i] ?? 0, 600));
 }
 
 // ------------------------------------------------------------------ ÖĞRENCİLER

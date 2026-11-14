@@ -35,7 +35,7 @@ export function siralama(ogrenciler, kriterler, harita) {
 }
 
 export function toplamHtml(toplam) {
-    return `<span class="toplam" aria-label="${toplam} yıldız"><span class="yildiz-cikartma" aria-hidden="true"></span>${sayi(toplam)}</span>`;
+    return `<span class="toplam" aria-label="${toplam} yıldız"><span class="yildiz-cikartma" aria-hidden="true"></span><span class="sayi-deger">${sayi(toplam)}</span></span>`;
 }
 
 // İlk üç sıra: kara tahta renginde basamaklar

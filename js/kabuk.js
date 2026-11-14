@@ -3,6 +3,7 @@
 import { appConfig } from './config.js';
 import { db } from './db.js';
 import { initApp } from './app.js';
+import { girisOynat, sayilariSaydir } from './hareket.js';
 
 const esc = (v) => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const GUN_ANAHTAR = ['pazar', 'pazartesi', 'sali', 'carsamba', 'persembe', 'cuma', 'cumartesi'];
@@ -120,6 +121,7 @@ async function anaSayfayiCiz(icerik, rol, kullanici, moduller, gorunurlukler) {
                 ? `<div class="modul-grid">${bolumler}</div>`
                 : `<div class="card bos-durum">Şu an velilere açık bir bölüm yok</div>`}
         </section>`;
+    girisOynat(icerik);
 
     // Veriler paralel ve birbirinden bağımsız yüklenir; biri başarısız olursa diğerleri yine görünür.
     const getir = (tablo, sadeceAcik = false) => (sadeceAcik ? db.getPublic(tablo) : db.getAll(tablo)).catch(() => []);
@@ -194,21 +196,22 @@ async function sayilariCiz(rol, kullanici) {
     if (rol === 'teacher') {
         const [kullanicilar, kitap, rozet] = await Promise.all([getir('users'), getir('kitap_matrisi'), getir('rozet_matrisi')]);
         kartlar = [
-            ['Öğrenci', sayi(kullanicilar.filter(u => u.role === 'student').length)],
-            ['Şu an okunan kitap', sayi(kitap.filter(m => m.deger === '⏳').length)],
-            ['Verilen rozet', sayi(rozet.filter(m => m.deger === '✔️').length)],
+            ['Öğrenci', kullanicilar.filter(u => u.role === 'student').length],
+            ['Şu an okunan kitap', kitap.filter(m => m.deger === '⏳').length],
+            ['Verilen rozet', rozet.filter(m => m.deger === '✔️').length],
         ];
     } else {
         const id = kullanici?.id;
         const [davranis, kitap, rozet] = await Promise.all([getir('davranis_matrisi'), getir('kitap_matrisi'), getir('rozet_matrisi')]);
         const yildiz = davranis.filter(m => m.ogrId === id).reduce((t, m) => t + (parseInt(m.deger) || 0), 0);
         kartlar = [
-            ['Yıldızların', `<span class="yildiz-cikartma" aria-hidden="true"></span>${sayi(yildiz)}`],
-            ['Okuduğun kitap', sayi(kitap.filter(m => m.ogrId === id && m.deger === '✔️').length)],
-            ['Rozetlerin', sayi(rozet.filter(m => m.ogrId === id && m.deger === '✔️').length)],
+            ['Yıldızların', yildiz, '<span class="yildiz-cikartma" aria-hidden="true"></span>'],
+            ['Okuduğun kitap', kitap.filter(m => m.ogrId === id && m.deger === '✔️').length],
+            ['Rozetlerin', rozet.filter(m => m.ogrId === id && m.deger === '✔️').length],
         ];
     }
-    alan.innerHTML = `<div class="sayilar" style="margin-bottom:16px">${kartlar.map(([e, d]) => `<div class="sayi-kart"><small>${e}</small><strong>${d}</strong></div>`).join('')}</div>`;
+    alan.innerHTML = `<div class="sayilar" style="margin-bottom:16px">${kartlar.map(([e, n, on = '']) => `<div class="sayi-kart"><small>${e}</small><strong>${on}<span data-say="${n}">${sayi(n)}</span></strong></div>`).join('')}</div>`;
+    sayilariSaydir(alan);
 }
 
 function bolumMenusunuKur(moduller) {

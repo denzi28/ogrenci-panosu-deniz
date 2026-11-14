@@ -4,7 +4,7 @@ import { esc, sayi, modulBasligi, gorunurlukAnahtari, baglaGorunurlukAnahtari, k
 import { kutla } from '../../js/hareket.js';
 import {
     KALEMLER, MATRIS, OYUNLAR, verileriGetir, puanAl, yayinDurumu, DURUM, sureMetni,
-    puanHtml, puanMetni, oyunAdresi, puanDinle, katmanAc,
+    puanHtml, puanMetni, oyunAdresi, puanDinle, katmanAc, dahaIyiMi, KAPANMA_SURESI,
 } from './ortak.js';
 
 let kok, veri, siralama = 'yeni', seciliId = null;
@@ -260,7 +260,7 @@ function dene(k) {
     govde.innerHTML = `<iframe class="oyun-cerceve" title="${esc(k.ad)}" src="${esc(oyunAdresi(k.link))}"></iframe>`;
     const iframe = govde.querySelector('iframe');
     const birak = puanDinle((e) => {
-        if (e.source === iframe.contentWindow && e.data.islem === 'gorev_bitti') setTimeout(() => { if (document.body.contains(el)) kapat(); }, 1500);
+        if (e.source === iframe.contentWindow && e.data.islem === 'gorev_bitti') setTimeout(() => { if (document.body.contains(el)) kapat(); }, KAPANMA_SURESI);
     });
     el.addEventListener('kapandi', birak);
 }
@@ -334,17 +334,23 @@ function sinifModu(k) {
         if (!ad || !taraflar[ad].ogr) return;
         const t = taraflar[ad], ogr = t.ogr, deger = puanMetni(e.data);
         const not = t.alan.querySelector('.sm-not');
-        try {
-            await db.saveMatrixStatus(MATRIS, ogr.id, k.id, deger);
-            veri.puanlar.set(`${ogr.id}_${k.id}`, deger);
-            if (not) not.textContent = `Kaydedildi: ${deger}`;
-        } catch (err) { if (not) not.textContent = 'Puan kaydedilemedi'; return; }
-        if (e.data.islem === 'gorev_bitti') {
-            kutla(not);
+        const bitti = e.data.islem === 'gorev_bitti';
+        const eski = puanAl(veri.puanlar, ogr.id, k.id);
+        if (dahaIyiMi(deger, eski)) {
+            try {
+                await db.saveMatrixStatus(MATRIS, ogr.id, k.id, deger);
+                veri.puanlar.set(`${ogr.id}_${k.id}`, deger);
+                if (not) not.textContent = `Kaydedildi: ${deger}`;
+                if (bitti) kutla(not);
+            } catch (err) { if (not) not.textContent = 'Puan kaydedilemedi'; return; }
+        } else if (bitti && not) {
+            not.textContent = `En iyi puanı ${eski} olarak kaldı`;
+        }
+        if (bitti) {
             setTimeout(() => {
                 if (!document.body.contains(el) || t.ogr !== ogr) return;
                 t.ogr = null; tarafCiz(ad); digerleriniYenile(ad);
-            }, 1800);
+            }, KAPANMA_SURESI);
         }
     });
 

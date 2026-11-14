@@ -1,370 +1,42 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Hak mı, Sorumluluk mu?</title>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap');
-
-        * {
-            box-sizing: border-box;
-            user-select: none;
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        body {
-            margin: 0;
-            padding: 0;
-            font-family: 'Fredoka', sans-serif;
-            background: linear-gradient(135deg, #e0f2fe, #f0fdf4);
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            color: #334155;
-        }
-
-        #header {
-            background: white;
-            padding: 15px 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
-            z-index: 10;
-        }
-
-        .hedef-kutusu {
-            font-size: 1.1rem;
-            font-weight: 700;
-            color: #64748b;
-            background: #f8fafc;
-            padding: 5px 12px;
-            border-radius: 8px;
-            border: 1px dashed #cbd5e1;
-        }
-
-        .skor-kutusu {
-            background: #f1f5f9;
-            padding: 8px 15px;
-            border-radius: 20px;
-            font-size: 1.2rem;
-            font-weight: 700;
-            color: #0284c7;
-            border: 2px solid #bae6fd;
-            transition: all 0.3s;
-        }
-
-        #game-area {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-            text-align: center;
-            max-width: 800px;
-            margin: 0 auto;
-            width: 100%;
-        }
-
-        #soru-karti {
-            background: white;
-            padding: 30px 20px;
-            border-radius: 24px;
-            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1);
-            width: 100%;
-            margin-bottom: 40px;
-            border: 4px solid #fff;
-            transition: all 0.3s ease;
-        }
-
-        #soru-metni {
-            font-size: 1.6rem;
-            font-weight: 600;
-            line-height: 1.4;
-            color: #1e293b;
-        }
-
-        .buton-grubu {
-            display: flex;
-            gap: 20px;
-            width: 100%;
-            justify-content: center;
-        }
-
-        .secenek-btn {
-            flex: 1;
-            max-width: 300px;
-            padding: 20px;
-            font-size: 1.5rem;
-            font-weight: 700;
-            border: none;
-            border-radius: 20px;
-            cursor: pointer;
-            transition: transform 0.1s, box-shadow 0.1s;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .secenek-btn:active {
-            transform: scale(0.95);
-        }
-
-        .btn-hak {
-            background: #3b82f6;
-            color: white;
-            box-shadow: 0 8px 0 #1d4ed8;
-        }
-
-        .btn-sorumluluk {
-            background: #f59e0b;
-            color: white;
-            box-shadow: 0 8px 0 #b45309;
-        }
-
-        .btn-ikon {
-            font-size: 2.5rem;
-        }
-
-        /* Doğru / Yanlış Animasyonları */
-        .dogru-animasyon {
-            background: #22c55e !important;
-            border-color: #16a34a !important;
-            color: white !important;
-            transform: scale(1.05);
-        }
-
-        .yanlis-animasyon {
-            animation: salla 0.4s;
-            background: #ef4444 !important;
-            border-color: #dc2626 !important;
-            color: white !important;
-        }
-
-        @keyframes salla {
-            0% { transform: translateX(0); }
-            25% { transform: translateX(-10px); }
-            50% { transform: translateX(10px); }
-            75% { transform: translateX(-10px); }
-            100% { transform: translateX(0); }
-        }
-
-        #bitis-ekrani {
-            display: none;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-        }
-
-        .bitis-baslik {
-            font-size: 3rem;
-            color: #22c55e;
-            margin-bottom: 10px;
-        }
-
-        .bitis-puan {
-            font-size: 5rem;
-            font-weight: 900;
-            color: #3b82f6;
-            margin: 20px 0;
-            text-shadow: 2px 2px 0 #bae6fd;
-        }
-        
-        @media (max-width: 600px) {
-            #soru-metni { font-size: 1.3rem; }
-            .secenek-btn { font-size: 1.2rem; padding: 15px; }
-            .btn-ikon { font-size: 2rem; }
-            .buton-grubu { flex-direction: column; align-items: center; }
-            .secenek-btn { width: 100%; max-width: 100%; }
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hak mı, sorumluluk mu?</title>
+<link rel="stylesheet" href="motor/oyun.css">
 </head>
 <body>
+<script type="module">
+import { secmeli, karistir } from './motor/oyun.js';
 
-    <div id="header">
-        <div class="hedef-kutusu">Hedef: 100 Puan 🏆</div>
-        <div class="skor-kutusu" id="skor-kutusu">Puan: <span id="puan-alani">0</span></div>
-    </div>
+// Cümleler ve hak mı sorumluluk mu oldukları (öğretmenin listesi)
+const SORULAR = [
+        { metin: "Derslere katılıp, yeni bilgiler öğrenerek kendimizi geliştiririz.", tur: "hak" },
+        { metin: "Okula ve derse zamanında geliriz. Öğretmenimizi dikkatlice dinleriz.", tur: "sorumluluk" },
+        { metin: "Sınıfımızın ve okulumuzun kurallarına uyarız.", tur: "sorumluluk" },
+        { metin: "Teneffüslerde oyunlar oynayabilir, bahçede dinlenebiliriz.", tur: "hak" },
+        { metin: "Okulun masa, sıra ve diğer araçlarını temiz ve dikkatli kullanırız.", tur: "sorumluluk" },
+        { metin: "Okulda kendimizi güvende hissederiz. Tehlikelere karşı önlem alınır.", tur: "hak" },
+        { metin: "Kuralları belirlerken görüşlerimizi belirtir, oy kullanırız.", tur: "hak" },
+        { metin: "Arkadaşlarımızla olumlu iletişim kurar, zarar verecek davranışlardan kaçınırız.", tur: "sorumluluk" },
+        { metin: "Temiz bir okulumuz ve sağlıklı bir sınıf ortamımız vardır.", tur: "hak" },
+        { metin: "Çöpleri çöp kutusuna atar, sınıfımızı temiz tutarız.", tur: "sorumluluk" }
+];
 
-    <div id="game-area">
-        <div id="soru-karti">
-            <div id="soru-metni">Soru yükleniyor...</div>
-        </div>
-
-        <div class="buton-grubu" id="buton-grubu">
-            <button class="secenek-btn btn-hak" onclick="cevapKontrol('hak')">
-                <span class="btn-ikon">🛡️</span>
-                HAKKIMIZ
-            </button>
-            <button class="secenek-btn btn-sorumluluk" onclick="cevapKontrol('sorumluluk')">
-                <span class="btn-ikon">✅</span>
-                SORUMLULUĞUMUZ
-            </button>
-        </div>
-
-        <div id="bitis-ekrani">
-            <div class="bitis-baslik">🎉 Hedefe Ulaştın! 🎉</div>
-            <div style="font-size: 1.5rem; color: #64748b;">Kazanılan Puan:</div>
-            <div class="bitis-puan" id="sonuc-puani">100</div>
-            <div style="font-size: 1.2rem; color: #ef4444; font-weight: bold; padding: 15px; background: #fee2e2; border-radius: 12px; margin-top: 20px;">
-                ⏳ Puanın öğretmene gönderiliyor, lütfen bekle...
-            </div>
-        </div>
-    </div>
-
-    <script>
-        const sorular = [
-            { metin: "Derslere katılıp, yeni bilgiler öğrenerek kendimizi geliştiririz.", tur: "hak" },
-            { metin: "Okula ve derse zamanında geliriz. Öğretmenimizi dikkatlice dinleriz.", tur: "sorumluluk" },
-            { metin: "Sınıfımızın ve okulumuzun kurallarına uyarız.", tur: "sorumluluk" },
-            { metin: "Teneffüslerde oyunlar oynayabilir, bahçede dinlenebiliriz.", tur: "hak" },
-            { metin: "Okulun masa, sıra ve diğer araçlarını temiz ve dikkatli kullanırız.", tur: "sorumluluk" },
-            { metin: "Okulda kendimizi güvende hissederiz. Tehlikelere karşı önlem alınır.", tur: "hak" },
-            { metin: "Kuralları belirlerken görüşlerimizi belirtir, oy kullanırız.", tur: "hak" },
-            { metin: "Arkadaşlarımızla olumlu iletişim kurar, zarar verecek davranışlardan kaçınırız.", tur: "sorumluluk" },
-            { metin: "Temiz bir okulumuz ve sağlıklı bir sınıf ortamımız vardır.", tur: "hak" },
-            { metin: "Çöpleri çöp kutusuna atar, sınıfımızı temiz tutarız.", tur: "sorumluluk" }
-        ];
-
-        sorular.sort(() => Math.random() - 0.5);
-
-        let gecerliSoruIndex = 0;
-        let puan = 0;
-        let beklemede = false;
-        
-        const hedefPuan = 100;
-        const dogruPuani = 10;
-        const yanlisPuani = 5;
-
-        const soruKarti = document.getElementById('soru-karti');
-        const soruMetni = document.getElementById('soru-metni');
-        const puanAlani = document.getElementById('puan-alani');
-        const skorKutusu = document.getElementById('skor-kutusu');
-
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        function sesCal(frekans, tip, sure) {
-            if(audioCtx.state === 'suspended') audioCtx.resume();
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.type = tip;
-            osc.frequency.setValueAtTime(frekans, audioCtx.currentTime);
-            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + sure);
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.start();
-            osc.stop(audioCtx.currentTime + sure);
-        }
-
-        function dogruSesi() { sesCal(600, 'sine', 0.1); setTimeout(() => sesCal(800, 'sine', 0.15), 100); }
-        function yanlisSesi() { sesCal(300, 'sawtooth', 0.3); }
-
-        function soruyuGoster() {
-            // Eğer sorular bittiyse ve hala 100 puana ulaşılamadıysa, soruları yeniden karıştır ve başa sar
-            if (gecerliSoruIndex >= sorular.length) {
-                sorular.sort(() => Math.random() - 0.5);
-                gecerliSoruIndex = 0;
-            }
-            
-            const soru = sorular[gecerliSoruIndex];
-            soruMetni.innerText = soru.metin;
-            
-            soruKarti.style.transform = 'scale(0.8)';
-            soruKarti.style.opacity = '0';
-            setTimeout(() => {
-                soruKarti.style.transform = 'scale(1)';
-                soruKarti.style.opacity = '1';
-                beklemede = false;
-            }, 150);
-        }
-
-        function cevapKontrol(secilenTur) {
-            if (beklemede) return;
-            beklemede = true;
-
-            const dogruTur = sorular[gecerliSoruIndex].tur;
-
-            if (secilenTur === dogruTur) {
-                // DOĞRU CEVAP (+10 Puan)
-                dogruSesi();
-                puan += dogruPuani;
-                puanAlani.innerText = puan;
-                
-                skorKutusu.style.backgroundColor = "#d1fae5";
-                skorKutusu.style.borderColor = "#10b981";
-                skorKutusu.style.color = "#047857";
-
-                soruKarti.classList.add('dogru-animasyon');
-                
-                setTimeout(() => {
-                    soruKarti.classList.remove('dogru-animasyon');
-                    skorKutusu.style.backgroundColor = "#f1f5f9";
-                    skorKutusu.style.borderColor = "#bae6fd";
-                    skorKutusu.style.color = "#0284c7";
-
-                    if (puan >= hedefPuan) {
-                        oyunuBitir();
-                    } else {
-                        gecerliSoruIndex++;
-                        soruyuGoster();
-                    }
-                }, 800);
-
-            } else {
-                // YANLIŞ CEVAP (-5 Puan)
-                yanlisSesi();
-                puan -= yanlisPuani;
-                if (puan < 0) puan = 0; // Eksi puana düşmesini engeller
-                puanAlani.innerText = puan;
-
-                skorKutusu.style.backgroundColor = "#fee2e2";
-                skorKutusu.style.borderColor = "#ef4444";
-                skorKutusu.style.color = "#b91c1c";
-
-                soruKarti.classList.add('yanlis-animasyon');
-                
-                setTimeout(() => {
-                    soruKarti.classList.remove('yanlis-animasyon');
-                    skorKutusu.style.backgroundColor = "#f1f5f9";
-                    skorKutusu.style.borderColor = "#bae6fd";
-                    skorKutusu.style.color = "#0284c7";
-                    
-                    // Öğrenci yanlış bilirse doğrusunu öğrenmesi için soruyu değiştirmiyoruz, tekrar deniyor
-                    beklemede = false; 
-                }, 600);
-            }
-        }
-
-        function oyunuBitir() {
-            soruKarti.style.display = 'none';
-            document.getElementById('buton-grubu').style.display = 'none';
-            
-            const bitisEkrani = document.getElementById('bitis-ekrani');
-            bitisEkrani.style.display = 'flex';
-            document.getElementById('sonuc-puani').innerText = puan;
-
-            if (window.parent) {
-                window.parent.postMessage({ 
-                    islem: 'gorev_bitti', 
-                    puan: puan, 
-                    limit: 100
-                }, '*');
-            }
-        }
-
-        window.onload = () => {
-            document.body.addEventListener('click', function initAudio() {
-                if(audioCtx.state === 'suspended') audioCtx.resume();
-                document.body.removeEventListener('click', initAudio);
-            }, { once: true });
-            
-            soruyuGoster();
-        };
-    </script>
+secmeli({
+    baslik: 'Hak mı, sorumluluk mu?', maskot: '🦁', renk: '#2563eb',
+    nasil: 'Cümle bir hakkımızı mı, yoksa sorumluluğumuzu mu anlatıyor? Doğru bilince 10 puan, yanlışta 5 puan gider',
+    hedefYazi: 'Hedef: 100 puan',
+    mod: 'hedef', hedef: 100, limit: 100, dogruPuan: 10, yanlisCeza: 5, soruBoyu: 'metin', duzen: 'iki',
+    sorular: () => karistir(SORULAR).map(s => ({
+        soru: s.metin, dogru: s.tur,
+        secenekler: [
+            { deger: 'hak', yazi: '🛡️ Hakkımız', renk: '#2563eb' },
+            { deger: 'sorumluluk', yazi: '✅ Sorumluluğumuz', renk: '#16a34a' },
+        ],
+    })),
+});
+</script>
 </body>
 </html>

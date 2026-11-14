@@ -1,666 +1,152 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Eldeli Toplama Oyunu</title>
-    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --bg-color: #ffeaa7;
-            --card-bg: #ffffff;
-            --primary: #6c5ce7;
-            --secondary: #00b894;
-            --accent: #d63031;
-            --carry-color: #e17055;
-            --text-color: #2d3436;
-            --active-glow: 0 0 15px rgba(108, 92, 231, 0.5);
-            --shadow: 0 10px 20px rgba(0,0,0,0.15);
-        }
-
-        body {
-            font-family: 'Fredoka', sans-serif;
-            background-color: var(--bg-color);
-            background-image: radial-gradient(#fab1a0 2px, transparent 2px);
-            background-size: 30px 30px;
-            margin: 0;
-            height: 100vh;
-            min-height: -webkit-fill-available;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            overflow: hidden;
-            color: var(--text-color);
-            user-select: none;
-        }
-
-        /* --- GAME SCREEN --- */
-        .game-wrapper {
-            width: 100%;
-            max-width: 400px;
-            height: 100%;
-            max-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            padding: 10px;
-            box-sizing: border-box;
-            animation: slideUp 0.5s ease-out;
-            overflow-y: auto;
-            justify-content: flex-start;
-        }
-
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: var(--card-bg);
-            padding: 8px 15px;
-            border-radius: 20px;
-            box-shadow: var(--shadow);
-            margin-bottom: 10px;
-            flex-shrink: 0;
-        }
-
-        .user-name { font-weight: 600; font-size: 1rem; }
-        
-        /* YENİ SİSTEME ÖZEL: Kaydet ve Çık Butonu Stili */
-        .logout-btn { 
-            font-size: 0.85rem; 
-            background: var(--primary); 
-            color: white; 
-            padding: 6px 12px; 
-            border-radius: 12px; 
-            cursor: pointer; 
-            font-weight: bold;
-            box-shadow: 0 3px 0 #4834d4;
-            transition: transform 0.1s;
-        }
-        .logout-btn:active { transform: translateY(3px); box-shadow: none; }
-
-        .score-badge { font-size: 1.2rem; font-weight: 700; color: #d35400; display: flex; align-items: center; gap: 5px; }
-
-        .board {
-            flex: 1;
-            background: var(--card-bg);
-            border-radius: 25px;
-            box-shadow: var(--shadow);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 10px;
-            position: relative;
-            padding: 10px;
-            min-height: 300px;
-        }
-        
-        /* TIMER STYLES */
-        .timer-text {
-            font-size: 0.9rem;
-            color: #b2bec3;
-            margin-bottom: 5px;
-            width: 90%;
-            text-align: right;
-            font-weight: 600;
-        }
-
-        .timer-container {
-            width: 90%;
-            height: 8px;
-            background: #dfe6e9;
-            border-radius: 4px;
-            margin-bottom: 10px;
-            overflow: hidden;
-            flex-shrink: 0;
-        }
-        .timer-bar { height: 100%; background: var(--secondary); width: 100%; transition: width 1s linear; }
-
-        /* --- MATH GRID (ELDELİ LOGIC) --- */
-        .math-grid {
-            display: grid;
-            grid-template-columns: 60px 80px 80px; 
-            grid-template-rows: 50px 70px 70px 10px 90px;
-            row-gap: 2px;
-            justify-items: center;
-            align-items: center;
-            position: relative;
-        }
-
-        .digit { font-size: 4rem; font-weight: 700; color: var(--text-color); }
-        .operator-cell { font-size: 3rem; color: var(--primary); align-self: end; padding-bottom: 10px; grid-row: 3; grid-column: 1; }
-        
-        #t1 { grid-row: 2; grid-column: 2; }
-        #o1 { grid-row: 2; grid-column: 3; }
-        #t2 { grid-row: 3; grid-column: 2; }
-        #o2 { grid-row: 3; grid-column: 3; }
-        
-        .divider-row {
-            grid-row: 4;
-            grid-column: 1 / span 3;
-            width: 100%;
-            height: 6px;
-            background-color: var(--text-color);
-            border-radius: 3px;
-        }
-
-        #ans-tens { grid-row: 5; grid-column: 2; }
-        #ans-ones { grid-row: 5; grid-column: 3; }
-
-        .answer-cell {
-            width: 70px;
-            height: 85px;
-            background: #f1f2f6;
-            border: 4px solid #dfe6e9;
-            border-radius: 15px;
-            font-size: 3.5rem;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            color: var(--primary);
-            font-weight: 700;
-            transition: all 0.3s ease;
-        }
-
-        .answer-cell.active {
-            border-color: var(--primary);
-            background: #fff;
-            box-shadow: var(--active-glow);
-            transform: scale(1.05);
-            z-index: 2;
-        }
-
-        .answer-cell.filled {
-            border-color: var(--secondary);
-            background: #fff;
-            color: var(--secondary);
-        }
-
-        .carry-box {
-            grid-row: 1;
-            grid-column: 2;
-            width: 45px;
-            height: 45px;
-            border: 2px dashed #b2bec3;
-            border-radius: 50%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 1.8rem;
-            color: var(--carry-color);
-            font-weight: bold;
-            opacity: 0; 
-            background: #ffeaa7;
-            transition: opacity 0.3s;
-        }
-
-        .carry-box.visible { opacity: 1; border-style: solid; border-color: var(--carry-color); }
-
-        #flying-carry {
-            position: absolute;
-            width: 45px;
-            height: 45px;
-            background: var(--carry-color);
-            color: white;
-            border-radius: 50%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 1.8rem;
-            font-weight: bold;
-            pointer-events: none;
-            opacity: 0;
-            z-index: 100;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-        }
-
-        /* Keypad */
-        .keypad {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
-            width: 100%;
-            flex-shrink: 0;
-        }
-
-        .key {
-            background: var(--card-bg);
-            border: none;
-            border-radius: 15px;
-            padding: 12px 0;
-            font-size: 1.5rem;
-            font-weight: 600;
-            color: var(--text-color);
-            box-shadow: 0 4px 0 #dfe6e9;
-            cursor: pointer;
-            transition: transform 0.1s;
-        }
-        .key:active { transform: translateY(4px); box-shadow: none; }
-        
-        .key-delete { background: var(--accent); color: white; box-shadow: 0 4px 0 #b71c1c; font-size: 1.2rem; }
-        .key-0 { grid-column: span 2; }
-
-        /* --- RESPONSIVE ADJUSTMENTS --- */
-        @media (max-height: 800px) {
-            .digit { font-size: 3.5rem; }
-            .operator-cell { font-size: 2.5rem; }
-            .answer-cell { width: 60px; height: 75px; font-size: 3rem; }
-            .math-grid { grid-template-rows: 45px 60px 60px 8px 80px; }
-            .key { padding: 10px 0; font-size: 1.4rem; }
-        }
-
-        @media (max-height: 700px) {
-            .header { padding: 5px 10px; margin-bottom: 5px; }
-            .board { padding: 5px; min-height: auto; }
-            .digit { font-size: 2.8rem; }
-            .operator-cell { font-size: 2rem; }
-            .answer-cell { width: 50px; height: 60px; font-size: 2.2rem; }
-            .math-grid { grid-template-rows: 40px 50px 50px 5px 65px; gap: 2px; }
-            .carry-box { width: 35px; height: 35px; font-size: 1.4rem; }
-            .key { padding: 8px 0; font-size: 1.3rem; border-radius: 10px; }
-            .timer-container { margin-bottom: 5px; height: 6px; }
-            .timer-text { font-size: 0.8rem; margin-bottom: 2px; }
-            #feedback-msg { font-size: 0.8rem; margin: 2px 0 0 0; }
-        }
-
-        @media (max-height: 500px) {
-            .game-wrapper { flex-direction: row; flex-wrap: wrap; justify-content: center; align-items: flex-start; }
-            .header { width: 100%; order: 1; margin-bottom: 5px; }
-            .board { width: 48%; order: 2; margin-right: 2%; margin-bottom: 0; }
-            .keypad { width: 48%; order: 3; align-self: center; }
-        }
-
-        @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            25% { transform: translateX(-5px); }
-            75% { transform: translateX(5px); }
-        }
-        .shake { animation: shake 0.4s ease-in-out; border-color: var(--accent) !important; color: var(--accent) !important; }
-
-        @keyframes slideUp { 0% { transform: translateY(20px); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
-
-        .hidden { display: none !important; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Eldeli toplama</title>
+<link rel="stylesheet" href="motor/oyun.css">
+<style>
+    .duzen { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: clamp(14px, 3vw, 28px); align-items: center; }
+    @media (max-width: 700px) { .duzen { grid-template-columns: 1fr; } }
+    .sure { height: 12px; border-radius: 6px; background: #fff; box-shadow: inset 0 0 0 2px var(--renk-acik); overflow: hidden; margin-bottom: 12px; }
+    .sure span { display: block; height: 100%; background: var(--dogru); transform-origin: left; transition: transform 1s linear, background-color 300ms; }
+    .sure.az span { background: #f59e0b; }
+    .sure.cok-az span { background: var(--yanlis); }
+    .tablo { display: grid; grid-template-columns: 1fr repeat(2, clamp(64px, 12vw, 96px)); justify-content: center; align-items: center; gap: 6px 10px; font-size: clamp(48px, 9vw, 76px); font-weight: 600; width: max-content; margin: 0 auto; }
+    .tablo .etiket { font-size: 14px; color: var(--soluk); font-weight: 500; text-align: center; }
+    .tablo .arti { color: var(--renk); text-align: right; }
+    .tablo .sayi { text-align: center; }
+    .elde { height: 44px; display: grid; place-items: center; }
+    .elde span { width: 40px; height: 40px; border-radius: 50%; background: #f59e0b; color: #fff; font-size: 26px; display: grid; place-items: center; opacity: 0; transform: scale(.4); transition: opacity 200ms, transform 300ms var(--yay); }
+    .elde span.var { opacity: 1; transform: scale(1); }
+    .cizgi { grid-column: 1 / -1; height: 5px; border-radius: 3px; background: var(--murekkep); }
+    .hucre { height: clamp(76px, 13vw, 100px); border-radius: 18px; border: 4px dashed #d6cfe2; display: grid; place-items: center; color: var(--murekkep); background: #fff; }
+    .hucre.aktif { border-color: var(--renk); background: var(--renk-acik); animation: nabiz 1.2s ease-in-out 3; }
+    .hucre.dolu { border-style: solid; border-color: var(--dogru); background: var(--dogru-acik); color: var(--dogru); animation: none; }
+    .hucre.cevap { border-color: var(--yanlis); color: var(--yanlis); background: var(--yanlis-acik); }
+    .yonerge { text-align: center; font-size: clamp(17px, 2.6vw, 21px); color: var(--renk-koyu); margin-top: 12px; min-height: 1.4em; font-weight: 500; }
+    .ucan-elde { position: fixed; z-index: 80; width: 40px; height: 40px; border-radius: 50%; background: #f59e0b; color: #fff; font: 600 26px/40px 'Fredoka', sans-serif; text-align: center; pointer-events: none; transition: transform 700ms var(--yay); }
+</style>
 </head>
 <body>
+<script type="module">
+import { Oyun, tusTakimi, rastgele, ses, oynat } from './motor/oyun.js';
 
-    <canvas id="confetti-canvas" style="position: absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:999;"></canvas>
+// Eski kurallar: doğru +10, yanlış rakam -2, süre biterse -5. Süre puan arttıkça kısalır (60 sn'den 10 sn'ye).
+// Puan sınırı yok; öğrenci istediği zaman "Bitir" ile puanını kaydeder.
+let p = {}, adim = 'birler', zamanlayici = null, kalan = 60, enCok = 60;
 
-    <div id="flying-carry">1</div>
-
-    <!-- GAME SCREEN (Ana Ekran Olarak Değiştirildi) -->
-    <div id="game-screen" class="game-wrapper">
-        <div class="header">
-            <div>
-                <div id="display-name" class="user-name">Öğrenci</div>
-            </div>
-            <!-- YENİ SİSTEM BAĞLANTISI: Kaydet ve Çık Butonu -->
-            <div class="logout-btn" onclick="kaydetVeCik()">Kaydet ve Çık</div>
-            <div class="score-badge"><span>⭐</span><span id="score">0</span></div>
-        </div>
-
-        <div class="board">
-            <div id="timer-label" class="timer-text">Süre: 60s</div>
-            <div class="timer-container"><div id="timer-bar" class="timer-bar"></div></div>
-            
-            <div class="math-grid" id="math-grid">
-                <div id="carry-box" class="carry-box">1</div>
-                
-                <div id="t1" class="digit">0</div>
-                <div id="o1" class="digit">0</div>
-                
-                <div class="operator-cell">+</div>
-                <div id="t2" class="digit">0</div>
-                <div id="o2" class="digit">0</div>
-
-                <div class="divider-row"></div>
-
-                <div id="ans-tens" class="answer-cell"></div>
-                <div id="ans-ones" class="answer-cell active"></div>
-            </div>
-            <p id="feedback-msg" style="height: 20px; margin: 5px 0 0 0; color: #b2bec3; font-size: 0.9rem; font-weight: bold;"></p>
-        </div>
-
-        <div class="keypad">
-            <button class="key" onclick="handleInput(1)">1</button>
-            <button class="key" onclick="handleInput(2)">2</button>
-            <button class="key" onclick="handleInput(3)">3</button>
-            <button class="key" onclick="handleInput(4)">4</button>
-            <button class="key" onclick="handleInput(5)">5</button>
-            <button class="key" onclick="handleInput(6)">6</button>
-            <button class="key" onclick="handleInput(7)">7</button>
-            <button class="key" onclick="handleInput(8)">8</button>
-            <button class="key" onclick="handleInput(9)">9</button>
-            <button class="key key-delete" onclick="handleDelete()">Sil</button>
-            <button class="key key-0" onclick="handleInput(0)">0</button>
-        </div>
-    </div>
-
-    <script>
-        // --- AUDIO SYSTEM ---
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        function playSound(type) {
-            if (audioCtx.state === 'suspended') audioCtx.resume();
-            const osc = audioCtx.createOscillator();
-            const gainNode = audioCtx.createGain();
-            osc.connect(gainNode);
-            gainNode.connect(audioCtx.destination);
-
-            const now = audioCtx.currentTime;
-            
-            if (type === 'click') {
-                osc.type = 'triangle';
-                osc.frequency.setValueAtTime(600, now);
-                gainNode.gain.setValueAtTime(0.05, now);
-                gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
-                osc.start(now);
-                osc.stop(now + 0.1);
-            } else if (type === 'carry') {
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(400, now);
-                osc.frequency.linearRampToValueAtTime(800, now + 0.3);
-                gainNode.gain.setValueAtTime(0.1, now);
-                gainNode.gain.linearRampToValueAtTime(0, now + 0.3);
-                osc.start(now);
-                osc.stop(now + 0.3);
-            } else if (type === 'success') {
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(500, now);
-                osc.frequency.exponentialRampToValueAtTime(1000, now + 0.2);
-                gainNode.gain.setValueAtTime(0.1, now);
-                gainNode.gain.linearRampToValueAtTime(0, now + 0.5);
-                osc.start(now);
-                osc.stop(now + 0.5);
-            } else if (type === 'error') {
-                osc.type = 'sawtooth';
-                osc.frequency.setValueAtTime(150, now);
-                osc.frequency.linearRampToValueAtTime(100, now + 0.2);
-                gainNode.gain.setValueAtTime(0.1, now);
-                gainNode.gain.linearRampToValueAtTime(0, now + 0.2);
-                osc.start(now);
-                osc.stop(now + 0.2);
-            }
-        }
-
-        // --- GAME LOGIC VARIABLES ---
-        let currentProblem = {};
-        let inputState = 'ones'; 
-        let currentUser = { name: "Öğrenci", score: 0 }; // YENİ SİSTEM: Sabit kullanıcı
-        let timerInterval;
-        let timeLeft = 60;
-        let maxTime = 60;
-
-        // --- DOM ELEMENTS ---
-        const elements = {
-            t1: document.getElementById('t1'), o1: document.getElementById('o1'),
-            t2: document.getElementById('t2'), o2: document.getElementById('o2'),
-            ansOnes: document.getElementById('ans-ones'),
-            ansTens: document.getElementById('ans-tens'),
-            carryBox: document.getElementById('carry-box'),
-            flyingCarry: document.getElementById('flying-carry'),
-            score: document.getElementById('score'),
-            timer: document.getElementById('timer-bar'),
-            timerLabel: document.getElementById('timer-label'),
-            feedback: document.getElementById('feedback-msg')
-        };
-
-        // --- INITIALIZATION ---
-        window.onload = () => {
-            startGame();
-        };
-
-        // --- YENİ SİSTEM ENTEGRASYONU: KAYDET VE ÇIK ---
-        function kaydetVeCik() {
-            clearInterval(timerInterval); // Süreyi durdur
-            
-            // 1. Ana sisteme (Öğrenci Paneline) sihirli mesajı ve puanı yolla
-            window.parent.postMessage({ islem: 'gorev_bitti', puan: currentUser.score }, '*');
-            
-            // 2. Ekranda kapanmasını beklerken güzel bir mesaj göster
-            document.getElementById('game-screen').innerHTML = `
-                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; text-align: center;">
-                    <h2 style="color: var(--primary); font-size: 2rem;">Harika! 🎉</h2>
-                    <p style="font-size: 1.2rem; margin: 10px 0;">Toplam Puanınız: <strong style="color: var(--accent);">${currentUser.score}</strong></p>
-                    <p style="color: #666; font-size: 0.9rem;">Puanınız öğretmeninize iletildi.<br>Pencere otomatik kapanacaktır...</p>
+const oyun = new Oyun({
+    baslik: 'Eldeli toplama', maskot: '🐿️', renk: '#0ea5e9',
+    nasil: 'Önce birler basamağını topla. 10 ya da daha fazla çıkarsa 1 elde onlar basamağına uçar. Sonra onlar basamağını topla, eldeyi unutma',
+    hedefYazi: 'Her doğru 10 puan · istediğin zaman Bitir',
+    ilerlemeTuru: null, bitirDugmesi: true,
+    baslat: () => {
+        oyun.alan.innerHTML = `
+            <div class="duzen">
+                <div class="soru-kart">
+                    <div class="sure" id="sure"><span></span></div>
+                    <div class="tablo">
+                        <span></span><span class="etiket">Onlar</span><span class="etiket">Birler</span>
+                        <span></span><div class="elde"><span id="elde">1</span></div><span></span>
+                        <span></span><span class="sayi" id="t1"></span><span class="sayi" id="o1"></span>
+                        <span class="arti">+</span><span class="sayi" id="t2"></span><span class="sayi" id="o2"></span>
+                        <div class="cizgi"></div>
+                        <span></span><div class="hucre" id="h-onlar"></div><div class="hucre" id="h-birler"></div>
+                    </div>
+                    <div class="yonerge" id="yonerge"></div>
                 </div>
-            `;
-            fireConfetti();
-        }
+                <div id="tuslar"></div>
+            </div>`;
+        tusTakimi(oyun.alan.querySelector('#tuslar'), { tusla: gir, sil: () => {} });
+        yeniSoru();
+    },
+});
+const $ = (id) => oyun.alan.querySelector('#' + id);
 
-        // --- GAMEPLAY LOGIC ---
-        function startGame() {
-            elements.score.innerText = currentUser.score;
-            generateProblem();
-        }
+function yeniSoru() {
+    const o1 = rastgele(2, 9), o2 = rastgele(10 - o1, 9);   // birler toplamı en az 10 (elde olsun)
+    const t1 = rastgele(1, 6), t2 = rastgele(1, 8 - t1);      // onlar toplamı (elde dahil) tek basamak kalsın
+    p = { t1, o1, t2, o2, birler: (o1 + o2) % 10, onlar: t1 + t2 + 1 };
+    ['t1', 'o1', 't2', 'o2'].forEach(k => { $(k).textContent = p[k]; });
+    $('h-birler').textContent = ''; $('h-onlar').textContent = '';
+    $('h-birler').className = 'hucre aktif'; $('h-onlar').className = 'hucre';
+    $('elde').classList.remove('var');
+    adim = 'birler';
+    $('yonerge').textContent = `Önce birler: ${o1} + ${o2} = ?  (sadece birler basamağını yaz)`;
+    oynat(oyun.alan.querySelector('.soru-kart'), 'gelis');
+    sureBaslat();
+}
 
-        function generateProblem() {
-            let o1 = Math.floor(Math.random() * 8) + 2; 
-            let minO2 = 10 - o1;
-            let o2 = Math.floor(Math.random() * (9 - minO2 + 1)) + minO2;
+function sureBaslat() {
+    clearInterval(zamanlayici);
+    enCok = Math.max(10, 60 - Math.floor(oyun.puan / 10));
+    kalan = enCok; sureCiz();
+    zamanlayici = setInterval(() => { kalan--; sureCiz(); if (kalan <= 0) sureBitti(); if (kalan > 0 && kalan <= 3) ses.uyari(); }, 1000);
+}
+function sureCiz() {
+    const oran = kalan / enCok;
+    $('sure').querySelector('span').style.transform = `scaleX(${oran})`;
+    $('sure').className = `sure${oran <= 0.2 ? ' cok-az' : oran <= 0.5 ? ' az' : ''}`;
+}
 
-            let t1 = Math.floor(Math.random() * 6) + 1; 
-            let maxT2 = 8 - t1;
-            let t2 = Math.floor(Math.random() * maxT2) + 1;
+function gir(n) {
+    if (oyun.bitti || adim === 'bekle') return;
+    const hucre = $(adim === 'birler' ? 'h-birler' : 'h-onlar');
+    const dogru = adim === 'birler' ? p.birler : p.onlar;
+    hucre.textContent = n;
+    if (n !== dogru) {
+        oyun.yanlis(hucre, { ceza: 2 });
+        setTimeout(() => { if (hucre.textContent == n && !hucre.classList.contains('dolu')) hucre.textContent = ''; }, 400);
+        return;
+    }
+    hucre.className = 'hucre dolu';
+    oynat(hucre, 'zipla');
+    if (adim === 'birler') {
+        ses.dogru(1);
+        adim = 'bekle';
+        eldeUcur(() => {
+            adim = 'onlar';
+            $('h-onlar').classList.add('aktif');
+            $('yonerge').textContent = `Şimdi onlar: 1 (elde) + ${p.t1} + ${p.t2} = ?`;
+        });
+    } else {
+        clearInterval(zamanlayici);
+        adim = 'bekle';
+        oyun.dogru(oyun.alan.querySelector('.tablo'), { puan: 10 });
+        $('yonerge').textContent = `${p.t1}${p.o1} + ${p.t2}${p.o2} = ${p.onlar}${p.birler}`;
+        setTimeout(yeniSoru, 1400);
+    }
+}
 
-            currentProblem = {
-                t1, o1, t2, o2,
-                sumOnes: o1 + o2,
-                targetOnes: (o1 + o2) % 10,
-                targetTens: t1 + t2 + 1 
-            };
+// Birler hücresinden onlar sütununun üstüne uçan "1"
+function eldeUcur(bitince) {
+    $('yonerge').textContent = '1 elde onlar basamağına gidiyor';
+    const bas = $('h-birler').getBoundingClientRect(), son = $('elde').getBoundingClientRect();
+    const u = document.createElement('div');
+    u.className = 'ucan-elde'; u.textContent = '1';
+    u.style.left = `${bas.left + bas.width / 2 - 20}px`; u.style.top = `${bas.top + bas.height / 2 - 20}px`;
+    document.body.appendChild(u);
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+        u.style.transform = `translate(${son.left + son.width / 2 - (bas.left + bas.width / 2)}px, ${son.top + son.height / 2 - (bas.top + bas.height / 2)}px)`;
+    }));
+    ses.nota(400, { sure: 0.3, kayma: 800 });
+    setTimeout(() => { u.remove(); $('elde').classList.add('var'); bitince(); }, 720);
+}
 
-            elements.t1.innerText = t1;
-            elements.o1.innerText = o1;
-            elements.t2.innerText = t2;
-            elements.o2.innerText = o2;
-            
-            resetInputUI();
-            startTimer();
-        }
+function sureBitti() {
+    clearInterval(zamanlayici);
+    adim = 'bekle';
+    $('h-birler').textContent = p.birler; $('h-onlar').textContent = p.onlar;
+    $('h-birler').className = 'hucre cevap'; $('h-onlar').className = 'hucre cevap';
+    $('elde').classList.add('var');
+    $('yonerge').textContent = 'Süre doldu! Doğrusu bu';
+    oyun.yanlis(null, { ceza: 5 });
+    setTimeout(yeniSoru, 2200);
+}
 
-        function resetInputUI() {
-            elements.ansOnes.innerText = '';
-            elements.ansTens.innerText = '';
-            
-            elements.ansOnes.className = 'answer-cell active';
-            elements.ansTens.className = 'answer-cell';
-            elements.carryBox.classList.remove('visible');
-            inputState = 'ones';
-            elements.feedback.innerText = "Önce birler basamağını topla!";
-        }
-
-        function startTimer() {
-            clearInterval(timerInterval);
-            maxTime = Math.max(10, 60 - Math.floor(currentUser.score / 10)); 
-            timeLeft = maxTime;
-            updateTimerBar();
-            
-            timerInterval = setInterval(() => {
-                timeLeft--;
-                updateTimerBar();
-                if(timeLeft <= 0) {
-                    handleTimeout();
-                }
-            }, 1000);
-        }
-
-        function updateTimerBar() {
-            const pct = (timeLeft / maxTime) * 100;
-            elements.timer.style.width = pct + '%';
-            elements.timerLabel.innerText = `Süre: ${timeLeft}s`;
-            
-            if(pct > 50) elements.timer.style.backgroundColor = '#00b894';
-            else if(pct > 20) elements.timer.style.backgroundColor = '#fdcb6e';
-            else elements.timer.style.backgroundColor = '#d63031';
-        }
-
-        // --- INPUT HANDLING ---
-        function handleInput(digit) {
-            playSound('click');
-            if (inputState === 'animating') return;
-
-            if (inputState === 'ones') {
-                if (digit === currentProblem.targetOnes) {
-                    elements.ansOnes.innerText = digit;
-                    elements.ansOnes.classList.remove('active');
-                    elements.ansOnes.classList.add('filled');
-                    animateCarry();
-                } else {
-                    elements.ansOnes.innerText = digit;
-                    handleError(elements.ansOnes);
-                }
-            } else if (inputState === 'tens') {
-                if (digit === currentProblem.targetTens) {
-                    elements.ansTens.innerText = digit;
-                    elements.ansTens.classList.remove('active');
-                    elements.ansTens.classList.add('filled');
-                    handleSuccess();
-                } else {
-                    elements.ansTens.innerText = digit;
-                    handleError(elements.ansTens);
-                }
-            }
-        }
-
-        function handleDelete() {
-            playSound('click');
-            if (inputState === 'animating') return;
-            
-            if (inputState === 'ones') {
-                elements.ansOnes.innerText = '';
-            } else if (inputState === 'tens') {
-                elements.ansTens.innerText = '';
-            }
-        }
-
-        function handleError(element) {
-            playSound('error');
-            element.classList.add('shake');
-            setTimeout(() => {
-                element.classList.remove('shake');
-                element.innerText = ''; 
-            }, 400);
-            
-            if(currentUser.score > 0) {
-                currentUser.score = Math.max(0, currentUser.score - 2);
-                updateScore();
-            }
-            elements.feedback.innerText = "Tekrar dene!";
-        }
-
-        function animateCarry() {
-            playSound('carry');
-            elements.feedback.innerText = "Elde var 1 yukarı gidiyor!";
-            inputState = 'animating';
-
-            const rectStart = elements.ansOnes.getBoundingClientRect();
-            const rectEnd = elements.carryBox.getBoundingClientRect();
-
-            const fly = elements.flyingCarry;
-            fly.style.opacity = '1';
-            fly.style.left = (rectStart.left + 15) + 'px';
-            fly.style.top = (rectStart.top + 15) + 'px';
-            fly.style.transition = 'none';
-            fly.style.transform = 'scale(0.5)';
-
-            void fly.offsetWidth;
-
-            fly.style.transition = 'all 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55)';
-            fly.style.left = rectEnd.left + 'px';
-            fly.style.top = rectEnd.top + 'px';
-            fly.style.transform = 'scale(1)';
-
-            setTimeout(() => {
-                fly.style.opacity = '0';
-                elements.carryBox.classList.add('visible');
-                
-                inputState = 'tens';
-                elements.ansTens.classList.add('active');
-                elements.feedback.innerText = "Şimdi onlar basamağını topla!";
-            }, 800);
-        }
-
-        function handleSuccess() {
-            clearInterval(timerInterval);
-            playSound('success');
-            fireConfetti();
-            
-            currentUser.score += 10;
-            updateScore();
-            elements.feedback.innerText = "Harika! 🎉";
-
-            setTimeout(generateProblem, 2000);
-        }
-
-        function handleTimeout() {
-            clearInterval(timerInterval);
-            playSound('error');
-            elements.feedback.innerText = "Süre doldu!";
-            
-            elements.ansOnes.innerText = currentProblem.targetOnes;
-            elements.ansTens.innerText = currentProblem.targetTens;
-            elements.ansOnes.style.color = '#d63031';
-            elements.ansTens.style.color = '#d63031';
-            
-            currentUser.score = Math.max(0, currentUser.score - 5);
-            updateScore();
-
-            setTimeout(generateProblem, 2000);
-        }
-
-        function updateScore() {
-            // Sadece Ekrana Bas (Eski localStorage iptal edildi)
-            elements.score.innerText = currentUser.score;
-        }
-
-        // --- VISUAL EFFECTS ---
-        const canvas = document.getElementById('confetti-canvas');
-        const ctx = canvas.getContext('2d');
-        let particles = [];
-
-        function resizeCanvas() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-        }
-        window.addEventListener('resize', resizeCanvas);
-        resizeCanvas();
-
-        function fireConfetti() {
-            const colors = ['#6c5ce7', '#00b894', '#fd79a8', '#ffeaa7', '#fab1a0'];
-            for(let i=0; i<50; i++) {
-                particles.push({
-                    x: window.innerWidth / 2,
-                    y: window.innerHeight / 2,
-                    vx: (Math.random() - 0.5) * 20,
-                    vy: (Math.random() - 0.5) * 20 - 5,
-                    life: 1.0,
-                    color: colors[Math.floor(Math.random() * colors.length)],
-                    size: Math.random() * 8 + 4
-                });
-            }
-            requestAnimationFrame(updateConfetti);
-        }
-
-        function updateConfetti() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            for(let i=0; i<particles.length; i++) {
-                let p = particles[i];
-                p.x += p.vx;
-                p.y += p.vy;
-                p.vy += 0.5; 
-                p.life -= 0.02;
-                
-                ctx.globalAlpha = p.life;
-                ctx.fillStyle = p.color;
-                ctx.fillRect(p.x, p.y, p.size, p.size);
-
-                if(p.life <= 0) {
-                    particles.splice(i, 1);
-                    i--;
-                }
-            }
-            if(particles.length > 0) requestAnimationFrame(updateConfetti);
-            else ctx.clearRect(0,0,canvas.width, canvas.height);
-        }
-    </script>
+// Bitir düğmesi (motorda) süreyi de durdursun
+document.addEventListener('click', (e) => { if (e.target.closest('.bitir-dugme')) setTimeout(() => { if (oyun.bitti) clearInterval(zamanlayici); }, 0); });
+</script>
 </body>
 </html>

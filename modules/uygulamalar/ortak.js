@@ -64,6 +64,21 @@ export function puanCoz(deger) {
     return { metin: s, oran };
 }
 
+// Yeni puan eskisinden daha mı iyi? (Tekrar oynayınca en iyi puan korunur.)
+export function dahaIyiMi(yeni, eski) {
+    const y = puanCoz(yeni), e = puanCoz(eski);
+    if (!e) return true;
+    if (!y) return false;
+    if (y.oran !== null && e.oran !== null) return y.oran > e.oran;
+    const sayi = (p) => parseFloat(String(p.metin).replace(',', '.'));
+    const ys = sayi(y), es = sayi(e);
+    if (isNaN(es)) return true;   // eski "✔️" gibi bir işaretse yeni puan yazılsın
+    return !isNaN(ys) && ys > es;
+}
+
+// Oyunun bitiş ekranı görünsün diye pencere bu kadar sonra kapanır
+export const KAPANMA_SURESI = 3500;
+
 // Oyunun gönderdiği mesajdan kaydedilecek puan yazısı
 export function puanMetni(veri) {
     if (veri.deger !== undefined) return String(veri.deger);

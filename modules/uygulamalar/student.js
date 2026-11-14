@@ -3,7 +3,7 @@ import { auth } from '../../js/auth.js';
 import { db } from '../../js/db.js';
 import { esc, sayi, modulBasligi } from '../../js/arayuz.js';
 import { kutla } from '../../js/hareket.js';
-import { KALEMLER, MATRIS, yayinDurumu, sureMetni, puanHtml, puanMetni, oyunAdresi, puanDinle, katmanAc } from './ortak.js';
+import { KALEMLER, MATRIS, yayinDurumu, sureMetni, puanHtml, puanMetni, oyunAdresi, puanDinle, katmanAc, dahaIyiMi, KAPANMA_SURESI } from './ortak.js';
 
 export async function render(container) {
     if (!(await db.getModuleVisibility('uygulamalar'))) {
@@ -45,11 +45,11 @@ export async function render(container) {
         const d = e.target.closest('[data-islem="oyna"]');
         if (!d) return;
         const k = kalemler.find(x => x.id === d.closest('.ilan').dataset.id);
-        if (k) oyna(k, benim, () => render(container));
+        if (k) oyna(k, benim, puan(k), () => render(container));
     });
 }
 
-function oyna(k, benim, bitince) {
+function oyna(k, benim, enIyi, bitince) {
     const { el, govde, kapat } = katmanAc({ baslik: esc(k.ad), dugmeler: '<span class="katman-not" aria-live="polite"></span>' });
     govde.innerHTML = `<iframe class="oyun-cerceve" title="${esc(k.ad)}" src="${esc(oyunAdresi(k.link))}"></iframe>`;
     const iframe = govde.querySelector('iframe');
@@ -58,15 +58,19 @@ function oyna(k, benim, bitince) {
     const birak = puanDinle(async (e) => {
         if (e.source !== iframe.contentWindow) return;
         const deger = puanMetni(e.data);
-        try {
-            await db.saveMatrixStatus(MATRIS, benim, k.id, deger);
-            kaydedildi = true;
-            not.textContent = `Puanın kaydedildi: ${deger}`;
-        } catch (err) { not.textContent = 'Puan kaydedilemedi, internetini kontrol et'; return; }
-        if (e.data.islem === 'gorev_bitti') {
-            kutla(not);
-            setTimeout(() => { if (document.body.contains(el)) kapat(); }, 2000);
+        const bitti = e.data.islem === 'gorev_bitti';
+        if (dahaIyiMi(deger, enIyi)) {
+            try {
+                await db.saveMatrixStatus(MATRIS, benim, k.id, deger);
+                enIyi = deger;
+                kaydedildi = true;
+                not.textContent = `Puanın kaydedildi: ${deger}`;
+                if (bitti) kutla(not);
+            } catch (err) { not.textContent = 'Puan kaydedilemedi, internetini kontrol et'; return; }
+        } else if (bitti) {
+            not.textContent = `En iyi puanın ${enIyi} olarak kaldı`;
         }
+        if (bitti) setTimeout(() => { if (document.body.contains(el)) kapat(); }, KAPANMA_SURESI);
     });
     el.addEventListener('kapandi', () => { birak(); if (kaydedildi) bitince(); });
 }

@@ -1,433 +1,70 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Türkçesi Varken</title>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap');
-
-        * {
-            box-sizing: border-box;
-            user-select: none;
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        body {
-            margin: 0;
-            padding: 0;
-            font-family: 'Fredoka', sans-serif;
-            background: linear-gradient(135deg, #fff1f2, #ffe4e6); /* Hafif pembe/kırmızımsı arkaplan */
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            color: #334155;
-        }
-
-        #header {
-            background: white;
-            padding: 15px 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
-            z-index: 10;
-        }
-
-        .header-bilgi {
-            display: flex;
-            gap: 15px;
-            align-items: center;
-        }
-
-        .hedef-kutusu, .soru-kutusu {
-            font-size: 1.1rem;
-            font-weight: 700;
-            color: #64748b;
-            background: #f8fafc;
-            padding: 5px 12px;
-            border-radius: 8px;
-            border: 1px dashed #cbd5e1;
-        }
-
-        .soru-kutusu {
-            background: #fffbeb;
-            color: #d97706;
-            border-color: #fcd34d;
-        }
-
-        .skor-kutusu {
-            background: #f0fdf4;
-            padding: 8px 15px;
-            border-radius: 20px;
-            font-size: 1.2rem;
-            font-weight: 700;
-            color: #16a34a;
-            border: 2px solid #bbf7d0;
-            transition: all 0.3s;
-        }
-
-        #game-area {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            padding: 15px;
-            text-align: center;
-            max-width: 800px;
-            margin: 0 auto;
-            width: 100%;
-        }
-
-        #soru-karti {
-            background: #e11d48; /* Canlı bir kırmızı/pembe tonu */
-            padding: 30px 20px;
-            border-radius: 24px;
-            box-shadow: 0 10px 25px -5px rgba(225, 29, 72, 0.3);
-            width: 100%;
-            max-width: 500px;
-            margin-bottom: 30px;
-            border: 6px dashed #ffe4e6;
-            transition: transform 0.3s ease, opacity 0.3s ease;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 10px;
-        }
-
-        #ust-baslik {
-            font-size: 1.2rem;
-            color: #fda4af;
-            font-weight: bold;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-        }
-
-        #soru-metni {
-            font-size: 3rem; 
-            font-weight: 900;
-            line-height: 1.2;
-            color: #ffffff;
-            text-shadow: 2px 2px 0 #be123c;
-            word-wrap: break-word;
-        }
-
-        /* 4 Şık İçin Grid Yapısı */
-        .buton-izgarasi {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            width: 100%;
-            max-width: 600px;
-        }
-
-        .secenek-btn {
-            padding: 20px 15px;
-            font-size: 1.4rem;
-            font-weight: 700;
-            border: none;
-            border-radius: 16px;
-            cursor: pointer;
-            transition: transform 0.1s, box-shadow 0.1s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #1e293b;
-            background: white;
-            border: 3px solid #e2e8f0;
-            box-shadow: 0 6px 0 #cbd5e1;
-        }
-
-        .secenek-btn:active {
-            transform: translateY(6px);
-            box-shadow: 0 0 0 #cbd5e1;
-        }
-
-        .dogru-animasyon {
-            background: #22c55e !important;
-            color: white !important;
-            border-color: #16a34a !important;
-            box-shadow: 0 6px 0 #15803d !important;
-            transform: scale(1.05);
-        }
-
-        .yanlis-animasyon {
-            animation: salla 0.4s;
-            background: #ef4444 !important;
-            color: white !important;
-            border-color: #dc2626 !important;
-            box-shadow: 0 6px 0 #b91c1c !important;
-        }
-
-        @keyframes salla {
-            0% { transform: translateX(0); }
-            25% { transform: translateX(-10px); }
-            50% { transform: translateX(10px); }
-            75% { transform: translateX(-10px); }
-            100% { transform: translateX(0); }
-        }
-
-        #bitis-ekrani {
-            display: none;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            background: white;
-            padding: 40px;
-            border-radius: 24px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-            border: 4px solid #fecdd3;
-        }
-
-        .bitis-baslik {
-            font-size: 2.5rem;
-            color: #e11d48;
-            margin-bottom: 10px;
-        }
-
-        .bitis-puan {
-            font-size: 5rem;
-            font-weight: 900;
-            color: #2563eb;
-            margin: 15px 0;
-            text-shadow: 2px 2px 0 #bfdbfe;
-        }
-        
-        @media (max-width: 600px) {
-            #header { flex-direction: column; gap: 10px; }
-            #soru-metni { font-size: 2.2rem; }
-            .secenek-btn { font-size: 1.1rem; padding: 15px 10px; }
-            .buton-izgarasi { gap: 10px; }
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Türkçesi varken</title>
+<link rel="stylesheet" href="motor/oyun.css">
 </head>
 <body>
+<script type="module">
+import { secmeli, karistir } from './motor/oyun.js';
 
-    <div id="header">
-        <div class="header-bilgi">
-            <div class="soru-kutusu">Soru: <span id="soru-sayaci">1/10</span></div>
-            <div class="hedef-kutusu">Maksimum: 100 Puan 🏆</div>
-        </div>
-        <div class="skor-kutusu" id="skor-kutusu">Puan: <span id="puan-alani">0</span></div>
-    </div>
+// Yabancı kelimeler ve Türkçe karşılıkları (öğretmenin listesi)
+const KELIMELER = [
+        { yabanci: "Aktif", turkce: "Etkin" },
+        { yabanci: "Aktivite", turkce: "Etkinlik" },
+        { yabanci: "Alarm", turkce: "Uyarı" },
+        { yabanci: "Alternatif", turkce: "Seçenek" },
+        { yabanci: "Animasyon", turkce: "Canlandırma" },
+        { yabanci: "Anons", turkce: "Duyuru" },
+        { yabanci: "Antrenör", turkce: "Çalıştırıcı" },
+        { yabanci: "Asistan", turkce: "Yardımcı" },
+        { yabanci: "Bariyer", turkce: "Engel" },
+        { yabanci: "Bye bye", turkce: "Hoşça kal" },
+        { yabanci: "Chat", turkce: "Sohbet" },
+        { yabanci: "Computer", turkce: "Bilgisayar" },
+        { yabanci: "Defans", turkce: "Savunma" },
+        { yabanci: "Demo", turkce: "Tanıtım Sürümü" },
+        { yabanci: "Dizayn", turkce: "Tasarım" },
+        { yabanci: "Doküman", turkce: "Belge" },
+        { yabanci: "Duble", turkce: "Çift" },
+        { yabanci: "Ekstra", turkce: "Fazladan" },
+        { yabanci: "Faks", turkce: "Belgegeçer" },
+        { yabanci: "Fast food", turkce: "Hazır Yemek" },
+        { yabanci: "Final", turkce: "Son / Bitiş" },
+        { yabanci: "Full", turkce: "Dolu" },
+        { yabanci: "Ice-tea", turkce: "Soğuk Çay" },
+        { yabanci: "Joystick", turkce: "Kumanda Kolu" },
+        { yabanci: "Laptop", turkce: "Dizüstü Bilgisayar" },
+        { yabanci: "Metot", turkce: "Yöntem" },
+        { yabanci: "Mesaj", turkce: "İleti" },
+        { yabanci: "Modem", turkce: "Ağ Bağdaştırıcısı" },
+        { yabanci: "Mouse", turkce: "Fare" },
+        { yabanci: "Navigasyon", turkce: "Yol Bulma Sistemi" },
+        { yabanci: "Okey", turkce: "Tamam" },
+        { yabanci: "Online", turkce: "Çevrimiçi" },
+        { yabanci: "Printer", turkce: "Yazıcı" },
+        { yabanci: "Reyting", turkce: "İzlenme Oranı" },
+        { yabanci: "Scanner", turkce: "Tarayıcı" },
+        { yabanci: "Selfie", turkce: "Özçekim" },
+        { yabanci: "Sempati", turkce: "Hoşlanma" },
+        { yabanci: "Skor", turkce: "Puan" },
+        { yabanci: "Spiker", turkce: "Konuşmacı" },
+        { yabanci: "Start", turkce: "Başlangıç" },
+        { yabanci: "Trend", turkce: "Akım" }
+];
 
-    <div id="game-area">
-        <div id="soru-karti">
-            <div id="ust-baslik">TÜRKÇE KARŞILIĞI NEDİR?</div>
-            <div id="soru-metni">Yükleniyor...</div>
-        </div>
-
-        <div class="buton-izgarasi" id="buton-grubu">
-            <!-- Butonlar JavaScript ile dinamik oluşturulacak -->
-        </div>
-
-        <div id="bitis-ekrani">
-            <div class="bitis-baslik">🎉 Oyun Bitti! 🎉</div>
-            <div style="font-size: 1.3rem; color: #475569;">Toplam Kazandığın Puan:</div>
-            <div class="bitis-puan" id="sonuc-puani">100</div>
-            <div style="font-size: 1.2rem; color: #16a34a; font-weight: bold; padding: 15px; background: #dcfce7; border-radius: 12px;">
-                ✅ Sonuçlar öğretmenine gönderiliyor...
-            </div>
-        </div>
-    </div>
-
-    <script>
-        // Görseldeki tüm kelimeler ve Türkçe karşılıkları
-        const tumKelimeler = [
-            { yabanci: "Aktif", turkce: "Etkin" },
-            { yabanci: "Aktivite", turkce: "Etkinlik" },
-            { yabanci: "Alarm", turkce: "Uyarı" },
-            { yabanci: "Alternatif", turkce: "Seçenek" },
-            { yabanci: "Animasyon", turkce: "Canlandırma" },
-            { yabanci: "Anons", turkce: "Duyuru" },
-            { yabanci: "Antrenör", turkce: "Çalıştırıcı" },
-            { yabanci: "Asistan", turkce: "Yardımcı" },
-            { yabanci: "Bariyer", turkce: "Engel" },
-            { yabanci: "Bye bye", turkce: "Hoşça kal" },
-            { yabanci: "Chat", turkce: "Sohbet" },
-            { yabanci: "Computer", turkce: "Bilgisayar" },
-            { yabanci: "Defans", turkce: "Savunma" },
-            { yabanci: "Demo", turkce: "Tanıtım Sürümü" },
-            { yabanci: "Dizayn", turkce: "Tasarım" },
-            { yabanci: "Doküman", turkce: "Belge" },
-            { yabanci: "Duble", turkce: "Çift" },
-            { yabanci: "Ekstra", turkce: "Fazladan" },
-            { yabanci: "Faks", turkce: "Belgegeçer" },
-            { yabanci: "Fast food", turkce: "Hazır Yemek" },
-            { yabanci: "Final", turkce: "Son / Bitiş" },
-            { yabanci: "Full", turkce: "Dolu" },
-            { yabanci: "Ice-tea", turkce: "Soğuk Çay" },
-            { yabanci: "Joystick", turkce: "Kumanda Kolu" },
-            { yabanci: "Laptop", turkce: "Dizüstü Bilgisayar" },
-            { yabanci: "Metot", turkce: "Yöntem" },
-            { yabanci: "Mesaj", turkce: "İleti" },
-            { yabanci: "Modem", turkce: "Ağ Bağdaştırıcısı" },
-            { yabanci: "Mouse", turkce: "Fare" },
-            { yabanci: "Navigasyon", turkce: "Yol Bulma Sistemi" },
-            { yabanci: "Okey", turkce: "Tamam" },
-            { yabanci: "Online", turkce: "Çevrimiçi" },
-            { yabanci: "Printer", turkce: "Yazıcı" },
-            { yabanci: "Reyting", turkce: "İzlenme Oranı" },
-            { yabanci: "Scanner", turkce: "Tarayıcı" },
-            { yabanci: "Selfie", turkce: "Özçekim" },
-            { yabanci: "Sempati", turkce: "Hoşlanma" },
-            { yabanci: "Skor", turkce: "Puan" },
-            { yabanci: "Spiker", turkce: "Konuşmacı" },
-            { yabanci: "Start", turkce: "Başlangıç" },
-            { yabanci: "Trend", turkce: "Akım" }
-        ];
-
-        // Rastgele 10 soru seç
-        const karisikHavuz = [...tumKelimeler].sort(() => Math.random() - 0.5);
-        const aktifSorular = karisikHavuz.slice(0, 10);
-
-        let gecerliSoruIndex = 0;
-        let puan = 0;
-        let beklemede = false;
-        
-        const soruKarti = document.getElementById('soru-karti');
-        const soruMetni = document.getElementById('soru-metni');
-        const butonGrubu = document.getElementById('buton-grubu');
-        const puanAlani = document.getElementById('puan-alani');
-        const soruSayaci = document.getElementById('soru-sayaci');
-
-        let audioCtx = null;
-
-        function sesCal(frekans, tip, sure) {
-            try {
-                if (!audioCtx) {
-                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                }
-                if (audioCtx.state === 'suspended') audioCtx.resume();
-                
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                osc.type = tip;
-                osc.frequency.setValueAtTime(frekans, audioCtx.currentTime);
-                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + sure);
-                osc.connect(gain);
-                gain.connect(audioCtx.destination);
-                osc.start();
-                osc.stop(audioCtx.currentTime + sure);
-            } catch (error) { }
-        }
-
-        function dogruSesi() { sesCal(600, 'sine', 0.1); setTimeout(() => sesCal(800, 'sine', 0.15), 100); }
-        function yanlisSesi() { sesCal(300, 'sawtooth', 0.3); }
-
-        function soruyuGoster() {
-            if (gecerliSoruIndex >= aktifSorular.length) {
-                oyunuBitir();
-                return;
-            }
-
-            soruSayaci.innerText = (gecerliSoruIndex + 1) + "/10";
-            
-            const soru = aktifSorular[gecerliSoruIndex];
-            soruMetni.innerText = soru.yabanci; // Yabancı kelimeyi soruyoruz
-
-            // Şıkları ayarla (1 Doğru, 3 Rastgele Yanlış)
-            let siklar = [soru.turkce]; // Doğru cevabı ekle
-
-            // Havuzdan doğru cevap olmayan 3 farklı Türkçe karşılık seç
-            let yanlisHavuzu = tumKelimeler.filter(k => k.turkce !== soru.turkce);
-            yanlisHavuzu.sort(() => Math.random() - 0.5); // Karıştır
-            
-            siklar.push(yanlisHavuzu[0].turkce);
-            siklar.push(yanlisHavuzu[1].turkce);
-            siklar.push(yanlisHavuzu[2].turkce);
-
-            // Şıkların yerlerini rastgele karıştır
-            siklar.sort(() => Math.random() - 0.5);
-
-            // Butonları oluştur
-            butonGrubu.innerHTML = '';
-            siklar.forEach(sik => {
-                const btn = document.createElement('button');
-                btn.className = 'secenek-btn';
-                btn.innerText = sik;
-                btn.onclick = () => cevapKontrol(btn, sik, soru.turkce);
-                butonGrubu.appendChild(btn);
-            });
-            
-            // Kart animasyonu
-            soruKarti.style.transform = 'scale(0.8)';
-            soruKarti.style.opacity = '0';
-            setTimeout(() => {
-                soruKarti.style.transform = 'scale(1)';
-                soruKarti.style.opacity = '1';
-                beklemede = false;
-            }, 150);
-        }
-
-        function cevapKontrol(btnElement, secilenCevap, dogruCevap) {
-            if (beklemede) return;
-            beklemede = true;
-
-            if (secilenCevap === dogruCevap) {
-                // DOĞRU
-                dogruSesi();
-                puan += 10;
-                puanAlani.innerText = puan;
-                btnElement.classList.add('dogru-animasyon');
-            } else {
-                // YANLIŞ
-                yanlisSesi();
-                btnElement.classList.add('yanlis-animasyon');
-                
-                // Doğru olanı yeşil yakarak göster
-                const butonlar = document.querySelectorAll('.secenek-btn');
-                butonlar.forEach(b => {
-                    if(b.innerText === dogruCevap) {
-                        b.style.backgroundColor = "#22c55e";
-                        b.style.color = "white";
-                        b.style.borderColor = "#16a34a";
-                    }
-                });
-            }
-
-            // Sıradaki soruya geç
-            setTimeout(() => {
-                gecerliSoruIndex++;
-                soruyuGoster();
-            }, 1000); // Çocuk doğrusunu görebilsin diye 1 saniye bekletiyoruz
-        }
-
-        function oyunuBitir() {
-            document.getElementById('header').style.display = 'none';
-            soruKarti.style.display = 'none';
-            butonGrubu.style.display = 'none';
-            
-            const bitisEkrani = document.getElementById('bitis-ekrani');
-            bitisEkrani.style.display = 'flex';
-            document.getElementById('sonuc-puani').innerText = puan;
-
-            // Öğretmene puanı gönder (Maksimum 100)
-            if (window.parent) {
-                window.parent.postMessage({ 
-                    islem: 'gorev_bitti', 
-                    puan: puan, 
-                    limit: 100 
-                }, '*');
-            }
-        }
-
-        // Ses engelini aşmak için ilk dokunuşta başlatıcı
-        document.body.addEventListener('click', function initAudio() {
-            if(audioCtx === null) {
-                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            }
-            if(audioCtx.state === 'suspended') audioCtx.resume();
-            document.body.removeEventListener('click', initAudio);
-        }, { once: true });
-        
-        // Sayfayı beklemeden anında ilk soruyu çağırıyoruz
-        soruyuGoster();
-
-    </script>
+secmeli({
+    baslik: 'Türkçesi varken', maskot: '🦜', renk: '#dc2626',
+    nasil: 'Yabancı kelimenin Türkçe karşılığını seç',
+    hedefYazi: '10 soru · her doğru 10 puan',
+    soruSayisi: 10, limit: 100, dogruPuan: 10,
+    sorular: () => karistir(KELIMELER).slice(0, 10).map(k => ({
+        ust: 'Türkçe karşılığı nedir?', soru: k.yabanci, dogru: k.turkce,
+        secenekler: karistir([k.turkce, ...karistir([...new Set(KELIMELER.map(x => x.turkce))].filter(t => t !== k.turkce)).slice(0, 3)]),
+    })),
+});
+</script>
 </body>
 </html>

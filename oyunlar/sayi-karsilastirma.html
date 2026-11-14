@@ -1,226 +1,38 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sayıları Karşılaştırma Oyunu</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap');
-
-        body {
-            font-family: 'Fredoka', sans-serif;
-            background-color: #f0fdf4;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            margin: 0;
-            user-select: none;
-        }
-
-        .game-container {
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-            width: 90%;
-            max-width: 600px;
-            padding: 30px;
-            text-align: center;
-            border: 4px solid #4ade80;
-        }
-
-        .number-box {
-            font-size: 4rem;
-            font-weight: 700;
-            color: #1e293b;
-            background: #f8fafc;
-            padding: 10px 20px;
-            border-radius: 15px;
-            border: 3px solid #e2e8f0;
-            min-width: 120px;
-        }
-
-        .symbol-box {
-            font-size: 3.5rem;
-            font-weight: 700;
-            color: #94a3b8;
-            width: 80px;
-            height: 80px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            border-radius: 50%;
-            border: 4px dashed #cbd5e1;
-            background: #f8fafc;
-            transition: all 0.3s;
-        }
-
-        .btn-symbol {
-            font-size: 2.5rem;
-            font-weight: 700;
-            color: white;
-            width: 80px;
-            height: 80px;
-            border-radius: 20px;
-            border: none;
-            cursor: pointer;
-            box-shadow: 0 6px 0 rgba(0,0,0,0.2);
-            transition: transform 0.1s, box-shadow 0.1s;
-        }
-
-        .btn-symbol:active {
-            transform: translateY(6px);
-            box-shadow: 0 0 0 rgba(0,0,0,0.2);
-        }
-
-        .btn-less { background-color: #f43f5e; }
-        .btn-equal { background-color: #3b82f6; }
-        .btn-greater { background-color: #10b981; }
-
-        .correct-anim { animation: popCorrect 0.5s ease; background-color: #d1fae5; border-color: #10b981; color: #059669; }
-        .wrong-anim { animation: shakeWrong 0.5s ease; background-color: #ffe4e6; border-color: #f43f5e; color: #e11d48; }
-
-        @keyframes popCorrect {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.2); }
-            100% { transform: scale(1); }
-        }
-
-        @keyframes shakeWrong {
-            0%, 100% { transform: translateX(0); }
-            20%, 60% { transform: translateX(-10px); }
-            40%, 80% { transform: translateX(10px); }
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sayıları karşılaştırma</title>
+<link rel="stylesheet" href="motor/oyun.css">
 </head>
 <body>
+<script type="module">
+import { secmeli, rastgele } from './motor/oyun.js';
 
-    <div class="game-container" id="oyun-ekrani">
-        <div class="flex justify-between items-center mb-6">
-            <div class="bg-blue-100 text-blue-800 px-4 py-2 rounded-lg font-bold text-lg">
-                Soru: <span id="soru-sayaci">1</span> / 20
-            </div>
-            <div class="bg-yellow-100 text-yellow-800 px-4 py-2 rounded-lg font-bold text-xl">
-                Puan: <span id="puan">0</span>
-            </div>
-        </div>
+// %20 ihtimalle eşit sayılar gelir (çocuklar "=" işaretini de sık görsün)
+function soruUret() {
+    const a = rastgele(100, 999);
+    let b = a;
+    if (Math.random() >= 0.2) while (b === a) b = rastgele(100, 999);
+    return {
+        ust: 'Hangi işaret gelmeli?', soru: `${a} {?} ${b}`,
+        dogru: a > b ? '>' : a < b ? '<' : '=',
+        secenekler: [
+            { deger: '<', yazi: '<', renk: '#2563eb' },
+            { deger: '=', yazi: '=', renk: '#ca8a04' },
+            { deger: '>', yazi: '>', renk: '#16a34a' },
+        ],
+    };
+}
 
-        <h2 class="text-xl text-gray-600 mb-8 font-semibold">Sayıları karşılaştırın, uygun işareti seçin!</h2>
-
-        <div class="flex justify-center items-center gap-6 mb-10">
-            <div class="number-box" id="sayi1">?</div>
-            <div class="symbol-box" id="isaret-kutusu">?</div>
-            <div class="number-box" id="sayi2">?</div>
-        </div>
-
-        <div class="flex justify-center gap-8">
-            <button class="btn-symbol btn-less" onclick="cevapKontrol('<')" title="Küçüktür"><</button>
-            <button class="btn-symbol btn-equal" onclick="cevapKontrol('=')" title="Eşittir">=</button>
-            <button class="btn-symbol btn-greater" onclick="cevapKontrol('>')" title="Büyüktür">></button>
-        </div>
-        
-        <div id="mesaj-alani" class="mt-6 text-xl font-bold h-8 transition-opacity duration-300 opacity-0"></div>
-    </div>
-
-    <!-- BİTİŞ EKRANI -->
-    <div class="game-container hidden" id="bitis-ekrani">
-        <h1 class="text-4xl text-green-500 font-bold mb-4">Tebrikler! 🎉</h1>
-        <p class="text-2xl text-gray-700 mb-6">Oyunu tamamladın.</p>
-        <div class="text-6xl font-bold text-blue-600 mb-8">
-            <span id="sonuc-puan">0</span> / 100
-        </div>
-        <p class="text-lg text-gray-500 italic">Puanın öğretmeninin panosuna kaydediliyor...</p>
-    </div>
-
-    <script>
-        let puan = 0;
-        let soruSayisi = 1;
-        const toplamSoru = 20;
-        let s1, s2, dogruCevap;
-        let islemBekliyor = false;
-
-        function rastgeleSayi() {
-            return Math.floor(Math.random() * 900) + 100; // 100 ile 999 arası
-        }
-
-        function yeniSoru() {
-            islemBekliyor = false;
-            document.getElementById('isaret-kutusu').innerText = '?';
-            document.getElementById('isaret-kutusu').className = 'symbol-box'; // Reset animation
-            document.getElementById('mesaj-alani').style.opacity = '0';
-            
-            // %20 ihtimalle EŞİTTİR sorusu gelsin (çocuklar sıkça eşittir görsün)
-            if (Math.random() < 0.2) {
-                s1 = rastgeleSayi();
-                s2 = s1;
-                dogruCevap = '=';
-            } else {
-                s1 = rastgeleSayi();
-                s2 = rastgeleSayi();
-                // Rastgele gelen sayılar tesadüfen eşit olmasın diye kontrol edelim
-                while(s1 === s2) { s2 = rastgeleSayi(); }
-                dogruCevap = (s1 > s2) ? '>' : '<';
-            }
-
-            document.getElementById('sayi1').innerText = s1;
-            document.getElementById('sayi2').innerText = s2;
-            document.getElementById('soru-sayaci').innerText = soruSayisi;
-            document.getElementById('puan').innerText = puan;
-        }
-
-        function cevapKontrol(kullaniciCevabi) {
-            if (islemBekliyor) return; // Butona üst üste basmayı engelle
-            islemBekliyor = true;
-
-            const isaretKutusu = document.getElementById('isaret-kutusu');
-            const mesajAlani = document.getElementById('mesaj-alani');
-            isaretKutusu.innerText = kullaniciCevabi;
-
-            if (kullaniciCevabi === dogruCevap) {
-                // DOĞRU
-                puan += 5;
-                isaretKutusu.classList.add('correct-anim');
-                mesajAlani.innerText = "Harika! Doğru Bildin +5";
-                mesajAlani.className = "mt-6 text-xl font-bold h-8 text-green-500 opacity-100";
-            } else {
-                // YANLIŞ
-                puan -= 3;
-                if(puan < 0) puan = 0; // Puanı eksiye düşürmeyelim
-                isaretKutusu.classList.add('wrong-anim');
-                isaretKutusu.innerText = dogruCevap; // Doğrusunu göster
-                mesajAlani.innerText = "Hata! Doğrusu '" + dogruCevap + "' olmalıydı -3";
-                mesajAlani.className = "mt-6 text-xl font-bold h-8 text-red-500 opacity-100";
-            }
-
-            document.getElementById('puan').innerText = puan;
-
-            setTimeout(() => {
-                if (soruSayisi < toplamSoru) {
-                    soruSayisi++;
-                    yeniSoru();
-                } else {
-                    oyunuBitir();
-                }
-            }, 1500); // 1.5 saniye sonra diğer soruya geç
-        }
-
-        function oyunuBitir() {
-            document.getElementById('oyun-ekrani').classList.add('hidden');
-            document.getElementById('bitis-ekrani').classList.remove('hidden');
-            document.getElementById('sonuc-puan').innerText = puan;
-
-            // Sınıf Yönetim Sistemine (ana pencereye) puanı yolla
-            if (window.parent) {
-                window.parent.postMessage({
-                    islem: 'gorev_bitti',
-                    puan: puan + '/100'
-                }, '*');
-            }
-        }
-
-        // Oyunu Başlat
-        window.onload = yeniSoru;
-    </script>
+secmeli({
+    baslik: 'Sayıları karşılaştırma', maskot: '🐊', renk: '#16a34a',
+    nasil: 'Timsah hep büyük sayıyı yemek ister: ağzı büyük sayıya açılır. Doğruya 5 puan, yanlışta 3 puan gider',
+    hedefYazi: '20 soru · her doğru 5 puan',
+    soruSayisi: 20, limit: 100, dogruPuan: 5, yanlisCeza: 3, duzen: 'uc',
+    sorular: () => Array.from({ length: 20 }, soruUret),
+});
+</script>
 </body>
 </html>

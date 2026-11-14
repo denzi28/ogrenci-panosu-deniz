@@ -1,25 +1,43 @@
+// EBA — öğrenci: kendi EBA giriş bilgisi (kara tahtada, varsayılan gizli)
 import { auth } from '../../js/auth.js';
 import { db } from '../../js/db.js';
+import { esc, modulBasligi } from '../../js/arayuz.js';
+
+const gizle = (v) => '•'.repeat(Math.min(String(v).length, 11));
 
 export async function render(container) {
-    container.innerHTML = '<div class="card"><p>⏳ EBA şifreniz kontrol ediliyor...</p></div>';
-    
-    const users = await db.getAll('users');
-    const user = users.find(u => u.id === auth.currentUser.id) || auth.currentUser;
-    const ebaSifre = user.ebaPassword;
-    
-    let icerik = ebaSifre ? `
-        <div style="background: #e8f4fd; padding: 30px; border-radius: 8px; text-align: center; margin-top: 15px; border: 2px dashed var(--primary);">
-            <p style="font-size: 1.2em; color: #555; margin-bottom: 10px;">EBA Giriş Şifreniz:</p>
-            <h2 style="font-size: 3em; color: var(--primary); letter-spacing: 3px; margin: 0; user-select: all;">${ebaSifre}</h2>
-        </div>
-        <p style="text-align: center; margin-top: 20px; font-size: 1em; color: var(--secondary);">EBA'ya giriş yaparken TC Kimlik numaranız (<b>${user.tcno || 'Bilinmiyor'}</b>) ve yukarıdaki şifreyi kullanabilirsiniz.</p>
-    ` : `
-        <div style="background: #fff3cd; padding: 20px; border-radius: 8px; text-align: center; margin-top: 15px; color: #856404; border: 1px solid #ffeeba;">
-            <h3 style="margin-bottom: 10px;">Şifreniz Henüz Tanımlanmamış</h3>
-            <p>Öğretmeniniz henüz sizin için bir EBA şifresi girmemiş. Lütfen daha sonra tekrar kontrol ediniz.</p>
-        </div>
-    `;
-    
-    container.innerHTML = `<div class="card" style="border-left: 4px solid var(--primary);"><h2>🔑 EBA Şifre Bilgim</h2>${icerik}</div>`;
+    const ben = (await db.getAll('users')).find(u => u.id === auth.currentUser?.id) || {};
+    const sifre = ben.ebaPassword || '';
+    const tc = ben.tcno || '';
+    container.innerHTML = `
+        <div id="eba-ogr-kok">
+            ${modulBasligi({ baslik: 'EBA şifrem', aciklama: 'EBA\'ya TC kimlik numaran ve bu şifreyle girersin. Şifreni kimseyle paylaşma' })}
+            ${sifre ? `
+            <section class="tahta eba-tahta">
+                <div class="tahta-ust"><h2>EBA giriş bilgilerin</h2></div>
+                <dl class="eba-bilgi">
+                    <div><dt>TC kimlik no</dt><dd data-acik="${esc(tc)}">${tc ? gizle(tc) : 'Öğretmenine sor'}</dd></div>
+                    <div><dt>EBA şifresi</dt><dd data-acik="${esc(sifre)}">${gizle(sifre)}</dd></div>
+                </dl>
+                <div class="eba-eylem">
+                    <button type="button" class="btn btn-hayalet" id="eba-goster"><i class="fas fa-eye"></i>Göster</button>
+                    <button type="button" class="btn btn-hayalet" id="eba-kopyala"><i class="fas fa-copy"></i>Şifreyi kopyala</button>
+                    <a class="btn btn-hayalet" href="https://www.eba.gov.tr" target="_blank" rel="noopener"><i class="fas fa-arrow-up-right-from-square"></i>EBA'ya git</a>
+                </div>
+            </section>` : '<div class="panel"><p class="bos-not">Öğretmenin henüz EBA şifreni girmedi</p></div>'}
+        </div>`;
+
+    const goster = container.querySelector('#eba-goster');
+    goster?.addEventListener('click', () => {
+        const acik = goster.dataset.acik === '1';
+        container.querySelectorAll('.eba-bilgi dd[data-acik]').forEach(dd => { if (dd.dataset.acik) dd.textContent = acik ? gizle(dd.dataset.acik) : dd.dataset.acik; });
+        goster.dataset.acik = acik ? '0' : '1';
+        goster.innerHTML = acik ? '<i class="fas fa-eye"></i>Göster' : '<i class="fas fa-eye-slash"></i>Gizle';
+    });
+    const kopyala = container.querySelector('#eba-kopyala');
+    kopyala?.addEventListener('click', async () => {
+        try { await navigator.clipboard.writeText(sifre); kopyala.innerHTML = '<i class="fas fa-check"></i>Kopyalandı'; }
+        catch { kopyala.innerHTML = 'Kopyalanamadı'; }
+        setTimeout(() => { kopyala.innerHTML = '<i class="fas fa-copy"></i>Şifreyi kopyala'; }, 2000);
+    });
 }

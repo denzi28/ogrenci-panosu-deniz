@@ -678,6 +678,16 @@ body.katman-acik { overflow: hidden; }
     .liste-arac input[type="search"] { flex: 1; min-width: 120px; }
 }
 
+/* EBA */
+.eba-girdi { width: 200px !important; flex-shrink: 0; font-family: ui-monospace, monospace; letter-spacing: 1px; text-align: center; }
+.eba-tahta .btn-hayalet { background: transparent; color: var(--tebesir); border-color: rgba(236, 238, 228, .35); }
+.eba-tahta .btn-hayalet:hover { background: rgba(236, 238, 228, .1); }
+.eba-bilgi { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin: 8px 0 20px; }
+.eba-bilgi dt { color: var(--tebesir-soluk); font-size: 14px; }
+.eba-bilgi dd { color: var(--tebesir); font-size: 32px; font-weight: 500; letter-spacing: 2px; font-family: ui-monospace, monospace; overflow-wrap: anywhere; }
+.eba-eylem { display: flex; gap: 8px; flex-wrap: wrap; }
+@media (max-width: 520px) { .eba-girdi { width: 128px !important; } }
+
 /* Ortada açılan küçük pencere (numara tuş takımı) */
 .modal-arka.orta { align-items: center; padding: 16px; }
 .modal-kutu.kucuk { max-width: 360px; border-radius: var(--r-panel); padding: 16px; }

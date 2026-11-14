@@ -1,31 +1,21 @@
+// İhtiyaçlar — veli görünümü: sınıfın ortak ihtiyaçları ve kaç öğrencinin getirdiği (kim getirdi gösterilmez)
 import { db } from '../../js/db.js';
+import { modulBasligi } from '../../js/arayuz.js';
+import { verileriGetir, kalemOzeti, ilerlemeHtml, kalemAdi } from './ortak.js';
 
 export async function render(container) {
-    container.innerHTML = '<div class="card"><p>⏳ İhtiyaç listesi yükleniyor...</p></div>';
-
-    const kalemler = await db.getAll('ihtiyac_kalemleri');
-
-    let html = `
-        <div class="card" style="border-left: 4px solid var(--success);">
-            <h2>📋 Sınıfımızın İhtiyaç Listesi</h2>
-            <p style="margin-bottom: 20px; color: #555;">Dönem boyunca sınıfımızda kullanılmak üzere belirlenen ortak ihtiyaç kalemleri aşağıdadır:</p>
-    `;
-
-    if (kalemler.length === 0) {
-        html += `<p style="color: var(--secondary);">Şu an için sisteme girilmiş bir ihtiyaç bulunmuyor.</p>`;
-    } else {
-        html += `<ul style="list-style-type: none; padding: 0;">`;
-        kalemler.forEach(k => {
-            html += `
-                <li style="background: #f8f9fa; padding: 12px 15px; border-radius: 6px; margin-bottom: 10px; border: 1px solid #eee; display: flex; align-items: center; gap: 10px;">
-                    <span style="color: var(--success); font-size: 1.2em;">📦</span>
-                    <strong style="font-size: 1.1em; color: #333;">${k.ad}</strong>
-                </li>
-            `;
-        });
-        html += `</ul>`;
+    if (!(await db.getModuleVisibility('ihtiyaclar'))) {
+        container.innerHTML = `${modulBasligi({ baslik: 'İhtiyaçlar' })}<div class="panel"><p class="bos-not">Bu bölüm şu an velilere kapalı</p></div>`;
+        return;
     }
-
-    html += `</div>`;
-    container.innerHTML = html;
+    const { kalemler, ogrenciler, harita } = await verileriGetir();
+    container.innerHTML = `
+        ${modulBasligi({ baslik: 'İhtiyaçlar', aciklama: 'Dönem boyunca sınıfta ortak kullanılacak malzemeler' })}
+        <section class="panel">
+            ${kalemler.map(k => `
+                <div class="satir">
+                    <span class="satir-ad">${kalemAdi(k)}</span>
+                    ${ilerlemeHtml(kalemOzeti(k, ogrenciler, harita), ogrenciler.length)}
+                </div>`).join('') || '<p class="bos-not">Şu an listelenmiş bir ihtiyaç yok</p>'}
+        </section>`;
 }

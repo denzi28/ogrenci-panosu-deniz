@@ -1,661 +1,249 @@
-// modules/rozetler/teacher.js
+// Rozetler — öğretmen görünümü
+// Öğrenciler: kimde hangi rozet var, öğrenciye rozet ver. Rozetler: stüdyoda tasarla, düzenle, sil, öğrencilere ver.
 import { db } from '../../js/db.js';
+import { esc, sayi, modulBasligi, gorunurlukAnahtari, baglaGorunurlukAnahtari, sekmeler, baglaSekmeler, kaydedildiIsareti } from '../../js/arayuz.js';
+import { verileriGetir, sahiplik, sahipMi, kategoriyeGore, kategoriAl, rozetGorseli, KATEGORILER, SEKILLER, IKONLAR, VERILDI } from './ortak.js';
 
-let aktifSiralama = 'alfabetik';
-
-const KATEGORILER = {
-    'davranis': { ad: '❤️ Davranış ve Değerler', renk: '#e11d48' },
-    'akademik': { ad: '📚 Akademik Başarı', renk: '#2563eb' },
-    'gelisim': { ad: '📈 Çaba ve Gelişim', renk: '#d97706' },
-    'sorumluluk': { ad: '📋 Sorumluluk ve Düzen', renk: '#7c3aed' },
-    'yaraticilik': { ad: '👥 Yaratıcılık ve İş Birliği', renk: '#059669' }
-};
-
-function renderRozetGorseli(iconVal, style1 = '#fbbf24', style2 = '#d97706', shape = '50%', altYazi = '') {
-    if (!iconVal) iconVal = '⭐';
-    
-    if (!style1 && (iconVal.endsWith('.png') || iconVal.includes('/'))) {
-        return `<img src="${iconVal}" alt="Rozet" style="width: 45px; height: 45px; object-fit: contain; vertical-align: middle;">`;
-    }
-
-    const bg = style1 && style2 ? `linear-gradient(145deg, ${style1}, ${style2})` : 'linear-gradient(145deg, #fbbf24, #d97706)';
-    
-    let shapeStyle = `border-radius: ${shape};`;
-    if (shape === 'kalkan') {
-        shapeStyle = `border-radius: 50% 50% 50% 50% / 20% 20% 80% 80%;`;
-    }
-
-    let yaziHtml = altYazi ? `<div style="position: absolute; bottom: 3px; font-size: 7px; font-weight: 900; color: #1e293b; background: rgba(255,255,255,0.92); padding: 0px 3px; border-radius: 3px; width: 40px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center; box-shadow: 0 1px 2px rgba(0,0,0,0.2);">${altYazi}</div>` : '';
-
-    return `
-        <div style="width: 48px; height: 48px; background: ${bg}; ${shapeStyle} display: inline-flex; flex-direction: column; align-items: center; justify-content: center; position: relative; box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.2), inset 0 2px 4px rgba(255,255,255,0.4); border: 2px solid #fef3c7; vertical-align: middle;">
-            <span style="font-size: ${altYazi ? '16px' : '22px'}; margin-top: ${altYazi ? '-6px' : '0'}; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.3));">${iconVal}</span>
-            ${yaziHtml}
-        </div>
-    `;
-}
+let siralamaTuru = 'ad';
+let veri, sahip, kok;
+let duzenlenen = null; // stüdyoda düzenlenen rozet
+const BOS_TASARIM = { ad: '', kategori: 'davranis', icon: '⭐', shape: '50%', style1: '#fbbf24', style2: '#d97706', altYazi: '', aciklama: '' };
+let tasarim = { ...BOS_TASARIM };
 
 export async function render(container) {
-    container.innerHTML = '<div class="card"><p>⚡ Rozet yönetimi modülü yükleniyor...</p></div>';
-
-    const isModuleVisible = await db.getModuleVisibility('rozetler');
-    const btnClass = isModuleVisible ? 'btn-success' : 'btn-secondary';
-    const btnText = isModuleVisible ? 'Menüde Görünüyor (Gizle)' : 'Menüde Gizli (Göster)';
-
-    container.innerHTML = `
-        <div id="ana-gorunum" style="display: block;">
-            
-            <div class="card" style="background: #e8f4fd; border: 1px solid var(--primary); display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <div>
-                    <h3 style="margin: 0; color: var(--primary);">👀 Modül Görünürlüğü (Misafirler İçin)</h3>
-                    <p style="margin: 5px 0 0 0; font-size: 0.9em;">Açık olduğunda veliler ve misafirler sınıfın rozet durumunu görebilir.</p>
-                </div>
-                <div>
-                    <button id="toggle-module-btn" class="btn ${btnClass}">${btnText}</button>
-                </div>
-            </div>
-
-            <div class="card" style="border-top: 4px solid var(--primary);">
-                <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
-                    <button id="tab-ogrenciler" class="btn btn-primary" style="flex: 1; min-width: 200px; font-weight: bold;">👥 Öğrenci Rozet Durumları</button>
-                    <button id="tab-rozet-yonetimi" class="btn btn-secondary" style="flex: 1; min-width: 200px; font-weight: bold;">🎖️ Rozet Stüdyosu & Katalog</button>
-                </div>
-
-                <!-- 1. SEKME: ÖĞRENCİ ROZET DURUMLARI -->
-                <div id="view-ogrenciler" style="display: block;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 15px; background: #f8fafc; padding: 15px; border-radius: 12px; border: 1px solid #e2e8f0;">
-                        <div>
-                            <h3 style="margin: 0 0 5px 0; color: var(--success);">Öğrenci Başarı ve Rozet Panosu</h3>
-                            <p style="font-size:0.85em; color:#64748b; margin: 0;">Kartlar üzerinden hızlıca rozet verebilir veya detayları inceleyebilirsiniz.</p>
-                        </div>
-                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                            <button id="btn-sirala" class="btn btn-secondary" style="padding: 10px 15px; font-size: 0.95em; font-weight: bold; border-radius: 6px; display: flex; align-items: center; gap: 8px;">
-                                <span id="siralama-ikon">🔤</span> <span id="siralama-metin">Alfabetik Sıralama</span> <span>🔄</span>
-                            </button>
-                        </div>
-                    </div>
-                    <div id="rozet-tablosu-alani"><p>⏳ Öğrenci kartları yükleniyor...</p></div>
-                </div>
-
-                <!-- 2. SEKME: ROZET STÜDYOSU & KATALOG YÖNETİMİ -->
-                <div id="view-rozet-yonetimi" style="display: none;">
-                    <h3 style="color: var(--primary); margin-bottom: 15px;">🎨 Rozet Stüdyosu ile Yeni Rozet Tasarla ve Ekle</h3>
-                    
-                    <div style="display: grid; grid-template-columns: 1fr 280px; gap: 20px; background: #f8fafc; padding: 20px; border-radius: 12px; border: 1px solid #cbd5e1; align-items: center;">
-                        <div style="display: flex; flex-direction: column; gap: 12px;">
-                            <div>
-                                <label style="font-weight: bold; font-size: 0.85em; color: #475569;">Kategori:</label>
-                                <select id="yeni-rozet-kategori" style="width:100%; padding:9px; border-radius:6px; border:1px solid #cbd5e1; font-weight: bold; background:white;">
-                                    <option value="davranis">❤️ Davranış ve Değerler</option>
-                                    <option value="akademik">📚 Akademik Başarı</option>
-                                    <option value="gelisim">📈 Çaba ve Gelişim</option>
-                                    <option value="sorumluluk">📋 Sorumluluk ve Düzen</option>
-                                    <option value="yaraticilik">👥 Yaratıcılık ve İş Birliği</option>
-                                </select>
-                            </div>
-
-                            <div style="display: flex; gap: 10px;">
-                                <div style="flex: 2;">
-                                    <label style="font-weight: bold; font-size: 0.85em; color: #475569;">Rozet Adı:</label>
-                                    <input type="text" id="yeni-rozet-ad" placeholder="Örn: Matematik Yıldızı" style="width:100%; padding:9px; border-radius:6px; border:1px solid #cbd5e1;">
-                                </div>
-                                <div style="flex: 1;">
-                                    <label style="font-weight: bold; font-size: 0.85em; color: #475569;">İkon / Emoji:</label>
-                                    <select id="studioIconSelect" style="width:100%; padding:9px; border-radius:6px; border:1px solid #cbd5e1; background:white;">
-                                        <option value="⭐">⭐ Yıldız</option>
-                                        <option value="🎒">🎒 Çanta</option>
-                                        <option value="🔍">🔍 Büyüteç</option>
-                                        <option value="🎨">🎨 Resim Paleti</option>
-                                        <option value="🤝">🤝 El Sıkışma</option>
-                                        <option value="👥">👥 İnsanlar</option>
-                                        <option value="⏰">⏰ Saat</option>
-                                        <option value="📚">📚 Kitap</option>
-                                        <option value="🏆">🏆 Kupa</option>
-                                        <option value="🎓">🎓 Kep</option>
-                                        <option value="✏️">✏️ Kalem</option>
-                                        <option value="💡">💡 Fikir</option>
-                                        <option value="🥇">🥇 1.lik</option>
-                                        <option value="❤️">❤️ Kalp</option>
-                                        <option value="🚀">🚀 Roket</option>
-                                        <option value="🎯">🎯 Hedef</option>
-                                        <option value="👑">👑 Kral</option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div style="display: flex; gap: 10px;">
-                                <div style="flex: 1;">
-                                    <label style="font-weight: bold; font-size: 0.85em; color: #475569;">Şekil:</label>
-                                    <select id="studioShape" style="width:100%; padding:9px; border-radius:6px; border:1px solid #cbd5e1; background:white;">
-                                        <option value="50%">Daire</option>
-                                        <option value="kalkan">🛡️ Kalkan</option>
-                                        <option value="12px">Yumuşak Kare</option>
-                                        <option value="0px">Keskin Kare</option>
-                                    </select>
-                                </div>
-                                <div style="flex: 1;">
-                                    <label style="font-weight: bold; font-size: 0.75em; color: #475569;">Renk 1 (Üst)</label>
-                                    <input type="color" id="studioColor1" value="#fbbf24" style="width:100%; height:34px; border:none; border-radius:6px; cursor:pointer; background:none;">
-                                </div>
-                                <div style="flex: 1;">
-                                    <label style="font-weight: bold; font-size: 0.75em; color: #475569;">Renk 2 (Alt)</label>
-                                    <input type="color" id="studioColor2" value="#d97706" style="width:100%; height:34px; border:none; border-radius:6px; cursor:pointer; background:none;">
-                                </div>
-                            </div>
-
-                            <div style="display: flex; gap: 10px;">
-                                <div style="flex: 1;">
-                                    <label style="font-weight: bold; font-size: 0.85em; color: #475569;">İçine Yazı (Maks 10 Karakter):</label>
-                                    <input type="text" id="yeni-rozet-altyazi" placeholder="Örn: 3-A ŞAMPİYON" maxlength="10" style="width:100%; padding:9px; border-radius:6px; border:1px solid #cbd5e1;">
-                                </div>
-                                <div style="flex: 1;">
-                                    <label style="font-weight: bold; font-size: 0.85em; color: #475569;">Açıklama / Kriter:</label>
-                                    <input type="text" id="yeni-rozet-aciklama" placeholder="Örn: 50 soru çözdü" style="width:100%; padding:9px; border-radius:6px; border:1px solid #cbd5e1;">
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Canlı Önizleme ve Ekle Butonu -->
-                        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; background: white; padding: 20px; border-radius: 10px; border: 2px dashed #cbd5e1;">
-                            <span style="font-size: 0.75rem; color: #64748b; margin-bottom: 10px; font-weight: bold;">Canlı Önizleme</span>
-                            
-                            <div id="studioPrevMedal" style="width: 80px; height: 80px; background: linear-gradient(145deg, #fbbf24, #d97706); border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; box-shadow: 0 0 0 5px rgba(251, 191, 36, 0.2), inset 0 2px 4px rgba(255,255,255,0.4); border: 2px solid #fef3c7; margin-bottom: 15px;">
-                                <span id="studioPrevIcon" style="font-size: 32px; margin-top: 0px; filter: drop-shadow(0 2px 3px rgba(0,0,0,0.3);">⭐</span>
-                                <div id="studioPrevAltYazi" style="position: absolute; bottom: 5px; font-size: 9px; font-weight: 900; color: #1e293b; background: rgba(255,255,255,0.92); padding: 0px 4px; border-radius: 3px; display: none; text-align: center; width: 68px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"></div>
-                            </div>
-
-                            <button id="btn-rozet-ekle" class="btn btn-primary" style="width: 100%; font-weight: bold; padding: 10px;">💾 Kataloğa Ekle</button>
-                        </div>
-                    </div>
-
-                    <div style="margin-top: 30px;">
-                        <h3 style="margin-bottom: 15px; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px;">Katalog Rozetleri (<span id="rozet-sayaci">0</span>)</h3>
-                        <p style="font-size: 0.85em; color: #64748b; margin-bottom: 15px;">💡 Bir rozetin üzerine tıklayarak doğrudan öğrenci listesinden kimlere verileceğini seçebilirsiniz.</p>
-                        <div id="rozet-basliklari"></div>
-                    </div>
-                </div>
-            </div>
+    const [anahtar] = await Promise.all([gorunurlukAnahtari('rozetler'), yenile()]);
+    container.innerHTML = `<div id="rozet-kok"></div>`;
+    kok = container.firstElementChild;
+    kok.innerHTML = `
+        <div id="ana-gorunum">
+            ${modulBasligi({ baslik: 'Rozetler', aciklama: 'Öğrencilerin kazandığı rozetler ve sınıfın rozet kataloğu', eylemler: anahtar })}
+            ${sekmeler([{ id: 'r-ogrenciler', ad: 'Öğrenciler' }, { id: 'r-katalog', ad: 'Rozetler' }], 'r-ogrenciler')}
+            <div id="view-r-ogrenciler"></div>
+            <div id="view-r-katalog" hidden></div>
         </div>
-
-        <!-- DETAY GÖRÜNÜMÜ (ÖĞRENCİ VEYA KİTAP BAZLI) -->
-        <div id="detay-gorunum" style="display: none;">
-            <div class="card" style="border-top: 4px solid var(--primary); min-height: 50vh;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
-                    <h2 id="detay-baslik" style="margin: 0; color: var(--primary);">📖 Detay Listesi</h2>
-                    <button id="btn-detay-kapat" class="btn btn-secondary" style="font-weight: bold; padding: 10px 20px; font-size: 1.1em;">⬅ Listeye Dön</button>
-                </div>
-                <div id="detay-rozet-listesi"></div>
-            </div>
-        </div>
-
-        <!-- DÜZENLEME MODALI (PENCERE) -->
-        <div id="duzenle-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:999; align-items:center; justify-content:center;">
-            <div style="background:white; padding:25px; border-radius:12px; width:90%; max-width:500px; box-shadow:0 10px 25px rgba(0,0,0,0.2);">
-                <h3 style="margin-top:0; color:var(--primary);">✏️ Rozeti Düzenle</h3>
-                <input type="hidden" id="edit-id">
-                
-                <div style="display:flex; flex-direction:column; gap:10px; margin-top:15px;">
-                    <div>
-                        <label style="font-size:0.85em; font-weight:bold; color:#475569;">Kategori:</label>
-                        <select id="edit-kategori" style="width:100%; padding:8px; border-radius:6px; border:1px solid #cbd5e1;">
-                            <option value="davranis">❤️ Davranış ve Değerler</option>
-                            <option value="akademik">📚 Akademik Başarı</option>
-                            <option value="gelisim">📈 Çaba ve Gelişim</option>
-                            <option value="sorumluluk">📋 Sorumluluk ve Düzen</option>
-                            <option value="yaraticilik">👥 Yaratıcılık ve İş Birliği</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label style="font-size:0.85em; font-weight:bold; color:#475569;">Rozet Adı:</label>
-                        <input type="text" id="edit-ad" style="width:100%; padding:8px; border-radius:6px; border:1px solid #cbd5e1;">
-                    </div>
-                    <div style="display:flex; gap:10px;">
-                        <div style="flex:1;">
-                            <label style="font-size:0.85em; font-weight:bold; color:#475569;">İkon / Emoji:</label>
-                            <input type="text" id="edit-icon" style="width:100%; padding:8px; border-radius:6px; border:1px solid #cbd5e1; text-align:center;">
-                        </div>
-                        <div style="flex:1;">
-                            <label style="font-size:0.85em; font-weight:bold; color:#475569;">Şekil:</label>
-                            <select id="edit-shape" style="width:100%; padding:8px; border-radius:6px; border:1px solid #cbd5e1;">
-                                <option value="50%">Daire</option>
-                                <option value="kalkan">🛡️ Kalkan</option>
-                                <option value="12px">Yumuşak Kare</option>
-                                <option value="0px">Keskin Kare</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div style="display:flex; gap:10px;">
-                        <div style="flex:1;">
-                            <label style="font-size:0.75em; font-weight:bold; color:#475569;">Renk 1 (Üst)</label>
-                            <input type="color" id="edit-style1" style="width:100%; height:34px; border:none; border-radius:6px; cursor:pointer; background:none;">
-                        </div>
-                        <div style="flex:1;">
-                            <label style="font-size:0.75em; font-weight:bold; color:#475569;">Renk 2 (Alt)</label>
-                            <input type="color" id="edit-style2" style="width:100%; height:34px; border:none; border-radius:6px; cursor:pointer; background:none;">
-                        </div>
-                    </div>
-                    <div>
-                        <label style="font-size:0.85em; font-weight:bold; color:#475569;">İçine Yazı (Maks 10 Karakter):</label>
-                        <input type="text" id="edit-altyazi" maxlength="10" style="width:100%; padding:8px; border-radius:6px; border:1px solid #cbd5e1;">
-                    </div>
-                    <div>
-                        <label style="font-size:0.85em; font-weight:bold; color:#475569;">Açıklama / Kriter:</label>
-                        <input type="text" id="edit-aciklama" style="width:100%; padding:8px; border-radius:6px; border:1px solid #cbd5e1;">
-                    </div>
-                </div>
-
-                <div style="display:flex; gap:10px; margin-top:20px;">
-                    <button id="btn-modal-kaydet" class="btn btn-primary" style="flex:1; padding:10px; font-weight:bold;">💾 Güncellemeleri Kaydet</button>
-                    <button id="btn-modal-iptal" class="btn btn-secondary" style="flex:1; padding:10px; font-weight:bold;">İptal</button>
-                </div>
-            </div>
-        </div>
-    `;
-
-    document.getElementById('tab-ogrenciler').addEventListener('click', () => {
-        document.getElementById('view-ogrenciler').style.display = 'block';
-        document.getElementById('view-rozet-yonetimi').style.display = 'none';
-        document.getElementById('tab-ogrenciler').className = 'btn btn-primary';
-        document.getElementById('tab-rozet-yonetimi').className = 'btn btn-secondary';
-    });
-
-    document.getElementById('tab-rozet-yonetimi').addEventListener('click', () => {
-        document.getElementById('view-ogrenciler').style.display = 'none';
-        document.getElementById('view-rozet-yonetimi').style.display = 'block';
-        document.getElementById('tab-ogrenciler').className = 'btn btn-secondary';
-        document.getElementById('tab-rozet-yonetimi').className = 'btn btn-primary';
-    });
-
-    const updatePreview = () => {
-        const icon = document.getElementById('studioIconSelect').value;
-        const shape = document.getElementById('studioShape').value;
-        const c1 = document.getElementById('studioColor1').value;
-        const c2 = document.getElementById('studioColor2').value;
-        const altYazi = document.getElementById('yeni-rozet-altyazi').value.trim();
-
-        document.getElementById('studioPrevIcon').textContent = icon;
-        const medal = document.getElementById('studioPrevMedal');
-        
-        if (shape === 'kalkan') {
-            medal.style.borderRadius = '50% 50% 50% 50% / 20% 20% 80% 80%';
-        } else {
-            medal.style.borderRadius = shape;
-        }
-
-        medal.style.background = `linear-gradient(145deg, ${c1}, ${c2})`;
-
-        const yaziDiv = document.getElementById('studioPrevAltYazi');
-        const iconSpan = document.getElementById('studioPrevIcon');
-        
-        if (altYazi) {
-            yaziDiv.textContent = altYazi;
-            yaziDiv.style.display = 'block';
-            iconSpan.style.marginTop = '-8px';
-            iconSpan.style.fontSize = '26px';
-        } else {
-            yaziDiv.style.display = 'none';
-            iconSpan.style.marginTop = '0px';
-            iconSpan.style.fontSize = '32px';
-        }
-    };
-
-    document.getElementById('studioIconSelect').addEventListener('change', updatePreview);
-    document.getElementById('studioShape').addEventListener('change', updatePreview);
-    document.getElementById('studioColor1').addEventListener('input', updatePreview);
-    document.getElementById('studioColor2').addEventListener('input', updatePreview);
-    document.getElementById('yeni-rozet-altyazi').addEventListener('input', updatePreview);
-
-    document.getElementById('toggle-module-btn').addEventListener('click', async (e) => {
-        const newStatus = !(await db.getModuleVisibility('rozetler'));
-        await db.toggleModuleVisibility('rozetler', newStatus);
-        const btn = e.target;
-        if(newStatus) { btn.className = "btn btn-success"; btn.innerText = "Menüde Görünüyor (Gizle)"; } 
-        else { btn.className = "btn btn-secondary"; btn.innerText = "Menüde Gizli (Göster)"; }
-    });
-
-    document.getElementById('btn-rozet-ekle').addEventListener('click', async () => {
-        const kategori = document.getElementById('yeni-rozet-kategori').value;
-        const ad = document.getElementById('yeni-rozet-ad').value.trim();
-        const aciklama = document.getElementById('yeni-rozet-aciklama').value.trim();
-        const altYazi = document.getElementById('yeni-rozet-altyazi').value.trim();
-        const ikon = document.getElementById('studioIconSelect').value;
-        const shape = document.getElementById('studioShape').value;
-        const c1 = document.getElementById('studioColor1').value;
-        const c2 = document.getElementById('studioColor2').value;
-        
-        if (ad) {
-            const btn = document.getElementById('btn-rozet-ekle');
-            btn.disabled = true; btn.innerText = "⏳ Kaydediliyor...";
-            
-            await db.add('rozetler_kalemleri', { 
-                kategori, 
-                icon: ikon, 
-                ad, 
-                aciklama,
-                altYazi,
-                style1: c1,
-                style2: c2,
-                shape: shape
-            });
-            
-            document.getElementById('yeni-rozet-ad').value = '';
-            document.getElementById('yeni-rozet-aciklama').value = '';
-            document.getElementById('yeni-rozet-altyazi').value = '';
-            btn.disabled = false; btn.innerText = "💾 Kataloğa Ekle";
-            await arayuzuGuncelle();
-        } else {
-            alert("Lütfen rozet adını yazın.");
-        }
-    });
-
-    document.getElementById('btn-modal-iptal').addEventListener('click', () => {
-        document.getElementById('duzenle-modal').style.display = 'none';
-    });
-
-    document.getElementById('btn-modal-kaydet').addEventListener('click', async () => {
-        const id = document.getElementById('edit-id').value;
-        const kategori = document.getElementById('edit-kategori').value;
-        const ad = document.getElementById('edit-ad').value.trim();
-        const icon = document.getElementById('edit-icon').value.trim();
-        const shape = document.getElementById('edit-shape').value;
-        const style1 = document.getElementById('edit-style1').value;
-        const style2 = document.getElementById('edit-style2').value;
-        const altYazi = document.getElementById('edit-altyazi').value.trim();
-        const aciklama = document.getElementById('edit-aciklama').value.trim();
-
-        if (ad) {
-            await db.update('rozetler_kalemleri', id, {
-                kategori, ad, icon, shape, style1, style2, altYazi, aciklama
-            });
-            document.getElementById('duzenle-modal').style.display = 'none';
-            await arayuzuGuncelle();
-        } else {
-            alert("Rozet adı boş olamaz.");
-        }
-    });
-
-    document.getElementById('btn-detay-kapat').addEventListener('click', async () => {
-        document.getElementById('detay-gorunum').style.display = 'none';
-        document.getElementById('ana-gorunum').style.display = 'block';
-        await arayuzuGuncelle(); 
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    });
-
-    document.getElementById('btn-sirala').addEventListener('click', () => {
-        aktifSiralama = aktifSiralama === 'alfabetik' ? 'encok' : 'alfabetik';
-        arayuzuGuncelle();
-    });
-
-    await arayuzuGuncelle();
+        <div id="view-r-detay" hidden></div>`;
+    baglaGorunurlukAnahtari('rozetler');
+    baglaSekmeler(kok.querySelector('#ana-gorunum'));
+    ogrencileriCiz();
+    katalogCiz();
+    olaylariBagla();
 }
 
-async function arayuzuGuncelle() {
-    const [rozetler, tumKullanicilar, matris] = await Promise.all([
-        db.getAll('rozetler_kalemleri'),
-        db.getAll('users'),
-        db.getAll('rozet_matrisi')
-    ]);
+async function yenile() {
+    veri = await verileriGetir();
+    sahip = sahiplik(veri.matris);
+}
 
-    document.getElementById('rozet-sayaci').innerText = rozetler.length;
-    const ogrenciler = tumKullanicilar.filter(u => u.role === 'student');
+const kazanilanlar = (ogrId) => veri.rozetler.filter(r => sahipMi(sahip, ogrId, r.id));
 
-    ogrenciler.sort((a, b) => {
-        const noA = parseInt(a.okulno) || 999999;
-        const noB = parseInt(b.okulno) || 999999;
-        if (noA === noB) return (a.name || '').localeCompare(b.name || '');
-        return noA - noB;
-    });
+// ------------------------------------------------------------------ ÖĞRENCİLER
+function ogrencileriCiz() {
+    const liste = veri.ogrenciler.map(o => ({ ...o, rozetleri: kazanilanlar(o.id) }));
+    liste.sort(siralamaTuru === 'encok'
+        ? (a, b) => b.rozetleri.length - a.rozetleri.length || (a.name || '').localeCompare(b.name || '', 'tr-TR')
+        : (a, b) => (a.name || '').localeCompare(b.name || '', 'tr-TR'));
 
-    ogrenciler.forEach(ogr => {
-        let kazanilanSayisi = 0;
-        rozetler.forEach(r => {
-            let m = matris.find(m => m.ogrId === ogr.id && m.targetId === r.id);
-            if (m && m.deger === '✔️') kazanilanSayisi++;
-        });
-        ogr.kazanilanSayisi = kazanilanSayisi;
-    });
+    document.getElementById('view-r-ogrenciler').innerHTML = `
+        <section class="panel">
+            <div class="panel-ust">
+                <h2>Öğrenciler</h2>
+                <label style="display:flex;align-items:center;gap:8px;font-size:14px;color:var(--text-2)">Sırala
+                    <select id="rozet-siralama" style="width:auto;min-height:32px;padding:4px 8px">
+                        <option value="ad" ${siralamaTuru === 'ad' ? 'selected' : ''}>Ada göre</option>
+                        <option value="encok" ${siralamaTuru === 'encok' ? 'selected' : ''}>En çok rozet</option>
+                    </select>
+                </label>
+            </div>
+            ${!veri.rozetler.length ? '<p class="bos-not">Önce Rozetler sekmesinden rozet tasarlayın</p>' : ''}
+            ${liste.map(o => `
+                <div class="ogr-satir" data-ogr="${esc(o.id)}">
+                    <div class="ogr-ad"><strong>${esc(o.name)}</strong>${o.okulno ? `<small>No ${esc(o.okulno)}</small>` : ''}</div>
+                    <div class="sayi-hucre">${sayi(o.rozetleri.length)}<small>rozet</small></div>
+                    <div class="madalya-serit">${o.rozetleri.slice(0, 10).map(r => `<span title="${esc(r.ad)}">${rozetGorseli(r, 28)}</span>`).join('')}
+                        ${o.rozetleri.length > 10 ? `<small style="color:var(--muted)">+${o.rozetleri.length - 10}</small>` : ''}
+                        ${!o.rozetleri.length ? '<span class="okuma-yok">Henüz rozet yok</span>' : ''}</div>
+                    <div class="satir-eylem"><button class="btn btn-secondary btn-kucuk" data-islem="ogr-detay" data-ogr="${esc(o.id)}"><i class="fas fa-award"></i>Rozet ver</button></div>
+                </div>`).join('') || '<p class="bos-not">Henüz öğrenci yok</p>'}
+        </section>`;
+}
 
-    const ikonSpan = document.getElementById('siralama-ikon');
-    const metinSpan = document.getElementById('siralama-metin');
-    
-    if (aktifSiralama === 'alfabetik') {
-        if(ikonSpan) { ikonSpan.innerText = '🔤'; metinSpan.innerText = 'Alfabetik Sıralama'; }
-    } else {
-        ogrenciler.sort((a, b) => b.kazanilanSayisi - a.kazanilanSayisi);
-        if(ikonSpan) { ikonSpan.innerText = '🏆'; metinSpan.innerText = 'En Çok Rozeti Olanlar'; }
+// ------------------------------------------------------------------ KATALOG + STÜDYO
+function katalogCiz() {
+    const alan = document.getElementById('view-r-katalog');
+    alan.innerHTML = `
+        <section class="panel" id="studyo-panel">
+            <div class="panel-ust"><h2>${duzenlenen ? 'Rozeti düzenle' : 'Yeni rozet'}</h2>${duzenlenen ? '<small>Kaydedince rozeti kazanmış öğrencilerde de güncellenir</small>' : ''}</div>
+            <form class="studyo" id="form-rozet">
+                <div class="alan-izgara">
+                    <div class="form-group tam"><label for="r-ad">Rozetin adı</label><input type="text" id="r-ad" name="ad" maxlength="40" value="${esc(tasarim.ad)}" placeholder="Örneğin: Matematik yıldızı"></div>
+                    <div class="form-group"><label for="r-kategori">Kategori</label>
+                        <select id="r-kategori" name="kategori">${Object.entries(KATEGORILER).map(([id, k]) => `<option value="${id}" ${tasarim.kategori === id ? 'selected' : ''}>${k.ad}</option>`).join('')}</select></div>
+                    <div class="form-group"><label for="r-sekil">Şekil</label>
+                        <select id="r-sekil" name="shape">${Object.entries(SEKILLER).map(([id, ad]) => `<option value="${id}" ${tasarim.shape === id ? 'selected' : ''}>${ad}</option>`).join('')}</select></div>
+                    <div class="form-group"><label for="r-renk1">Üst renk</label><input type="color" id="r-renk1" name="style1" value="${esc(tasarim.style1)}"></div>
+                    <div class="form-group"><label for="r-renk2">Alt renk</label><input type="color" id="r-renk2" name="style2" value="${esc(tasarim.style2)}"></div>
+                    <div class="form-group tam"><label>İkon</label>
+                        <div class="ikon-secici">${IKONLAR.map(i => `<button type="button" data-ikon="${i}" aria-pressed="${tasarim.icon === i}" aria-label="${i}">${i}</button>`).join('')}
+                            <input type="text" id="r-ikon" name="icon" value="${esc(tasarim.icon)}" maxlength="4" aria-label="Başka bir emoji" style="width:64px;min-height:36px;text-align:center" title="Listede olmayan bir emoji yazabilirsiniz"></div></div>
+                    <div class="form-group"><label for="r-yazi">Rozetin üstündeki yazı</label><input type="text" id="r-yazi" name="altYazi" maxlength="10" value="${esc(tasarim.altYazi)}" placeholder="İsteğe bağlı"></div>
+                    <div class="form-group"><label for="r-aciklama">Ne zaman verilir</label><input type="text" id="r-aciklama" name="aciklama" maxlength="80" value="${esc(tasarim.aciklama)}" placeholder="Örneğin: 50 soru çözdü"></div>
+                </div>
+                <div class="studyo-onizleme">
+                    <span id="r-onizleme">${rozetGorseli(tasarim, 96)}</span>
+                    <strong id="r-onizleme-ad">${esc(tasarim.ad) || 'Rozetin adı'}</strong>
+                    <button class="btn btn-primary w-100" type="submit">${duzenlenen ? 'Kaydet' : 'Kataloğa ekle'}</button>
+                    ${duzenlenen ? '<button class="btn btn-secondary w-100" type="button" data-islem="duzenle-vazgec">Vazgeç</button>' : ''}
+                </div>
+            </form>
+        </section>
+        ${kategoriyeGore(veri.rozetler).map(([kat, liste]) => `
+            <section class="panel">
+                <div class="panel-ust"><h2><span class="kategori-nokta" style="background:${KATEGORILER[kat].renk}"></span>${KATEGORILER[kat].ad}</h2><small>${sayi(liste.length)} rozet</small></div>
+                ${liste.map(r => {
+                    const alan = veri.ogrenciler.filter(o => sahipMi(sahip, o.id, r.id)).length;
+                    return `
+                    <div class="satir" style="flex-wrap:wrap">
+                        ${rozetGorseli(r, 40)}
+                        <span class="satir-ad" style="white-space:normal">${esc(r.ad)}<small>${esc(r.aciklama || '')}${r.aciklama ? ' · ' : ''}${alan ? `${sayi(alan)} öğrencide` : 'Henüz verilmedi'}</small></span>
+                        <span style="display:flex;align-items:center;gap:4px">
+                            <button class="btn btn-secondary btn-kucuk" data-islem="rozet-detay" data-rozet="${esc(r.id)}">Öğrencilere ver</button>
+                            <button class="ikon-dugme" data-islem="rozet-duzenle" data-rozet="${esc(r.id)}" title="Düzenle" aria-label="Düzenle"><i class="fas fa-pen"></i></button>
+                            <button class="ikon-dugme tehlike" data-islem="rozet-sil" data-rozet="${esc(r.id)}" title="Sil" aria-label="Sil"><i class="fas fa-trash-can"></i></button>
+                        </span>
+                    </div>`;
+                }).join('')}
+            </section>`).join('') || '<div class="panel"><p class="bos-not">Henüz rozet tasarlanmadı</p></div>'}`;
+}
+
+function onizlemeGuncelle() {
+    const f = document.getElementById('form-rozet');
+    if (!f) return;
+    tasarim = { ...tasarim, ...Object.fromEntries(new FormData(f).entries()) };
+    document.getElementById('r-onizleme').innerHTML = rozetGorseli(tasarim, 96);
+    document.getElementById('r-onizleme-ad').textContent = tasarim.ad || 'Rozetin adı';
+    f.querySelectorAll('[data-ikon]').forEach(b => b.setAttribute('aria-pressed', b.dataset.ikon === tasarim.icon));
+}
+
+// ------------------------------------------------------------------ DETAY: öğrenciden rozete / rozetten öğrenciye
+function detayGoster(html) {
+    document.getElementById('ana-gorunum').hidden = true;
+    const alan = document.getElementById('view-r-detay');
+    alan.hidden = false;
+    alan.innerHTML = `<button class="yazi-dugme" data-islem="detay-geri" style="margin:8px 0 8px -8px"><i class="fas fa-arrow-left"></i>Rozetler</button>${html}`;
+    window.scrollTo({ top: 0 });
+}
+
+const verDugmesi = (ogrId, rozetId) => {
+    const var_ = sahipMi(sahip, ogrId, rozetId);
+    return `<button class="btn btn-secondary btn-kucuk ver-dugme" data-islem="ver" data-ogr="${esc(ogrId)}" data-rozet="${esc(rozetId)}" aria-pressed="${var_}">${var_ ? '<i class="fas fa-check"></i>Verildi' : 'Ver'}</button>`;
+};
+
+function ogrenciDetay(ogrId) {
+    const o = veri.ogrenciler.find(x => x.id === ogrId);
+    if (!o) return;
+    detayGoster(`
+        ${modulBasligi({ baslik: esc(o.name), aciklama: `${sayi(kazanilanlar(o.id).length)} rozeti var. Vermek ya da geri almak için düğmeye dokunun` })}
+        ${kategoriyeGore(veri.rozetler).map(([kat, liste]) => `
+            <section class="panel">
+                <div class="panel-ust"><h2><span class="kategori-nokta" style="background:${KATEGORILER[kat].renk}"></span>${KATEGORILER[kat].ad}</h2></div>
+                ${liste.map(r => `
+                    <div class="satir">
+                        ${rozetGorseli(r, 40)}
+                        <span class="satir-ad" style="white-space:normal">${esc(r.ad)}<small>${esc(r.aciklama || '')}</small></span>
+                        ${verDugmesi(o.id, r.id)}
+                    </div>`).join('')}
+            </section>`).join('') || '<div class="panel"><p class="bos-not">Henüz rozet tasarlanmadı</p></div>'}`);
+}
+
+function rozetDetay(rozetId) {
+    const r = veri.rozetler.find(x => x.id === rozetId);
+    if (!r) return;
+    const ogrenciler = [...veri.ogrenciler].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'tr-TR'));
+    detayGoster(`
+        <header class="modul-ust" style="align-items:center;justify-content:flex-start">
+            ${rozetGorseli(r, 72)}
+            <div><h1>${esc(r.ad)}</h1><p>${esc(r.aciklama || KATEGORILER[kategoriAl(r)].ad)}</p></div>
+        </header>
+        <section class="panel">
+            <div class="panel-ust"><h2>Öğrenciler</h2><small>Vermek ya da geri almak için düğmeye dokunun</small></div>
+            ${ogrenciler.map(o => `
+                <div class="satir">
+                    <span class="satir-ad">${esc(o.name)}</span>
+                    ${verDugmesi(o.id, r.id)}
+                </div>`).join('') || '<p class="bos-not">Henüz öğrenci yok</p>'}
+        </section>`);
+}
+
+// ------------------------------------------------------------------ OLAYLAR
+async function rozetVer(d) {
+    const { ogr, rozet } = d.dataset;
+    const yeni = !sahipMi(sahip, ogr, rozet);
+    const anahtar = `${ogr}_${rozet}`;
+    yeni ? sahip.add(anahtar) : sahip.delete(anahtar);
+    d.outerHTML = verDugmesi(ogr, rozet);
+    try {
+        await db.saveMatrixStatus('rozet_matrisi', String(ogr), String(rozet), yeni ? VERILDI : '');
+        kaydedildiIsareti(kok.querySelector(`[data-ogr="${CSS.escape(ogr)}"][data-rozet="${CSS.escape(rozet)}"]`)?.closest('.satir'));
+    } catch (e) {
+        yeni ? sahip.delete(anahtar) : sahip.add(anahtar);
+        const dugme = kok.querySelector(`[data-ogr="${CSS.escape(ogr)}"][data-rozet="${CSS.escape(rozet)}"]`);
+        if (dugme) dugme.outerHTML = verDugmesi(ogr, rozet);
+        alert('Kaydedilemedi. İnternet bağlantınızı kontrol edin');
     }
-
-    let basliklarHtml = '';
-    Object.keys(KATEGORILER).forEach(katKey => {
-        const katRozetleri = rozetler.filter(r => (r.kategori || 'akademik') === katKey);
-        if (katRozetleri.length === 0) return;
-
-        basliklarHtml += `<div style="margin-bottom: 25px;"><h4 style="color: ${KATEGORILER[katKey].renk}; border-bottom: 2px solid ${KATEGORILER[katKey].renk}; padding-bottom: 5px; margin-bottom: 12px;">${KATEGORILER[katKey].ad}</h4>`;
-        basliklarHtml += '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px;">';
-        
-        katRozetleri.forEach(r => {
-            let alanSayisi = matris.filter(m => m.targetId === r.id && m.deger === '✔️').length;
-            basliklarHtml += `
-                <div class="rozet-katalog-karti" data-id="${r.id}" data-ad="${r.ad}" style="background: white; border: 1px solid #e2e8f0; border-left: 5px solid ${KATEGORILER[katKey].renk}; padding: 12px; border-radius: 8px; display: flex; flex-direction: column; justify-content: space-between; cursor: pointer; transition: transform 0.1s, box-shadow 0.1s;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.08)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';">
-                    <div>
-                        <div style="font-size: 1.05em; font-weight: bold; display: flex; align-items: center; gap: 10px;">
-                            ${renderRozetGorseli(r.icon, r.style1, r.style2, r.shape, r.altYazi)} 
-                            <div style="flex: 1;">
-                                <div style="color: #1e293b;">${r.ad}</div>
-                                <div style="font-size: 0.75em; color: var(--success); font-weight: bold; margin-top: 2px;">✅ ${alanSayisi} öğrenci kazandı</div>
-                            </div>
-                        </div>
-                        <p style="font-size: 0.8em; color: #64748b; margin: 8px 0 4px 0;">${r.aciklama || 'Açıklama yok'}</p>
-                    </div>
-                    <div style="display: flex; gap: 6px; margin-top: 10px; border-top: 1px dashed #e2e8f0; pt-2;">
-                        <button class="btn btn-primary btn-rozet-ver-genel" data-id="${r.id}" data-ad="${r.ad}" style="flex: 2; padding: 6px; font-size: 0.85em; font-weight: bold; background: #0ea5e9; border:none;">👥 Öğrencilere Ver</button>
-                        <button class="btn btn-secondary btn-rozet-duzenle" data-id="${r.id}" style="flex: 1; padding: 6px; font-size: 0.8em; font-weight: bold;">✏️</button>
-                        <button class="btn btn-danger btn-rozet-sil" data-id="${r.id}" style="flex: 1; padding: 6px; font-size: 0.8em;">✕</button>
-                    </div>
-                </div>
-            `;
-        });
-        basliklarHtml += '</div></div>';
-    });
-
-    if(rozetler.length === 0) basliklarHtml = '<div style="color:#64748b; padding: 15px; text-align: center; background: #f8fafc; border-radius: 8px; font-style: italic;">Henüz tanımlanmış rozet bulunmuyor.</div>';
-    document.getElementById('rozet-basliklari').innerHTML = basliklarHtml;
-
-    let kartlarHtml = `<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px;">`;
-    ogrenciler.forEach((ogr, index) => {
-        kartlarHtml += `
-            <div style="background: white; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); padding: 20px; display: flex; flex-direction: column; gap: 15px;">
-                <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px;">
-                    <div>
-                        <div style="font-size: 0.8em; color: #94a3b8; font-weight: bold; margin-bottom: 5px;">#${index + 1} | No: ${ogr.okulno || '-'}</div>
-                        <div style="font-weight: bold; font-size: 1.15em; color: #1e293b; line-height: 1.2;">${ogr.name}</div>
-                    </div>
-                    <div style="background: #f0fdf4; border: 2px solid #22c55e; color: #16a34a; border-radius: 10px; padding: 5px 12px; text-align: center; min-width: 60px;">
-                        <span style="font-size: 1.4em; font-weight: 900; display: block; line-height: 1;">${ogr.kazanilanSayisi}</span>
-                        <span style="font-size: 0.65em; font-weight: bold;">ROZET</span>
-                    </div>
-                </div>
-                <button class="btn btn-secondary btn-detay-ac" data-ogrid="${ogr.id}" data-ogrname="${ogr.name}" style="width: 100%; padding: 10px; font-weight: bold; font-size: 0.9em; border-radius: 8px; border: 1px solid #cbd5e1; background: #f8fafc; color: #475569; cursor: pointer;">
-                    🎖️ Rozetleri Yönet / Ver
-                </button>
-            </div>
-        `;
-    });
-    kartlarHtml += `</div>`;
-    document.getElementById('rozet-tablosu-alani').innerHTML = kartlarHtml;
-
-    // ETKİLEŞİMLER
-    document.querySelectorAll('.btn-rozet-duzenle').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const id = e.currentTarget.getAttribute('data-id');
-            const rozet = rozetler.find(r => r.id === id);
-            if (!rozet) return;
-
-            document.getElementById('edit-id').value = rozet.id;
-            document.getElementById('edit-kategori').value = rozet.kategori || 'akademik';
-            document.getElementById('edit-ad').value = rozet.ad || '';
-            document.getElementById('edit-icon').value = rozet.icon || '⭐';
-            document.getElementById('edit-shape').value = rozet.shape || '50%';
-            document.getElementById('edit-style1').value = rozet.style1 || '#fbbf24';
-            document.getElementById('edit-style2').value = rozet.style2 || '#d97706';
-            document.getElementById('edit-altyazi').value = rozet.altYazi || '';
-            document.getElementById('edit-aciklama').value = rozet.aciklama || '';
-
-            document.getElementById('duzenle-modal').style.display = 'flex';
-        });
-    });
-
-    document.querySelectorAll('.btn-rozet-sil').forEach(btn => {
-        btn.addEventListener('click', async (e) => {
-            e.stopPropagation();
-            if(confirm("Bu rozeti silmek istediğinize emin misiniz?")) {
-                await db.delete('rozetler_kalemleri', e.currentTarget.getAttribute('data-id'));
-                await arayuzuGuncelle();
-            }
-        });
-    });
-
-    // 🌟 KATSALOGDAN "ÖĞRENCİLERE VER" BUTONUNA TIKLANINCA
-    document.querySelectorAll('.btn-rozet-ver-genel').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const rozetId = e.currentTarget.getAttribute('data-id');
-            const rozetAd = e.currentTarget.getAttribute('data-ad');
-            const rozet = rozetler.find(r => r.id === rozetId);
-            rozettenOgrenciyeAc(rozet, ogrenciler, matris);
-        });
-    });
-
-    document.querySelectorAll('.btn-detay-ac').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            ogrenciDetayiniAc(e.currentTarget.getAttribute('data-ogrid'), e.currentTarget.getAttribute('data-ogrname'), rozetler, matris);
-        });
-    });
 }
 
-// ----------------------------------------------------
-// 1. ÖĞRENCİDEN ROZETE (Mevcut Görünüm)
-// ----------------------------------------------------
-function ogrenciDetayiniAc(ogrId, ogrName, rozetler, matris) {
-    document.getElementById('ana-gorunum').style.display = 'none';
-    document.getElementById('detay-gorunum').style.display = 'block';
-    document.getElementById('detay-baslik').innerText = `🎖️ ${ogrName} - Rozet Listesi`;
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-
-    let listeHtml = '<div style="display: flex; flex-direction: column; gap: 12px;">';
-    
-    Object.keys(KATEGORILER).forEach(katKey => {
-        const katRozetleri = rozetler.filter(r => (r.kategori || 'akademik') === katKey);
-        if (katRozetleri.length === 0) return;
-
-        listeHtml += `<div style="background: #f8fafc; padding: 15px; border-radius: 10px; border: 1px solid #e2e8f0;">`;
-        listeHtml += `<h4 style="color: ${KATEGORILER[katKey].renk}; margin: 0 0 10px 0;">${KATEGORILER[katKey].ad}</h4>`;
-        
-        katRozetleri.forEach((r) => {
-            let kayit = matris.find(m => m.ogrId === ogrId && m.targetId === r.id);
-            let sahipMi = kayit && kayit.deger === '✔️';
-            
-            listeHtml += `
-                <div style="background: white; padding: 10px 15px; margin-bottom: 8px; border-radius: 8px; border: 1px solid #cbd5e1; display: flex; justify-content: space-between; align-items: center; gap: 10px;">
-                    <div style="display: flex; align-items: center; gap: 12px;">
-                        ${renderRozetGorseli(r.icon, r.style1, r.style2, r.shape, r.altYazi)}
-                        <div>
-                            <div style="font-weight: bold; color: #334155;">${r.ad}</div>
-                            <div style="font-size: 0.8em; color: #64748b;">${r.aciklama || ''}</div>
-                        </div>
-                    </div>
-                    <button class="btn-durum-degistir" data-ogr="${ogrId}" data-kalem="${r.id}" data-val="${sahipMi ? '✔️' : ''}"
-                        style="padding: 8px 15px; border-radius: 6px; font-weight: bold; font-size: 0.9em; cursor: pointer; border: 2px solid ${sahipMi ? '#10b981' : '#cbd5e1'}; background: ${sahipMi ? '#d1fae5' : '#f1f5f9'}; color: ${sahipMi ? '#059669' : '#64748b'};">
-                        ${sahipMi ? '✅ Sahip (Kaldır)' : '➕ Rozet Ver'}
-                    </button>
-                </div>
-            `;
-        });
-        listeHtml += `</div>`;
+function olaylariBagla() {
+    kok.addEventListener('input', (e) => { if (e.target.closest('#form-rozet')) onizlemeGuncelle(); });
+    kok.addEventListener('change', (e) => {
+        if (e.target.id === 'rozet-siralama') { siralamaTuru = e.target.value; ogrencileriCiz(); }
+        else if (e.target.closest('#form-rozet')) onizlemeGuncelle();
     });
 
-    listeHtml += '</div>';
-    document.getElementById('detay-rozet-listesi').innerHTML = listeHtml;
-
-    document.querySelectorAll('.btn-durum-degistir').forEach(btn => {
-        btn.addEventListener('click', async (e) => {
-            const oId = e.currentTarget.getAttribute('data-ogr');
-            const kId = e.currentTarget.getAttribute('data-kalem');
-            const val = e.currentTarget.getAttribute('data-val');
-            
-            let newValue = val === '✔️' ? '' : '✔️';
-            e.currentTarget.setAttribute('data-val', newValue);
-            e.currentTarget.innerText = newValue === '✔️' ? '✅ Sahip (Kaldır)' : '➕ Rozet Ver';
-            e.currentTarget.style.backgroundColor = newValue === '✔️' ? '#d1fae5' : '#f1f5f9';
-            e.currentTarget.style.color = newValue === '✔️' ? '#059669' : '#64748b';
-            e.currentTarget.style.borderColor = newValue === '✔️' ? '#10b981' : '#cbd5e1';
-
-            await db.saveMatrixStatus('rozet_matrisi', oId, kId, newValue);
-        });
-    });
-}
-
-// ----------------------------------------------------
-// 2. ROZETTEN ÖĞRENCİYE (YENİ EKLENEN ÖZELLİK)
-// ----------------------------------------------------
-function rozettenOgrenciyeAc(rozet, ogrenciler, matris) {
-    document.getElementById('ana-gorunum').style.display = 'none';
-    document.getElementById('detay-gorunum').style.display = 'block';
-    
-    document.getElementById('detay-baslik').innerHTML = `
-        <div style="display: flex; align-items: center; gap: 12px;">
-            ${renderRozetGorseli(rozet.icon, rozet.style1, rozet.style2, rozet.shape, rozet.altYazi)}
-            <div>
-                <span>"${rozet.ad}" Rozeti Atama Paneli</span>
-                <div style="font-size: 0.7em; color: #64748b; font-weight: normal; margin-top: 2px;">${rozet.aciklama || ''}</div>
-            </div>
-        </div>
-    `;
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-
-    let listeHtml = `
-        <div style="margin-bottom: 15px; background: #e8f4fd; padding: 12px 15px; border-radius: 8px; border: 1px solid #bde0fe;">
-            <p style="margin: 0; font-size: 0.9em; color: #1e293b;">Bu rozeti vermek istediğiniz öğrencileri seçin veya kaldırın. Değişiklikler anında buluta kaydedilir.</p>
-        </div>
-        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px;">
-    `;
-
-    ogrenciler.forEach((ogr, index) => {
-        let kayit = matris.find(m => m.ogrId === ogr.id && m.targetId === rozet.id);
-        let sahipMi = kayit && kayit.deger === '✔️';
-
-        listeHtml += `
-            <div style="background: white; padding: 12px 15px; border-radius: 8px; border: 1px solid #cbd5e1; display: flex; justify-content: space-between; align-items: center; gap: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
-                <div>
-                    <div style="font-size: 0.75em; color: #94a3b8; font-weight: bold;">No: ${ogr.okulno || '-'}</div>
-                    <div style="font-weight: bold; color: #334155;">${ogr.name}</div>
-                </div>
-                <button class="btn-rozet-ata-toggle" data-ogr="${ogr.id}" data-rozet="${rozet.id}" data-val="${sahipMi ? '✔️' : ''}"
-                    style="padding: 8px 14px; border-radius: 6px; font-weight: bold; font-size: 0.85em; cursor: pointer; border: 2px solid ${sahipMi ? '#10b981' : '#cbd5e1'}; background: ${sahipMi ? '#d1fae5' : '#f8fafc'}; color: ${sahipMi ? '#059669' : '#64748b'}; min-width: 110px;">
-                    ${sahipMi ? '✅ Verildi' : '➕ Ver'}
-                </button>
-            </div>
-        `;
+    kok.addEventListener('click', async (e) => {
+        const d = e.target.closest('button');
+        if (!d) return;
+        if (d.dataset.ikon) { document.getElementById('r-ikon').value = d.dataset.ikon; return onizlemeGuncelle(); }
+        const { islem, ogr, rozet } = d.dataset;
+        if (islem === 'ver') return rozetVer(d);
+        if (islem === 'ogr-detay') return ogrenciDetay(ogr);
+        if (islem === 'rozet-detay') return rozetDetay(rozet);
+        if (islem === 'detay-geri') {
+            document.getElementById('view-r-detay').hidden = true;
+            document.getElementById('ana-gorunum').hidden = false;
+            ogrencileriCiz(); katalogCiz();
+            return window.scrollTo({ top: 0 });
+        }
+        if (islem === 'rozet-duzenle') {
+            duzenlenen = veri.rozetler.find(r => r.id === rozet);
+            tasarim = { ...BOS_TASARIM, ...duzenlenen, kategori: kategoriAl(duzenlenen) };
+            katalogCiz();
+            return document.getElementById('studyo-panel').scrollIntoView({ block: 'start' });
+        }
+        if (islem === 'duzenle-vazgec') { duzenlenen = null; tasarim = { ...BOS_TASARIM }; return katalogCiz(); }
+        if (islem === 'rozet-sil') {
+            const r = veri.rozetler.find(x => x.id === rozet);
+            if (!confirm(`“${r?.ad}” rozeti katalogdan silinsin mi? Bu rozeti kazanan öğrencilerin listesinden de kalkar`)) return;
+            try { await db.delete('rozetler_kalemleri', rozet); await yenile(); ogrencileriCiz(); katalogCiz(); }
+            catch (err) { alert('Silinemedi, tekrar deneyin'); }
+        }
     });
 
-    listeHtml += '</div>';
-    document.getElementById('detay-rozet-listesi').innerHTML = listeHtml;
-
-    document.querySelectorAll('.btn-rozet-ata-toggle').forEach(btn => {
-        btn.addEventListener('click', async (e) => {
-            const oId = e.currentTarget.getAttribute('data-ogr');
-            const rId = e.currentTarget.getAttribute('data-rozet');
-            const val = e.currentTarget.getAttribute('data-val');
-            
-            let newValue = val === '✔️' ? '' : '✔️';
-            e.currentTarget.setAttribute('data-val', newValue);
-            e.currentTarget.innerText = newValue === '✔️' ? '✅ Verildi' : '➕ Ver';
-            e.currentTarget.style.backgroundColor = newValue === '✔️' ? '#d1fae5' : '#f8fafc';
-            e.currentTarget.style.color = newValue === '✔️' ? '#059669' : '#64748b';
-            e.currentTarget.style.borderColor = newValue === '✔️' ? '#10b981' : '#cbd5e1';
-
-            await db.saveMatrixStatus('rozet_matrisi', oId, rId, newValue);
-        });
+    kok.addEventListener('submit', async (e) => {
+        if (e.target.id !== 'form-rozet') return;
+        e.preventDefault();
+        onizlemeGuncelle();
+        const kayit = {
+            ad: tasarim.ad.trim(), kategori: tasarim.kategori, icon: (tasarim.icon || '⭐').trim(), shape: tasarim.shape,
+            style1: tasarim.style1, style2: tasarim.style2, altYazi: tasarim.altYazi.trim(), aciklama: tasarim.aciklama.trim(),
+        };
+        if (!kayit.ad) return document.getElementById('r-ad').focus();
+        const dugme = e.target.querySelector('button[type="submit"]');
+        dugme.disabled = true;
+        try {
+            if (duzenlenen) await db.update('rozetler_kalemleri', duzenlenen.id, kayit);
+            else await db.add('rozetler_kalemleri', kayit);
+            duzenlenen = null; tasarim = { ...BOS_TASARIM };
+            await yenile(); ogrencileriCiz(); katalogCiz();
+        } catch (err) { alert('Kaydedilemedi, tekrar deneyin'); dugme.disabled = false; }
     });
 }

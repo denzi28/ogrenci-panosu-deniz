@@ -19,7 +19,15 @@ Kullanım:
   python3 araclar/gecis.py YEDEK.json --proje ogrenci-panosu-deniz --api-key AIza...
   (Deneme için Firebase emülatörü:  --emulator)
 
-Tekrar çalıştırmak güvenlidir: var olan hesaplar yeniden açılmaz, kayıtlar üzerine yazılır.
+Tekrar çalıştırmak güvenlidir (geçiş günü güncel yedeği aktarmak için):
+  - Var olan hesaplar yeniden açılmaz; kayıtlar yedektekiyle güncellenir.
+  - Yedekteki şifre yeni sitedekinden farklıysa hangisinin daha yeni olduğuna giriş hesabının
+    "şifre en son ne zaman değişti" bilgisine bakılarak karar verilir:
+      * şifre yeni sitede değiştirilmişse (öğrenci değiştirdi ya da öğretmen 🔑 ile yeni şifre verdi) o korunur;
+      * yeni sitede hiç değişmemişse eski sitede değişmiştir: yedekteki (güncel) şifreye geçilir.
+    Araç her iki durumun sayısını söyler (isim yazdırmaz).
+  - Sadece yeni sitede olan veriler (avatarlar, yoklama, yeni sitede eklenen öğrenciler) silinmez.
+  - Öğretmen şifresi yeni sitede değiştiyse:  --ogretmen-sifre YENİ_ŞİFRE
 """
 import argparse, json, sys, urllib.request, urllib.error, urllib.parse
 from concurrent.futures import ThreadPoolExecutor
@@ -48,6 +56,18 @@ def istek(url, veri=None, yontem='POST', token=None):
         raise RuntimeError(f'{e.code}: {hata[:300]}') from None
 
 
+def coz(v):
+    """Firestore REST değerini Python değerine çevirir."""
+    if 'stringValue' in v: return v['stringValue']
+    if 'integerValue' in v: return int(v['integerValue'])
+    if 'doubleValue' in v: return v['doubleValue']
+    if 'booleanValue' in v: return v['booleanValue']
+    if 'timestampValue' in v: return v['timestampValue']
+    if 'arrayValue' in v: return [coz(x) for x in v['arrayValue'].get('values', [])]
+    if 'mapValue' in v: return {k: coz(x) for k, x in v['mapValue'].get('fields', {}).items()}
+    return None
+
+
 def deger(v):
     """Python değerini Firestore REST biçimine çevirir."""
     if v is None: return {'nullValue': None}
@@ -69,15 +89,48 @@ class Firebase:
         self.belge_url = f'{fs}/projects/{proje}/databases/(default)/documents'
 
     def hesap(self, kullanici_adi, sifre):
-        """Hesabı açar; zaten varsa giriş yapar. (uid, token) döner."""
+        """Hesabı açar; zaten varsa yedekteki şifreyle giriş yapar. (uid, token) döner.
+        Hesap var ama şifresi yeni sitede değişmişse (None, None) döner."""
         bilgi = {'email': eposta(kullanici_adi), 'password': str(sifre) + SIFRE_EKI, 'returnSecureToken': True}
         try:
             r = istek(f'{self.auth_url}/accounts:signUp?key={self.key}', bilgi)
         except RuntimeError as e:
             if 'EMAIL_EXISTS' not in str(e):
                 raise
-            r = istek(f'{self.auth_url}/accounts:signInWithPassword?key={self.key}', bilgi)
+            try:
+                r = istek(f'{self.auth_url}/accounts:signInWithPassword?key={self.key}', bilgi)
+            except RuntimeError as e2:
+                if any(k in str(e2) for k in ('INVALID_PASSWORD', 'INVALID_LOGIN_CREDENTIALS')):
+                    return None, None
+                raise
         return r['localId'], r['idToken']
+
+    def giris(self, kullanici_adi, sifre):
+        """Var olan hesaba giriş; olmazsa (None, None)."""
+        bilgi = {'email': eposta(kullanici_adi), 'password': str(sifre) + SIFRE_EKI, 'returnSecureToken': True}
+        try:
+            r = istek(f'{self.auth_url}/accounts:signInWithPassword?key={self.key}', bilgi)
+            return r['localId'], r['idToken']
+        except RuntimeError:
+            return None, None
+
+    def sifre_yeni_sitede_degisti_mi(self, id_token):
+        """Hesap açıldıktan sonra şifresi değişmiş mi (açılışta iki zaman milisaniyesine kadar aynıdır)."""
+        u = istek(f'{self.auth_url}/accounts:lookup?key={self.key}', {'idToken': id_token})['users'][0]
+        acilis = int(u.get('createdAt', 0)); degisim = int(u.get('passwordUpdatedAt', acilis) or acilis)
+        return degisim - acilis > 1000  # açılışta iki zaman aynıdır
+
+    def sifre_ayarla(self, id_token, sifre):
+        istek(f'{self.auth_url}/accounts:update?key={self.key}', {'idToken': id_token, 'password': str(sifre) + SIFRE_EKI, 'returnSecureToken': True})
+
+    def oku(self, tablo, belge_id, token):
+        """Belgeyi okur; yoksa None."""
+        url = f"{self.belge_url}/{tablo}/{urllib.parse.quote(belge_id, safe='')}"
+        try:
+            return {k: coz(v) for k, v in istek(url, None, 'GET', token).get('fields', {}).items()}
+        except RuntimeError as e:
+            if str(e).startswith('404'): return None
+            raise
 
     def yaz(self, tablo, belge_id, alanlar, token):
         url = f"{self.belge_url}/{tablo}/{urllib.parse.quote(belge_id, safe='')}"
@@ -90,6 +143,7 @@ def main():
     ap.add_argument('--proje', required=True)
     ap.add_argument('--api-key', default='emulator')
     ap.add_argument('--emulator', action='store_true')
+    ap.add_argument('--ogretmen-sifre', help='Öğretmen şifresi yeni sitede değiştiyse yeni şifre')
     a = ap.parse_args()
     if a.proje == 'davranis-pano':
         sys.exit('⛔ Orijinal sitenin veritabanına yazılamaz.')
@@ -110,6 +164,12 @@ def main():
 
     # 2) Kurucu öğretmen giriş yapar ve kendi rolünü oluşturur
     kurucu_uid, token = fb.hesap(kurucu['username'], kurucu['password'])
+    ogretmen_yeni_sifre = None
+    if not kurucu_uid and a.ogretmen_sifre:
+        kurucu_uid, token = fb.hesap(kurucu['username'], a.ogretmen_sifre)
+        if kurucu_uid: ogretmen_yeni_sifre = a.ogretmen_sifre
+    if not kurucu_uid:
+        sys.exit('⛔ Öğretmen hesabının şifresi yeni sitede değişmiş. Yeni şifreyle tekrar çalıştırın:  --ogretmen-sifre YENİ_ŞİFRE')
     fb.yaz('roller', kurucu_uid, {'role': 'teacher', 'userId': kurucu['id']}, token)
     print(f'✔ Kurucu öğretmen hazır')
 
@@ -119,7 +179,31 @@ def main():
         return k, fb.hesap(k['username'], k['password'])[0]
     with ThreadPoolExecutor(4) as ex:
         uidler = dict((k['id'], uid) for k, uid in ex.map(hesap_ac, kullanicilar))
+
+    # Yedekteki şifreyle girilemeyen var olan hesaplar: hangisi daha yeni?
+    korunan, guncellenen, sorunlu = {}, 0, []
+    if ogretmen_yeni_sifre: korunan[kurucu['id']] = {'password': ogretmen_yeni_sifre}
+    for k in kullanicilar:
+        if uidler.get(k['id']): continue
+        mevcut = fb.oku('users_gizli', k['id'], token)
+        if not (mevcut and mevcut.get('uid') and mevcut.get('username') == k['username']):
+            sorunlu.append(k['id']); continue
+        uidler[k['id']] = mevcut['uid']
+        uid, kimlik = fb.giris(k['username'], mevcut.get('password', ''))
+        if uid and not fb.sifre_yeni_sitede_degisti_mi(kimlik):
+            fb.sifre_ayarla(kimlik, k['password'])   # eski sitede değişmiş: güncel şifreye geç
+            guncellenen += 1
+        else:
+            korunan[k['id']] = mevcut                # yeni sitede değişmiş: yeni sitedeki kalır
     print(f'✔ {len(uidler)} giriş hesabı hazır ({atlanan} tekrar eden kayıt atlandı)')
+    if [i for i in korunan if i != kurucu['id']]:
+        print(f'  ℹ {len([i for i in korunan if i != kurucu["id"]])} öğrencinin şifresi yeni sitede değişmiş; yeni sitedeki şifreleri korundu '
+              f'(öğretmen Öğrenciler bölümünde güncel şifreyi görür)')
+    if guncellenen:
+        print(f'  ℹ {guncellenen} öğrencinin şifresi eski sitede değişmiş; yeni sitede de güncel şifreye geçildi')
+    if sorunlu:
+        print(f'  ✖ {len(sorunlu)} kullanıcının hesabı bulunamadı, bunlar atlandı (kayıt no: {", ".join(sorunlu)})')
+        kullanicilar = [k for k in kullanicilar if k['id'] not in sorunlu]
 
     # 4) Tüm yazma işlemleri (öğretmen yetkisiyle)
     isler = []
@@ -127,6 +211,8 @@ def main():
         acik = {x: v for x, v in k.items() if x in ACIK_ALANLAR}
         gizli = {x: v for x, v in k.items() if x not in ACIK_ALANLAR and x != 'id'}
         gizli['uid'] = uidler[k['id']]
+        if k['id'] in korunan:  # yeni sitedeki giriş bilgisi geçerli
+            gizli['password'] = korunan[k['id']].get('password', gizli.get('password'))
         isler += [('users', k['id'], acik), ('users_gizli', k['id'], gizli),
                   ('roller', uidler[k['id']], {'role': k['role'], 'userId': k['id']})]
     for tablo, kayitlar in yedek.items():

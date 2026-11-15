@@ -62,15 +62,17 @@ export async function kabukBaslat({ rol }) {
 function ustBariCiz(rol, kullanici, auth) {
     const etiket = document.getElementById('rol-etiketi');
     const eylemler = document.getElementById('ust-eylemler');
+    const temaDugmesi = `<button type="button" id="btn-tema" class="btn btn-secondary tema-dugme" aria-pressed="false" title="Görünümü değiştir: sade ya da renkli"><i class="fas fa-palette"></i><span class="gizle-tel">Renkli</span></button>`;
     if (etiket) etiket.textContent = { guest: `${appConfig.sinifAdi} sınıfı`, teacher: 'Öğretmen', student: 'Öğrenci' }[rol];
 
     if (rol === 'guest') {
         const k = kullanici;
         const panom = k && (k.role === 'teacher' || k.role === 'student');
         const hedef = panom ? (k.role === 'teacher' ? 'teacher.html' : 'student.html') : 'login.html';
-        eylemler.innerHTML = panom
+        eylemler.innerHTML = temaDugmesi + (panom
             ? `<a class="btn btn-secondary" href="${hedef}">Panelim</a>`
-            : `<a class="btn btn-primary" href="login.html">Giriş yap</a>`;
+            : `<a class="btn btn-primary" href="login.html">Giriş yap</a>`);
+        temaDugmesiniBagla();
         const altGiris = document.getElementById('nav-giris');
         if (panom && altGiris) {
             altGiris.href = hedef;
@@ -79,12 +81,22 @@ function ustBariCiz(rol, kullanici, auth) {
         return;
     }
 
-    eylemler.innerHTML = `
+    eylemler.innerHTML = `${temaDugmesi}
         <div class="kullanici-cip" title="${esc(kullanici?.name)}">
             <span class="avatar">${esc(basHarfler(kullanici?.name))}</span><span class="gizle-tel">${esc(kullanici?.name)}</span>
         </div>
         <button id="btn-logout" class="btn btn-secondary" title="Çıkış yap"><i class="fas fa-arrow-right-from-bracket"></i><span class="gizle-tel">Çıkış</span></button>`;
     document.getElementById('btn-logout').addEventListener('click', () => auth.logout());
+    temaDugmesiniBagla();
+}
+
+// Sade / renkli görünüm (js/tema.js). Seçim bu cihazda hatırlanır.
+function temaDugmesiniBagla() {
+    const d = document.getElementById('btn-tema');
+    if (!d || !window.gorunumTemasi) { d?.remove(); return; }
+    const ciz = () => d.setAttribute('aria-pressed', window.gorunumTemasi.simdiki() === 'renkli');
+    ciz();
+    d.addEventListener('click', () => { window.gorunumTemasi.degistir(); ciz(); });
 }
 
 async function anaSayfayiCiz(icerik, rol, kullanici, moduller, gorunurlukler) {

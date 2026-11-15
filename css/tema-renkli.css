@@ -1,0 +1,130 @@
+/* RENKLİ TEMA (çocuklar için) — sade tasarımın üstüne biner, sadece html.tema-renkli varken çalışır.
+   Öğrenci sayfası varsayılan olarak renkli açılır; üst çubuktaki düğmeyle her cihaz kendi seçimini yapar (js/tema.js).
+   Yön: oyunlardaki dünya: yuvarlak yazı, her bölümün kendi rengi, tombul "basılabilir" düğmeler,
+   renkli kâğıt zemin. Kara tahta ve altın yıldız aynen kalır. */
+@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&display=swap');
+
+html.tema-renkli {
+    --font: 'Fredoka', ui-rounded, system-ui, sans-serif;
+    --bg: #fff6e9;
+    --surface: #ffffff;
+    --surface-2: #fff0d9;
+    --hairline: rgba(80, 52, 20, .10);
+    --hairline-strong: rgba(80, 52, 20, .18);
+    --ink: #33264a;
+    --text: #33264a;
+    --text-2: #6a5c80;
+    --muted: #8d81a1;
+    --primary: #1f9d6a;
+    --primary-hover: #188a5c;
+    --primary-soft: #dff5ea;
+    --r-panel: 24px; --r-kart: 22px; --r-kontrol: 14px; --r-kucuk: 10px;
+    --golge: 0 5px 0 rgba(80, 52, 20, .10);
+    --shadow-sm: var(--golge);
+    /* Bölüm renkleri */
+    --c-duyurular: #f97316; --c-etkinlikler: #ec4899; --c-odevler: #6366f1; --c-davranis: #f59e0b;
+    --c-kitap: #0ea5e9; --c-rozetler: #a855f7; --c-uygulamalar: #ef4444; --c-program: #14b8a6;
+    --c-beslenme: #84cc16; --c-ihtiyaclar: #d97706; --c-ogrenciler: #3b82f6; --c-araclar: #e11d48;
+    --c-rapor: #0891b2; --c-eba: #64748b; --c-yedekleme: #78716c;
+}
+html.tema-renkli body {
+    background:
+        radial-gradient(circle at 8% 12%, rgba(249, 115, 22, .10) 0 140px, transparent 141px),
+        radial-gradient(circle at 92% 30%, rgba(168, 85, 247, .09) 0 180px, transparent 181px),
+        radial-gradient(circle at 20% 88%, rgba(14, 165, 233, .09) 0 160px, transparent 161px),
+        radial-gradient(rgba(80, 52, 20, .07) 1.2px, transparent 1.3px) 0 0 / 22px 22px,
+        var(--bg);
+    background-attachment: fixed;
+    font-size: 16px;
+}
+html.tema-renkli h1, html.tema-renkli h2, html.tema-renkli h3 { font-weight: 600; letter-spacing: .2px; }
+html.tema-renkli .modul-ust h1, html.tema-renkli .sayfa-baslik h1 { font-size: 34px; font-weight: 600; }
+
+/* Bölüm rengi: her bölümün sayfası ve menü öğesi kendi rengini kullanır */
+html.tema-renkli [data-module="duyurular"], html.tema-renkli a[href="#duyurular"] { --c: var(--c-duyurular); }
+html.tema-renkli [data-module="etkinlikler"], html.tema-renkli a[href="#etkinlikler"] { --c: var(--c-etkinlikler); }
+html.tema-renkli [data-module="odevler"], html.tema-renkli a[href="#odevler"] { --c: var(--c-odevler); }
+html.tema-renkli [data-module="davranis"], html.tema-renkli a[href="#davranis"] { --c: var(--c-davranis); }
+html.tema-renkli [data-module="kitap"], html.tema-renkli a[href="#kitap"] { --c: var(--c-kitap); }
+html.tema-renkli [data-module="rozetler"], html.tema-renkli a[href="#rozetler"] { --c: var(--c-rozetler); }
+html.tema-renkli [data-module="uygulamalar"], html.tema-renkli a[href="#uygulamalar"] { --c: var(--c-uygulamalar); }
+html.tema-renkli [data-module="program"], html.tema-renkli a[href="#program"] { --c: var(--c-program); }
+html.tema-renkli [data-module="beslenme"], html.tema-renkli a[href="#beslenme"] { --c: var(--c-beslenme); }
+html.tema-renkli [data-module="ihtiyaclar"], html.tema-renkli a[href="#ihtiyaclar"] { --c: var(--c-ihtiyaclar); }
+html.tema-renkli [data-module="ogrenciler"], html.tema-renkli a[href="#ogrenciler"] { --c: var(--c-ogrenciler); }
+html.tema-renkli [data-module="araclar"], html.tema-renkli a[href="#araclar"] { --c: var(--c-araclar); }
+html.tema-renkli [data-module="rapor"], html.tema-renkli a[href="#rapor"] { --c: var(--c-rapor); }
+html.tema-renkli [data-module="eba"], html.tema-renkli a[href="#eba"] { --c: var(--c-eba); }
+html.tema-renkli [data-module="yedekleme"], html.tema-renkli a[href="#yedekleme"] { --c: var(--c-yedekleme); }
+
+/* Üst çubuk */
+html.tema-renkli .ust-bar { background: rgba(255, 246, 233, .92); backdrop-filter: blur(6px); border-bottom: 2px solid var(--hairline); }
+html.tema-renkli .marka-rozet { width: 40px; height: 40px; border-radius: 12px; font-size: 15px; box-shadow: 0 3px 0 #1a2b23; transform: rotate(-4deg); }
+html.tema-renkli .marka-yazi strong { font-size: 19px; }
+html.tema-renkli .avatar { width: 34px; height: 34px; background: #ffe08a; border: 2px solid #f5c84c; color: #7a5200; font-size: 13px; }
+
+/* Yan menü: renkli ikon kutuları */
+html.tema-renkli .menu-item { min-height: 44px; border-radius: 14px; font-size: 15px; color: var(--ink); }
+html.tema-renkli .menu-item .icon { width: 30px; height: 30px; display: grid; place-items: center; border-radius: 10px; font-size: 14px; color: #fff; background: var(--c, var(--primary)); box-shadow: 0 2px 0 color-mix(in srgb, var(--c, var(--primary)) 70%, #000); }
+html.tema-renkli .menu-item:hover { background: color-mix(in srgb, var(--c, var(--primary)) 10%, #fff); }
+html.tema-renkli .menu-item.aktif { background: #fff; box-shadow: 0 3px 0 var(--hairline-strong), inset 0 0 0 2px color-mix(in srgb, var(--c, var(--primary)) 45%, transparent); }
+html.tema-renkli .menu-item.aktif .icon { color: #fff; }
+
+/* Kartlar ve paneller: kalın kenar, alttan gölge */
+html.tema-renkli :is(.panel, .card, .bilgi-liste, .sayi-kart, .modul-kutu, .rozet-kart, .ilan-kart) { border: 2px solid var(--hairline); box-shadow: var(--golge); }
+html.tema-renkli .panel-ust h2 { font-size: 18px; }
+
+/* Ana sayfa bölüm kutuları: her biri kendi renginde */
+html.tema-renkli .modul-grid { gap: 14px; }
+html.tema-renkli .modul-kutu { min-height: 84px; padding: 14px 18px; border-color: color-mix(in srgb, var(--c, var(--primary)) 25%, #fff); box-shadow: 0 6px 0 color-mix(in srgb, var(--c, var(--primary)) 30%, #f1e6d6); }
+html.tema-renkli .modul-kutu:hover { transform: translateY(-3px); box-shadow: 0 9px 0 color-mix(in srgb, var(--c, var(--primary)) 30%, #f1e6d6); background: #fff; }
+html.tema-renkli .modul-kutu:active { transform: translateY(4px); box-shadow: 0 2px 0 color-mix(in srgb, var(--c, var(--primary)) 30%, #f1e6d6); }
+html.tema-renkli .modul-ikon { width: 52px; height: 52px; border-radius: 16px; font-size: 22px; color: #fff; background: var(--c, var(--primary)); box-shadow: 0 3px 0 color-mix(in srgb, var(--c, var(--primary)) 70%, #000); transform: rotate(-3deg); }
+html.tema-renkli .modul-kutu:nth-child(even) .modul-ikon { transform: rotate(3deg); }
+html.tema-renkli .modul-yazi strong { font-size: 18px; font-weight: 600; }
+html.tema-renkli .modul-yazi small { font-size: 14px; }
+html.tema-renkli .modul-ok { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: color-mix(in srgb, var(--c, var(--primary)) 14%, #fff); color: var(--c, var(--primary)); }
+
+/* Sayı kartları: pastel renkler */
+html.tema-renkli .sayi-kart:nth-child(3n+1) { background: #fff4d6; border-color: #fbe2a0; }
+html.tema-renkli .sayi-kart:nth-child(3n+2) { background: #e3f4ff; border-color: #bfe3fb; }
+html.tema-renkli .sayi-kart:nth-child(3n+3) { background: #fde7f3; border-color: #f8c6e2; }
+html.tema-renkli .sayi-kart strong { font-size: 36px; font-weight: 600; }
+
+/* Kara tahta biraz daha "gerçek": tahta çerçevesi kalın, köşeler yuvarlak */
+html.tema-renkli .tahta { border-width: 10px; border-radius: 26px; box-shadow: 0 8px 0 #6b5038; }
+html.tema-renkli .tahta h2 { font-size: 22px; }
+html.tema-renkli .tahta-dersler li { font-size: 18px; }
+
+/* Düğmeler: oyunlardaki gibi tombul */
+html.tema-renkli .btn { border-radius: 14px; font-weight: 600; min-height: 42px; padding: 8px 18px; box-shadow: 0 4px 0 rgba(0, 0, 0, .18); transition: transform 100ms, box-shadow 100ms; }
+html.tema-renkli .btn:active { transform: translateY(3px); box-shadow: 0 1px 0 rgba(0, 0, 0, .18); }
+html.tema-renkli .btn-secondary, html.tema-renkli .btn-hayalet { box-shadow: 0 4px 0 var(--hairline-strong); border-width: 2px; }
+html.tema-renkli .btn-kucuk { min-height: 36px; padding: 4px 12px; }
+
+/* Sekmeler ve etiketler */
+html.tema-renkli .sekmeler { border-radius: 16px; padding: 5px; background: #fff; border: 2px solid var(--hairline); }
+html.tema-renkli .sekme { border-radius: 12px; font-weight: 600; min-height: 38px; }
+html.tema-renkli .sekme[aria-selected="true"] { background: var(--primary); color: #fff; box-shadow: 0 3px 0 #136b48; }
+html.tema-renkli .etiket { border-radius: 999px; padding: 3px 10px; font-weight: 600; }
+html.tema-renkli .satir { min-height: 62px; }
+html.tema-renkli .satir-ad { font-size: 17px; }
+
+/* Telefon alt menüsü */
+html.tema-renkli .mobile-nav { border-top: 2px solid var(--hairline); border-radius: 22px 22px 0 0; box-shadow: 0 -4px 0 rgba(80, 52, 20, .05); }
+html.tema-renkli .mobile-nav a { font-weight: 600; }
+html.tema-renkli .mobile-nav a i { font-size: 22px; }
+
+/* Yıldızlar biraz daha büyük */
+html.tema-renkli .yildiz-gosterge { font-size: 19px; }
+html.tema-renkli .podyum-basamak { border-radius: 22px 22px 6px 6px; }
+
+/* Podyum: altın, gümüş, bronz basamaklar */
+html.tema-renkli .podyum-sutun.s1 .podyum-basamak { border-color: #e0a800; box-shadow: inset 0 6px 0 #f5c84c; }
+html.tema-renkli .podyum-sutun.s2 .podyum-basamak { border-color: #9aa4ae; box-shadow: inset 0 6px 0 #cfd6dc; }
+html.tema-renkli .podyum-sutun.s3 .podyum-basamak { border-color: #b8743a; box-shadow: inset 0 6px 0 #dc9a5e; }
+html.tema-renkli .podyum-sutun.s1 .podyum-adlar::before { content: "👑"; display: block; font-size: 28px; line-height: 1.1; }
+html.tema-renkli .podyum-adlar { font-size: 17px; font-weight: 600; }
+
+/* Görünüm düğmesi renkli temadayken basılı görünür */
+html.tema-renkli .tema-dugme[aria-pressed="true"] { background: linear-gradient(135deg, #f97316, #ec4899 50%, #6366f1); color: #fff; border-color: transparent; box-shadow: 0 4px 0 #9d2a6e; }

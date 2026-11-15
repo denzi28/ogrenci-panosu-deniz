@@ -473,6 +473,7 @@ a.bilgi-satir:hover { background: var(--surface-2); }
 .okuma-yok { color: var(--muted); font-size: 14px; }
 .satir-eylem { display: flex; align-items: center; gap: 4px; justify-content: flex-end; flex-wrap: wrap; }
 .btn-kucuk { min-height: 32px; padding: 4px 12px; font-size: 13px; }
+.birak-dugme:hover { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 35%, transparent); }
 .durum-dugme { min-width: 132px; justify-content: center; }
 .durum-dugme[data-durum="⏳"] { background: #f8edd2; color: #7a5200; border-color: transparent; }
 .durum-dugme[data-durum="✔️"] { background: var(--primary-soft); color: var(--primary); border-color: transparent; }

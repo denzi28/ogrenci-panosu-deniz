@@ -111,7 +111,7 @@ function ogrenciSatiri(o) {
             <small class="${gunFarki(k.tarih) !== null && gunFarki(k.tarih) < minGun ? 'uyari' : ''}">${sureMetni(k.tarih)}</small>
             <span style="display:inline-flex;gap:4px;margin-left:auto">
                 <button class="btn btn-secondary btn-kucuk" data-islem="bitir" data-ogr="${esc(o.id)}" data-kitap="${esc(k.id)}"><i class="fas fa-check"></i>Bitirdi</button>
-                <button class="yazi-dugme" data-islem="birak" data-ogr="${esc(o.id)}" data-kitap="${esc(k.id)}" title="Okumadan geri verdi">Bıraktı</button>
+                <button class="btn btn-secondary btn-kucuk birak-dugme" data-islem="birak" data-ogr="${esc(o.id)}" data-kitap="${esc(k.id)}" title="Okumadan geri verdi"><i class="fas fa-xmark"></i>Bıraktı</button>
             </span>
         </div>`).join('');
     return `

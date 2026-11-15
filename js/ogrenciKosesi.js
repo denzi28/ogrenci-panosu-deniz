@@ -86,20 +86,21 @@ function seciciyiAc() {
 // ---------------------------------------------------------------- Sıradaki rozet + yeni rozet kutlaması
 async function rozetBolumu() {
     if (!(await db.getModuleVisibility('rozetler').catch(() => true))) return; // öğretmen rozetleri güncelliyor
-    const { rozetler, matris } = await rozet.verileriGetir();
+    // Sadece gereken tablolar okunur (öğrenci listesi gerekmiyor): ücretsiz planda günlük okuma kotası sınıflarca paylaşılır
+    const [rozetler, matris] = await Promise.all([db.getAll('rozetler_kalemleri'), db.getAll('rozet_matrisi')]);
     if (!rozetler.length) return;
     const sahip = rozet.sahiplik(matris);
 
     // Otomatik rozet vermeyle aynı sayımlar (bkz. kitap/teacher.js ve odevler/teacher.js)
     const sayilar = {};
     if (rozetler.some(r => rozet.hedefAl(r, 'kitapHedefi'))) {
-        const k = await kitap.verileriGetir();
-        const o = k.ogrenciler.find(x => x.id === ben.id);
-        if (o) sayilar.kitapHedefi = kitap.ogrenciOzeti(o, k.kalemler, kitap.durumHaritasi(k.matris)).okunan.length;
+        const [kalemler, kmatris] = await Promise.all([db.getAll('kitaplar_kalemleri'), db.getAll('kitap_matrisi')]);
+        sayilar.kitapHedefi = kitap.ogrenciOzeti({ id: ben.id }, kalemler, kitap.durumHaritasi(kmatris)).okunan.length;
     }
     if (rozetler.some(r => rozet.hedefAl(r, 'odevHedefi'))) {
-        const v = await odev.verileriGetir();
-        sayilar.odevHedefi = odev.ogrenciOzeti(ben.id, v.odevler, v.harita).yapti;
+        const [odevler, omatris] = await Promise.all([db.getAll(odev.KALEMLER), db.getAll(odev.MATRIS)]);
+        const harita = new Map(omatris.map(m => [`${m.ogrId}_${m.targetId}`, String(m.deger ?? '')]));
+        sayilar.odevHedefi = odev.ogrenciOzeti(ben.id, odevler, harita).yapti;
     }
     hedefiCiz(rozet.sonrakiHedef(rozetler, sahip, ben.id, sayilar));
 

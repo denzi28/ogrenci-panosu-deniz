@@ -3,13 +3,14 @@
 import { db } from '../../js/db.js';
 import { esc, sayi, modulBasligi, gorunurlukAnahtari, baglaGorunurlukAnahtari, sekmeler, baglaSekmeler, kaydedildiIsareti } from '../../js/arayuz.js';
 import { oynat, kutla, bildirim } from '../../js/hareket.js';
-import { verileriGetir, sahiplik, sahipMi, kategoriyeGore, kategoriAl, rozetGorseli, KATEGORILER, SEKILLER, IKONLAR, HAZIR_ROZETLER, VERILDI, onerilenGorsel, kitapHedefi, kitapHedefiTahmini } from './ortak.js';
+import { verileriGetir, sahiplik, sahipMi, kategoriyeGore, kategoriAl, rozetGorseli, KATEGORILER, SEKILLER, IKONLAR, HAZIR_ROZETLER, VERILDI, onerilenGorsel, kitapHedefi, kitapHedefiTahmini, odevHedefi, hedefAl, HEDEFLER } from './ortak.js';
+import * as odev from '../odevler/ortak.js';
 import * as kitap from '../kitap/ortak.js';
 
 let siralamaTuru = 'ad';
 let veri, sahip, kok;
 let duzenlenen = null; // stüdyoda düzenlenen rozet
-const BOS_TASARIM = { mod: 'hazir', resim: '', ad: '', kategori: 'davranis', icon: '⭐', shape: '50%', style1: '#fbbf24', style2: '#d97706', altYazi: '', aciklama: '', kitapHedefi: '' };
+const BOS_TASARIM = { mod: 'hazir', resim: '', ad: '', kategori: 'davranis', icon: '⭐', shape: '50%', style1: '#fbbf24', style2: '#d97706', altYazi: '', aciklama: '', kitapHedefi: '', odevHedefi: '' };
 let sonOneri = null; // hazır rozet seçilince doldurulan öneri (ad/açıklama elle değiştirilmediyse yenisiyle değişir)
 let tasarim = { ...BOS_TASARIM };
 
@@ -103,6 +104,8 @@ function katalogCiz() {
                     <div class="form-group"><label for="r-aciklama">Ne zaman verilir</label><input type="text" id="r-aciklama" name="aciklama" maxlength="80" value="${esc(tasarim.aciklama)}" placeholder="Örneğin: 50 soru çözdü"></div>
                     <div class="form-group tam"><label for="r-kitap">Kitap okuyunca kendiliğinden verilsin <small style="font-weight:400;color:var(--muted)">isteğe bağlı</small></label>
                         <div style="display:flex;align-items:center;gap:8px"><input type="number" id="r-kitap" name="kitapHedefi" min="1" max="999" inputmode="numeric" value="${esc(tasarim.kitapHedefi ?? '')}" style="width:96px" placeholder="Boş"><span style="color:var(--text-2)">kitap bitirince</span></div></div>
+                    <div class="form-group tam"><label for="r-odev">Ödev yapınca kendiliğinden verilsin <small style="font-weight:400;color:var(--muted)">isteğe bağlı</small></label>
+                        <div style="display:flex;align-items:center;gap:8px"><input type="number" id="r-odev" name="odevHedefi" min="1" max="999" inputmode="numeric" value="${esc(tasarim.odevHedefi ?? '')}" style="width:96px" placeholder="Boş"><span style="color:var(--text-2)">ödevi tam yapınca</span></div></div>
                 </div>
                 <div class="studyo-onizleme">
                     <span id="r-onizleme">${onizlemeHtml()}</span>
@@ -120,7 +123,7 @@ function katalogCiz() {
                     return `
                     <div class="satir" style="flex-wrap:wrap">
                         ${rozetGorseli(r, 40)}
-                        <span class="satir-ad" style="white-space:normal">${esc(r.ad)}${kitapHedefi(r) ? ` <span class="etiket otomatik"><i class="fas fa-book-open"></i>${kitapHedefi(r)} kitapta kendiliğinden</span>` : ''}<small>${esc(r.aciklama || '')}${r.aciklama ? ' · ' : ''}${alan ? `${sayi(alan)} öğrencide` : 'Henüz verilmedi'}</small></span>
+                        <span class="satir-ad" style="white-space:normal">${esc(r.ad)}${Object.entries(HEDEFLER).map(([alan, h]) => hedefAl(r, alan) ? ` <span class="etiket otomatik"><i class="fas ${h.ikon}"></i>${hedefAl(r, alan)} ${h.etiket} kendiliğinden</span>` : '').join('')}<small>${esc(r.aciklama || '')}${r.aciklama ? ' · ' : ''}${alan ? `${sayi(alan)} öğrencide` : 'Henüz verilmedi'}</small></span>
                         <span style="display:flex;align-items:center;gap:4px">
                             <button class="btn btn-secondary btn-kucuk" data-islem="rozet-detay" data-rozet="${esc(r.id)}">Öğrencilere ver</button>
                             <button class="ikon-dugme" data-islem="rozet-duzenle" data-rozet="${esc(r.id)}" title="Düzenle" aria-label="Düzenle"><i class="fas fa-pen"></i></button>
@@ -190,22 +193,36 @@ function kitapHedefiPaneli() {
         </section>`;
 }
 
-// Hedefe ulaşmış ama rozeti olmayan öğrenciler
-async function hedefeUlasanlar(r) {
-    const hedef = kitapHedefi(r);
+// Hedefe ulaşmış ama rozeti olmayan öğrenciler (kitap ya da ödev hedefi)
+async function hedefeUlasanlar(r, alan) {
+    const hedef = hedefAl(r, alan);
     if (!hedef) return [];
-    const k = await kitap.verileriGetir();
-    const h = kitap.durumHaritasi(k.matris);
-    return veri.ogrenciler.filter(o => !sahipMi(sahip, o.id, r.id) && kitap.ogrenciOzeti(o, k.kalemler, h).okunan.length >= hedef);
+    let say;
+    if (alan === 'kitapHedefi') {
+        const k = await kitap.verileriGetir();
+        const h = kitap.durumHaritasi(k.matris);
+        say = (o) => kitap.ogrenciOzeti(o, k.kalemler, h).okunan.length;
+    } else {
+        const v = await odev.verileriGetir();
+        say = (o) => odev.ogrenciOzeti(o.id, v.odevler, v.harita).yapti;
+    }
+    return veri.ogrenciler.filter(o => !sahipMi(sahip, o.id, r.id) && say(o) >= hedef);
 }
 
 async function geriyeDonukVer(r) {
-    const ulasan = await hedefeUlasanlar(r);
-    if (!ulasan.length) return 0;
-    const adlar = ulasan.slice(0, 6).map(o => o.name).join(', ') + (ulasan.length > 6 ? ` ve ${ulasan.length - 6} kişi daha` : '');
-    if (!confirm(`${ulasan.length} öğrenci ${kitapHedefi(r)} kitap hedefine zaten ulaşmış: ${adlar}.\n\n"${r.ad}" rozeti onlara şimdi verilsin mi?`)) return 0;
-    for (const o of ulasan) await db.saveMatrixStatus('rozet_matrisi', String(o.id), String(r.id), VERILDI);
-    return ulasan.length;
+    const ulasan = new Map();
+    const hedefler = [];
+    for (const alan of Object.keys(HEDEFLER)) {
+        if (!hedefAl(r, alan)) continue;
+        hedefler.push(`${hedefAl(r, alan)} ${HEDEFLER[alan].ad}`);
+        (await hedefeUlasanlar(r, alan)).forEach(o => ulasan.set(o.id, o));
+    }
+    if (!ulasan.size) return 0;
+    const liste = [...ulasan.values()];
+    const adlar = liste.slice(0, 6).map(o => o.name).join(', ') + (liste.length > 6 ? ` ve ${liste.length - 6} kişi daha` : '');
+    if (!confirm(`${liste.length} öğrenci ${hedefler.join(' ya da ')} hedefine zaten ulaşmış: ${adlar}.\n\n"${r.ad}" rozeti onlara şimdi verilsin mi?`)) return 0;
+    for (const o of liste) await db.saveMatrixStatus('rozet_matrisi', String(o.id), String(r.id), VERILDI);
+    return liste.length;
 }
 
 function eskiRozetPaneli() {
@@ -399,6 +416,7 @@ function olaylariBagla() {
             ad: tasarim.ad.trim(), kategori: tasarim.kategori, icon: (tasarim.icon || '⭐').trim(), shape: tasarim.shape,
             style1: tasarim.style1, style2: tasarim.style2, altYazi: tasarim.altYazi.trim(), aciklama: tasarim.aciklama.trim(),
             kitapHedefi: parseInt(tasarim.kitapHedefi) > 0 ? parseInt(tasarim.kitapHedefi) : null,
+            odevHedefi: parseInt(tasarim.odevHedefi) > 0 ? parseInt(tasarim.odevHedefi) : null,
         };
         if (!kayit.ad) return document.getElementById('r-ad').focus();
         const dugme = e.target.querySelector('button[type="submit"]');
@@ -406,7 +424,7 @@ function olaylariBagla() {
         try {
             const sonuc = duzenlenen ? await db.update('rozetler_kalemleri', duzenlenen.id, kayit) : await db.add('rozetler_kalemleri', kayit);
             duzenlenen = null; tasarim = { ...BOS_TASARIM }; sonOneri = null;
-            const verilen = kayit.kitapHedefi ? await geriyeDonukVer({ ...kayit, id: sonuc.id }) : 0;
+            const verilen = kayit.kitapHedefi || kayit.odevHedefi ? await geriyeDonukVer({ ...kayit, id: sonuc.id }) : 0;
             await yenile(); ogrencileriCiz(); katalogCiz();
             if (verilen) bildirim(`<b>${sayi(verilen)}</b> öğrenciye rozet verildi`);
         } catch (err) { alert('Kaydedilemedi, tekrar deneyin'); dugme.disabled = false; }

@@ -5,6 +5,7 @@ import { db } from './db.js';
 import { initApp } from './app.js';
 import { girisOynat, sayilariSaydir } from './hareket.js';
 import { gectiMi } from '../modules/etkinlikler/ortak.js';
+import { gectiMi as odevGectiMi, teslimSirasi as odevSirasi } from '../modules/odevler/ortak.js';
 
 const esc = (v) => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const GUN_ANAHTAR = ['pazar', 'pazartesi', 'sali', 'carsamba', 'persembe', 'cuma', 'cumartesi'];
@@ -126,15 +127,16 @@ async function anaSayfayiCiz(icerik, rol, kullanici, moduller, gorunurlukler) {
 
     // Veriler paralel ve birbirinden bağımsız yüklenir; biri başarısız olursa diğerleri yine görünür.
     const getir = (tablo, sadeceAcik = false) => (sadeceAcik ? db.getPublic(tablo) : db.getAll(tablo)).catch(() => []);
-    const [dersler, beslenme, etkinlikler, duyurular] = await Promise.all([
+    const [dersler, beslenme, etkinlikler, duyurular, odevler] = await Promise.all([
         acik('program') ? getir('ders_programi') : [],
         acik('beslenme') ? getir('beslenme_programi') : [],
         acik('etkinlikler') ? getir('etkinlikler', rol === 'guest') : [],
         acik('duyurular') ? getir('duyurular', rol === 'guest') : [],
+        acik('odevler') ? getir('odevler') : [],
     ]);
 
     tahtayiCiz(dersler, beslenme, acik('program'), acik('beslenme'));
-    bilgiListesiniCiz(etkinlikler, duyurular, acik('etkinlikler'), acik('duyurular'));
+    bilgiListesiniCiz(etkinlikler, duyurular, acik('etkinlikler'), acik('duyurular'), odevler, acik('odevler'));
     if (rol !== 'guest') sayilariCiz(rol, kullanici).catch(e => console.warn('Sayılar yüklenemedi:', e));
 }
 
@@ -164,7 +166,7 @@ function tahtayiCiz(dersler, beslenme, programAcik, beslenmeAcik) {
         </section>`;
 }
 
-function bilgiListesiniCiz(etkinlikler, duyurular, etkinlikAcik, duyuruAcik) {
+function bilgiListesiniCiz(etkinlikler, duyurular, etkinlikAcik, duyuruAcik, odevler = [], odevAcik = false) {
     const alan = document.getElementById('bilgi-alani');
     if (!alan) return;
     const satirlar = [];
@@ -174,6 +176,13 @@ function bilgiListesiniCiz(etkinlikler, duyurular, etkinlikAcik, duyuruAcik) {
         satirlar.push(siradaki
             ? `<a class="bilgi-satir" href="#etkinlikler"><i class="fas fa-calendar-days"></i><div><small>Sıradaki etkinlik · ${new Date(siradaki.tarih).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' })}</small><strong>${esc(siradaki.baslik)}</strong></div></a>`
             : `<div class="bilgi-satir"><i class="fas fa-calendar-days"></i><div><small>Sıradaki etkinlik</small><strong>Planlanmış etkinlik yok</strong></div></div>`);
+    }
+    if (odevAcik) {
+        const yaklasan = odevSirasi(odevler).filter(o => !odevGectiMi(o));
+        const o = yaklasan[0];
+        satirlar.push(o
+            ? `<a class="bilgi-satir" href="#odevler"><i class="fas fa-list-check"></i><div><small>Sıradaki ödev · ${new Date(`${o.teslim}T12:00`).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' })}${yaklasan.length > 1 ? ` · ${yaklasan.length} ödev bekliyor` : ''}</small><strong>${esc(o.baslik)}</strong></div></a>`
+            : `<div class="bilgi-satir"><i class="fas fa-list-check"></i><div><small>Ödevler</small><strong>Bekleyen ödev yok</strong></div></div>`);
     }
     if (duyuruAcik) {
         const son = [...duyurular].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0];

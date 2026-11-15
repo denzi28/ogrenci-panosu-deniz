@@ -187,11 +187,18 @@ export function kitapHedefiTahmini(r) {
     return m && +m[1] > 0 ? +m[1] : null;
 }
 
-// Öğrencinin okuduğu kitap sayısına göre hak ettiği ama henüz almadığı kitap rozetlerini verir.
-// rozetler/matris verilmezse veritabanından okunur. Verilen rozetlerin listesini döndürür.
-export async function kitapRozetleriniVer(ogrId, okunanSayisi, { rozetler = null, matris = null } = {}) {
+// Hedefli otomatik rozetler: rozette kitapHedefi ya da odevHedefi varsa, öğrenci o sayıya ulaşınca kendiliğinden verilir.
+export const HEDEFLER = {
+    kitapHedefi: { ad: 'kitap', etiket: 'kitapta', ikon: 'fa-book-open', yazi: 'kitap bitirince' },
+    odevHedefi: { ad: 'ödev', etiket: 'ödevde', ikon: 'fa-list-check', yazi: 'ödevi tam yapınca' },
+};
+export const hedefAl = (r, alan) => { const n = parseInt(r?.[alan]); return n > 0 ? n : null; };
+export const odevHedefi = (r) => hedefAl(r, 'odevHedefi');
+
+// Öğrencinin sayısı bir rozetin hedefine ulaştıysa ve rozeti yoksa verir. Verilen rozetleri döndürür.
+export async function hedefRozetleriniVer(ogrId, alan, sayi, { rozetler = null, matris = null } = {}) {
     rozetler = rozetler || await db.getAll('rozetler_kalemleri');
-    const hedefli = rozetler.filter(r => kitapHedefi(r) && okunanSayisi >= kitapHedefi(r));
+    const hedefli = rozetler.filter(r => hedefAl(r, alan) && sayi >= hedefAl(r, alan));
     if (!hedefli.length) return [];
     matris = matris || await db.getAll('rozet_matrisi');
     const sahip = sahiplik(matris);
@@ -199,3 +206,4 @@ export async function kitapRozetleriniVer(ogrId, okunanSayisi, { rozetler = null
     for (const r of verilecek) await db.saveMatrixStatus('rozet_matrisi', String(ogrId), String(r.id), VERILDI);
     return verilecek;
 }
+export const kitapRozetleriniVer = (ogrId, sayi, secenek) => hedefRozetleriniVer(ogrId, 'kitapHedefi', sayi, secenek);

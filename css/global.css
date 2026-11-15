@@ -8,6 +8,8 @@
    Modüller var(--primary), var(--danger) vb. adları kullanıyor; adları değiştirmeyin.
    ========================================================================== */
 @import url('https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600&display=swap');
+/* Ana sayfadaki kara tahta yazısı: el yazısı (Türkçe harfleri var) */
+@import url('https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap');
 
 :root {
     /* Kâğıt tonlu nötr rampa */
@@ -309,6 +311,40 @@ th { font-weight: 600; }
 .tahta-not { margin-top: 16px; padding-top: 12px; border-top: 1px solid rgba(236, 238, 228, .14); display: flex; gap: 8px; color: var(--tebesir); font-size: 15px; }
 .tahta-not b { color: var(--tebesir-sari); font-weight: 500; flex-shrink: 0; }
 .tahta-bos { color: var(--tebesir-soluk); font-size: 15px; }
+
+/* Tebeşir yazısı: ana sayfadaki tahtada el yazısı, hafif tebeşir tozu dokusu ve satırlar elle yazılmış gibi hafif eğri */
+#tahta-alani .tahta {
+    --tebesir-font: 'Patrick Hand', 'Comic Sans MS', 'Segoe Print', cursive;
+    --font: var(--tebesir-font); /* tahtanın içindeki her yazı tebeşir */
+    --tebesir-doku: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.1' numOctaves='2' seed='7'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 -1.6 1.45'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23f)'/%3E%3C/svg%3E");
+    background-image: radial-gradient(ellipse at 30% 20%, rgba(236, 238, 228, .06), transparent 60%), radial-gradient(ellipse at 80% 90%, rgba(236, 238, 228, .04), transparent 50%);
+}
+#tahta-alani .tahta :is(h2, .tahta-ust small, .tahta-dersler li, .tahta-not, .tahta-bos) {
+    font-family: var(--tebesir-font);
+    font-weight: 400;
+    letter-spacing: .3px;
+    text-shadow: 0 0 1px rgba(236, 238, 228, .55), 0 0 6px rgba(236, 238, 228, .12);
+    -webkit-mask-image: var(--tebesir-doku);
+    mask-image: var(--tebesir-doku);
+    -webkit-mask-size: 160px 160px;
+    mask-size: 160px 160px;
+}
+#tahta-alani .tahta h2 { font-size: 28px; line-height: 1.1; transform: rotate(-1deg); transform-origin: left; }
+#tahta-alani .tahta-ust small { font-size: 18px; }
+#tahta-alani .tahta-dersler li { font-size: 23px; line-height: 1.25; border-bottom-style: dashed; }
+#tahta-alani .tahta-dersler li span { font-size: 21px; width: 20px; }
+#tahta-alani .tahta-dersler li:nth-child(3n+1) { transform: rotate(-.8deg); }
+#tahta-alani .tahta-dersler li:nth-child(3n+2) { transform: rotate(.5deg); }
+#tahta-alani .tahta-dersler li:nth-child(3n) { transform: rotate(-.3deg); }
+#tahta-alani .tahta-not { font-size: 21px; transform: rotate(-.4deg); }
+#tahta-alani .tahta-not b { font-weight: 400; }
+#tahta-alani .tahta-bos { font-size: 20px; }
+@media (max-width: 520px) {
+    #tahta-alani .tahta-dersler { gap: 4px 16px; }
+    #tahta-alani .tahta-dersler li { font-size: 20px; gap: 8px; }
+    #tahta-alani .tahta-dersler li span { font-size: 18px; width: 14px; }
+    #tahta-alani .tahta h2 { font-size: 24px; }
+}
 
 /* Yan bilgi listesi */
 .bilgi-liste { background: var(--surface); border: 1px solid var(--hairline); border-radius: var(--r-kart); box-shadow: var(--shadow-sm); }

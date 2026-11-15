@@ -271,7 +271,9 @@ async function sayilariCiz(rol, kullanici) {
         ];
     } else {
         const id = kullanici?.id;
-        const [davranis, kitap, rozet] = await Promise.all([getir('davranis_matrisi'), getir('kitap_matrisi'), getir('rozet_matrisi')]);
+        // Sadece çocuğun kendi satırları okunur (tüm sınıfın tablosu değil)
+        const kendi = (t) => db.ogrencininSatirlari(t, id).catch(() => []);
+        const [davranis, kitap, rozet] = await Promise.all([kendi('davranis_matrisi'), kendi('kitap_matrisi'), kendi('rozet_matrisi')]);
         const yildiz = davranis.filter(m => m.ogrId === id).reduce((t, m) => t + (parseInt(m.deger) || 0), 0);
         kartlar = [
             ['Yıldızların', yildiz, '<span class="yildiz-cikartma" aria-hidden="true"></span>'],

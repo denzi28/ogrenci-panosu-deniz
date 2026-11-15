@@ -100,6 +100,18 @@ class Database {
         return kullanicilar;
     }
 
+    // Bir öğrencinin bir tablodaki satırları (ör. sadece kendi kitap durumları). Tüm tabloyu okumaktan çok daha az
+    // okuma harcar: ücretsiz planda günlük okuma kotası bütün sınıflarca paylaşılır.
+    // Aynı sayfada kısa süre içinde (ana sayfaya dönüş gibi) tekrar istenirse önbellekten verilir.
+    async ogrencininSatirlari(collectionName, ogrId) {
+        const anahtar = `${tabloYolu(collectionName).join('/')}|${ogrId}`;
+        const kayit = this._satirOnbellek?.get(anahtar);
+        if (kayit && Date.now() - kayit.zaman < 60000) return kayit.veri;
+        const veri = await hamListe(collectionName, query(koleksiyon(collectionName), where('ogrId', '==', String(ogrId))));
+        (this._satirOnbellek ||= new Map()).set(anahtar, { zaman: Date.now(), veri });
+        return veri;
+    }
+
     // Tek kayıt (yoksa null)
     async get(collectionName, id) {
         this.registerCollection(collectionName);

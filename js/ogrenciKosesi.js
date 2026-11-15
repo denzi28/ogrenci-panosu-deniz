@@ -2,7 +2,7 @@
 // Sadece öğrenci ana sayfasında çalışır (js/kabuk.js). Hiçbiri olmazsa sayfa yine eskisi gibi görünür.
 import { db } from './db.js';
 import { esc, sayi } from './arayuz.js';
-import { AVATARLAR, AVATAR_SECIMI_ACIK, avatarHtml, avatarlariGetir, avatarKaydet } from './avatar.js';
+import { AVATARLAR, AVATAR_SECIMI_ACIK, avatarHtml, avatarKaydet } from './avatar.js';
 import { kutla, konfeti, zil } from './hareket.js';
 import * as rozet from '../modules/rozetler/ortak.js';
 import * as kitap from '../modules/kitap/ortak.js';
@@ -18,8 +18,8 @@ let ben = null, avatarim = null;
 export async function koseyiKur(kullanici) {
     ben = kullanici;
     if (!ben?.id) return;
-    const harita = await avatarlariGetir();
-    avatarim = harita.get(ben.id) || null;
+    const kayit = await db.get('avatarlar', ben.id).catch(() => null); // sadece kendi avatarı
+    avatarim = AVATARLAR[kayit?.avatar] ? kayit.avatar : null;
     if (!AVATAR_SECIMI_ACIK && !avatarim) document.getElementById('avatar-sec')?.remove();
     avatariGoster();
     if (AVATAR_SECIMI_ACIK) document.getElementById('avatar-sec')?.addEventListener('click', seciciyiAc);
@@ -89,18 +89,18 @@ function seciciyiAc() {
 async function rozetBolumu() {
     if (!(await db.getModuleVisibility('rozetler').catch(() => true))) return; // öğretmen rozetleri güncelliyor
     // Sadece gereken tablolar okunur (öğrenci listesi gerekmiyor): ücretsiz planda günlük okuma kotası sınıflarca paylaşılır
-    const [rozetler, matris] = await Promise.all([db.getAll('rozetler_kalemleri'), db.getAll('rozet_matrisi')]);
+    const [rozetler, matris] = await Promise.all([db.getAll('rozetler_kalemleri'), db.ogrencininSatirlari('rozet_matrisi', ben.id)]);
     if (!rozetler.length) return;
     const sahip = rozet.sahiplik(matris);
 
     // Otomatik rozet vermeyle aynı sayımlar (bkz. kitap/teacher.js ve odevler/teacher.js)
     const sayilar = {};
     if (rozetler.some(r => rozet.hedefAl(r, 'kitapHedefi'))) {
-        const [kalemler, kmatris] = await Promise.all([db.getAll('kitaplar_kalemleri'), db.getAll('kitap_matrisi')]);
+        const [kalemler, kmatris] = await Promise.all([db.getAll('kitaplar_kalemleri'), db.ogrencininSatirlari('kitap_matrisi', ben.id)]);
         sayilar.kitapHedefi = kitap.ogrenciOzeti({ id: ben.id }, kalemler, kitap.durumHaritasi(kmatris)).okunan.length;
     }
     if (rozetler.some(r => rozet.hedefAl(r, 'odevHedefi'))) {
-        const [odevler, omatris] = await Promise.all([db.getAll(odev.KALEMLER), db.getAll(odev.MATRIS)]);
+        const [odevler, omatris] = await Promise.all([db.getAll(odev.KALEMLER), db.ogrencininSatirlari(odev.MATRIS, ben.id)]);
         const harita = new Map(omatris.map(m => [`${m.ogrId}_${m.targetId}`, String(m.deger ?? '')]));
         sayilar.odevHedefi = odev.ogrenciOzeti(ben.id, odevler, harita).yapti;
     }

@@ -4,8 +4,9 @@
 import { auth } from './auth.js';
 import { db } from './db.js';
 import { appConfig } from './config.js';
-import { esc, sayi, yazdir } from './arayuz.js';
+import { esc, sayi } from './arayuz.js';
 import { sinifBilgisi, aktifSinifId, veliLinki } from './sinif.js';
+import { kullaniciAdiOner, sifreOner, yedekKullaniciAdi, satirCoz, girisKartlariniYazdir, DUZEN_ACIKLAMASI } from './girisBilgisi.js';
 import { HAZIR_ROZETLER } from '../modules/rozetler/ortak.js';
 import { GUNLER as PROGRAM_GUNLERI, DERS_SAYISI, TABLO as PROGRAM_TABLO } from '../modules/program/ortak.js';
 import { GUNLER as BESLENME_GUNLERI, TABLO as BESLENME_TABLO } from '../modules/beslenme/ortak.js';
@@ -28,9 +29,6 @@ const ROZET_PAKETI = [
     ['yardimsever', {}], ['temizlik-kahramani', {}], ['haftanin-yildizi', {}], ['matematik-ustasi', {}],
     ['aktif-katilim', {}], ['iyi-arkadas', {}], ['super-caba', {}], ['dakik', {}],
 ];
-const TR = { 'ç': 'c', 'ğ': 'g', 'ı': 'i', 'İ': 'i', 'ö': 'o', 'ş': 's', 'ü': 'u', 'Ç': 'c', 'Ğ': 'g', 'Ö': 'o', 'Ş': 's', 'Ü': 'u' };
-const ascii = (s) => String(s || '').replace(/[çğıİöşüÇĞÖŞÜ]/g, c => TR[c]).toLowerCase().replace(/[^a-z0-9]/g, '');
-const dortRakam = () => String(1000 + (crypto.getRandomValues(new Uint32Array(1))[0] % 9000));
 
 // ---------------------------------------------------------------- ADIMLAR
 const ADIMLAR = [
@@ -52,7 +50,7 @@ const ADIMLAR = [
     },
     {
         id: 'ogrenciler', baslik: 'Öğrenciler', zorunlu: true,
-        aciklama: 'Her satıra bir öğrenci yazın ya da Excel\'den ad ve okul numarası sütunlarını yapıştırın. Kullanıcı adı ve 4 haneli şifre kendiliğinden oluşur, isterseniz değiştirebilirsiniz',
+        aciklama: `Her satıra bir öğrenci yazın ya da Excel'den ad ve okul numarası sütunlarını yapıştırın. Giriş hesapları kendiliğinden açılır. ${DUZEN_ACIKLAMASI}`,
         ciz: () => `
             ${ogrenciler.length ? `<div class="kurulum-bilgi tamam"><i class="fas fa-check"></i><div><small>Sınıfınızda</small><strong>${sayi(ogrenciler.length)} öğrenci var</strong></div></div>` : ''}
             <div class="form-group"><label for="k-liste">${ogrenciler.length ? 'Başka öğrenci eklemek isterseniz' : 'Öğrenci listesi'}</label>
@@ -185,15 +183,11 @@ const ADIMLAR = [
 // ---------------------------------------------------------------- Öğrenci listesi
 function satirlariOku() {
     const kullanilan = new Set(ogrenciler.map(o => String(o.username || '').toLowerCase()));
-    return $('k-liste').value.split('\n').map(s => s.trim()).filter(Boolean).map(s => {
-        const parcalar = s.includes('\t') ? s.split('\t').map(x => x.trim()) : [s.replace(/\s+\d+$/, '').trim(), (s.match(/\s(\d+)$/) || [])[1] || ''];
-        const ad = parcalar[0], okulno = (parcalar[1] || '').replace(/\D/g, '');
-        let temel = ascii(ad.split(/\s+/)[0]) || 'ogrenci';
-        let kullanici = okulno && kullanilan.has(temel) ? `${temel}${okulno}` : temel;
-        for (let i = 2; kullanilan.has(kullanici); i++) kullanici = `${temel}${i}`;
-        kullanilan.add(kullanici);
-        return { ad, okulno, kullanici, sifre: dortRakam() };
-    }).filter(o => o.ad);
+    return $('k-liste').value.split('\n').map(satirCoz).filter(Boolean).map(c => ({
+        ad: c.ad, okulno: c.okulno, tcno: c.tcno,
+        kullanici: c.kullanici || kullaniciAdiOner(c.ad, c.okulno, kullanilan),
+        sifre: c.sifre || sifreOner(),
+    }));
 }
 
 function ogrenciOnizle() {
@@ -202,7 +196,7 @@ function ogrenciOnizle() {
     $('k-onizleme').innerHTML = liste.length ? `
         <div class="kurulum-tablo-kap"><table class="kurulum-ogrenci">
             <thead><tr><th>Ad soyad</th><th>Okul no</th><th>Kullanıcı adı</th><th>Şifre</th></tr></thead>
-            <tbody>${liste.map((o, i) => `<tr data-satir="${i}">
+            <tbody>${liste.map((o, i) => `<tr data-satir="${i}" data-tc="${esc(o.tcno || '')}">
                 <td><input type="text" data-alan="ad" value="${esc(o.ad)}" aria-label="Ad soyad"></td>
                 <td><input type="text" data-alan="okulno" value="${esc(o.okulno)}" inputmode="numeric" aria-label="Okul no"></td>
                 <td><input type="text" data-alan="kullanici" value="${esc(o.kullanici)}" autocapitalize="none" spellcheck="false" aria-label="Kullanıcı adı"></td>
@@ -218,20 +212,20 @@ async function ogrencileriEkle(satirlar) {
     const sorunlar = [];
     for (const tr of satirlar) {
         const al = (a) => tr.querySelector(`[data-alan="${a}"]`).value.trim();
-        const v = { name: al('ad'), okulno: al('okulno'), username: al('kullanici'), password: al('sifre') };
+        const v = { name: al('ad'), okulno: al('okulno'), username: al('kullanici'), password: al('sifre'), tcno: tr.dataset.tc || '' };
         if (!v.name || !v.username || !v.password) { sorunlar.push(`${v.name || 'İsimsiz satır'}: eksik bilgi`); continue; }
         dugme.textContent = `Hesaplar açılıyor ${eklenen + 1}/${satirlar.length}`;
         // Kullanıcı adı başka bir sınıfta alınmışsa sonuna sayı eklenerek tekrar denenir
         let denenen = v.username, basarili = false;
         for (let deneme = 0; deneme < 4 && !basarili; deneme++) {
             try {
-                const yeni = await db.add('users', { ...v, username: denenen, tcno: '', ozellik: '', role: 'student' });
+                const yeni = await db.add('users', { ...v, username: denenen, ozellik: '', role: 'student' });
                 ogrenciler.push(yeni);
                 eklenenGirisler.push({ ad: v.name, kullanici: denenen, sifre: v.password });
                 basarili = true; eklenen++;
                 tr.remove();
             } catch (e) {
-                if (/kullanıcı adı/i.test(e.message)) denenen = `${v.username}${Math.floor(10 + Math.random() * 90)}`;
+                if (/kullanıcı adı/i.test(e.message)) denenen = yedekKullaniciAdi(v.username, deneme + 1);
                 else { sorunlar.push(`${v.name}: ${e.message}`); break; }
             }
         }
@@ -297,10 +291,7 @@ async function bitisCiz() {
     $('k-kopyala').addEventListener('click', async (e) => {
         try { await navigator.clipboard.writeText(link); e.currentTarget.innerHTML = '<i class="fas fa-check"></i>Kopyalandı'; } catch { prompt('Linki kopyalayın', link); }
     });
-    $('k-yazdir')?.addEventListener('click', () => yazdir(`${sinif.ad} öğrenci giriş bilgileri`, `
-        <p style="margin-bottom:12px;color:#5e554a">Giriş adresi: ${esc(location.origin)}/login.html · Kesip öğrencilere dağıtabilirsiniz</p>
-        <table><thead><tr><th>Öğrenci</th><th>Kullanıcı adı</th><th>Şifre</th></tr></thead>
-        <tbody>${eklenenGirisler.map(g => `<tr><td>${esc(g.ad)}</td><td style="font-family:monospace;font-size:16px">${esc(g.kullanici)}</td><td style="font-family:monospace;font-size:16px">${esc(g.sifre)}</td></tr>`).join('')}</tbody></table>`));
+    $('k-yazdir')?.addEventListener('click', () => girisKartlariniYazdir(eklenenGirisler.map(g => ({ name: g.ad, username: g.kullanici, password: g.sifre })), sinif.ad));
 }
 
 // ---------------------------------------------------------------- Başlangıç

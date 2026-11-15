@@ -3,7 +3,7 @@
 import { db } from '../../js/db.js';
 import { esc, sayi, modulBasligi, gorunurlukAnahtari, baglaGorunurlukAnahtari, sekmeler, baglaSekmeler, kaydedildiIsareti, yazdir } from '../../js/arayuz.js';
 import { oynat, sayiSay } from '../../js/hareket.js';
-import { verileriGetir, puanHaritasi, puanAl, siralama, podyumHtml, toplamHtml, yildizDugmeleri, yildizlariBoya, ENCOK_YILDIZ } from './ortak.js';
+import { verileriGetir, puanHaritasi, puanAl, siralama, podyumHtml, toplamHtml, yildizDugmeleri, yildizlariBoya, ENCOK_YILDIZ, adHtml } from './ortak.js';
 
 const acikPaneller = new Set(); // sayfa yenilense de açık kalan değerlendirme panelleri
 let veri, harita, kok;
@@ -57,7 +57,7 @@ function panoyuCiz() {
         <div class="satir-grup" data-ogr="${esc(o.id)}">
             <div class="satir">
                 <span class="satir-sira">${o.sira ?? '–'}</span>
-                <span class="satir-ad">${esc(o.name)}</span>
+                <span class="satir-ad avatarli">${adHtml(o)}</span>
                 ${toplamHtml(o.toplam)}
                 <button class="yazi-dugme btn-degerlendir" aria-expanded="${acik}" aria-controls="acilir-${esc(o.id)}">
                     <span class="gizle-tel">Değerlendir</span><i class="fas fa-chevron-${acik ? 'up' : 'down'}"></i>

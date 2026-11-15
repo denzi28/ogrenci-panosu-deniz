@@ -1,6 +1,10 @@
 // Davranış panosu: öğretmen, öğrenci ve veli görünümlerinin ortak hesapları ve çizimleri.
 import { db } from '../../js/db.js';
 import { esc, sayi } from '../../js/arayuz.js';
+import { avatarlariEkle, avatarHtml } from '../../js/avatar.js';
+
+// Sıralama satırında ad: avatar + isim
+export const adHtml = (o) => `${avatarHtml(o.avatar, o.name, { boyut: 28 })}<span class="ad-yazi">${esc(o.name)}</span>`;
 
 export const ENCOK_YILDIZ = 5;
 
@@ -10,7 +14,8 @@ export async function verileriGetir() {
         db.getAll('users'),
         db.getAll('davranis_matrisi'),
     ]);
-    return { kriterler, ogrenciler: kullanicilar.filter(u => u.role === 'student'), matris };
+    const ogrenciler = await avatarlariEkle(kullanicilar.filter(u => u.role === 'student'));
+    return { kriterler, ogrenciler, matris };
 }
 
 // Öğrenci + davranış -> yıldız sayısı. Hızlı erişim için harita.
@@ -47,7 +52,10 @@ export function podyumHtml(liste) {
         if (!kisiler.length) return `<div class="podyum-sutun s${n}"></div>`;
         return `
             <div class="podyum-sutun s${n}">
-                <div class="podyum-adlar">${kisiler.map(k => `<span>${esc(k.name)}</span>`).join('')}</div>
+                <div class="podyum-adlar">
+                    <div class="podyum-avatarlar">${kisiler.map(k => avatarHtml(k.avatar, k.name, { boyut: n === 1 ? 52 : 42 })).join('')}</div>
+                    ${kisiler.map(k => `<span>${esc(k.name)}</span>`).join('')}
+                </div>
                 <div class="podyum-basamak">
                     <b>${n}.</b>
                     <strong><span class="yildiz-cikartma" aria-hidden="true"></span>${sayi(kisiler[0].toplam)}</strong>

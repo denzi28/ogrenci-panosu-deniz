@@ -33,6 +33,12 @@ service cloud.firestore {
     function benim(userId) { return uye() && rolKaydi().userId == userId; }
     // Davet kodlarını ana sınıfın öğretmenleri yönetir
     function yonetici() { return ogretmenOf(anaSinif()); }
+    // Avatar kaydı: sadece "avatar" alanı, kısa küçük harfli bir anahtar (ör. "aslan"); karşılığı sitedeki sabit listeden gösterilir
+    function avatarVerisi() {
+      return request.resource.data.keys().hasOnly(['avatar'])
+        && request.resource.data.avatar is string
+        && request.resource.data.avatar.matches('^[a-z]{2,12}$');
+    }
 
     // İlk kurulum: kurucu öğretmen hesabı ("ogretmen" kullanıcı adı) ana sınıfta kendi öğretmen rolünü oluşturabilir.
     function kurucu() {
@@ -92,6 +98,8 @@ service cloud.firestore {
         // Öğrenci sadece kendi şifresini değiştirir
         allow update: if tablo == 'users_gizli' && uyeOf(s) && benim(id)
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['password']);
+        // Öğrenci sadece kendi avatarını seçer
+        allow create, update: if tablo == 'avatarlar' && uyeOf(s) && benim(id) && avatarVerisi();
         // Öğrenci sadece kendi oyun puanını yazar
         allow create, update: if tablo == 'uygulama_matrisi' && uyeOf(s)
           && benim(request.resource.data.ogrId)
@@ -135,6 +143,13 @@ service cloud.firestore {
     match /etkinlikler/{id} {
       allow read: if uyeOf(anaSinif()) || resource.data.visibleToGuest == true;
       allow write: if ogretmenOf(anaSinif());
+    }
+
+    // Avatarlar: herkes görür (panolar); öğrenci sadece kendi avatarını seçer, öğretmen hepsini düzeltebilir
+    match /avatarlar/{id} {
+      allow read: if true;
+      allow create, update: if (uyeOf(anaSinif()) && benim(id) && avatarVerisi()) || ogretmenOf(anaSinif());
+      allow delete: if ogretmenOf(anaSinif());
     }
 
     // Yoklama (devamsızlık): sadece öğretmen

@@ -207,3 +207,37 @@ export async function hedefRozetleriniVer(ogrId, alan, sayi, { rozetler = null, 
     return verilecek;
 }
 export const kitapRozetleriniVer = (ogrId, sayi, secenek) => hedefRozetleriniVer(ogrId, 'kitapHedefi', sayi, secenek);
+
+// ---------------------------------------------------------------- Öğrenci ana sayfası ve Rozetlerim
+// Öğrencinin bu cihazda henüz görmediği en yeni rozeti (son 14 günde verilmiş olmalı; eski rozet için
+// kutlama çıkmasın). "Görüldü" bilgisini tek bu fonksiyon tutar; ana sayfa ve Rozetlerim aynı işareti kullanır.
+export function yeniRozetiAl(matris, ogrId, { isaretle = true, gun = 14 } = {}) {
+    const sinir = Date.now() - gun * 864e5;
+    const son = matris
+        .filter(m => m.ogrId === ogrId && m.deger === VERILDI && m.tarih && (Date.parse(m.tarih) || 0) > sinir)
+        .sort((a, b) => String(b.tarih).localeCompare(String(a.tarih)))[0];
+    if (!son) return null;
+    try {
+        const anahtar = `gorulen-rozet-${ogrId}`;
+        if (localStorage.getItem(anahtar) === String(son.targetId)) return null;
+        if (isaretle) localStorage.setItem(anahtar, String(son.targetId));
+    } catch { return null; } // tarayıcı hafızası yoksa her açılışta kutlama çıkmasın
+    return String(son.targetId);
+}
+
+// Kendiliğinden verilen rozetlerden (kitap / ödev hedefi) öğrencinin en yakın olduğu.
+// sayilar: { kitapHedefi: okuduğu kitap sayısı, odevHedefi: tam yaptığı ödev sayısı } — otomatik verme ile aynı sayımlar.
+export function sonrakiHedef(rozetler, sahip, ogrId, sayilar) {
+    const adaylar = [];
+    for (const r of rozetler) {
+        if (sahipMi(sahip, ogrId, r.id)) continue;
+        for (const alan of Object.keys(HEDEFLER)) {
+            const hedef = hedefAl(r, alan);
+            const simdi = sayilar[alan];
+            if (!hedef || simdi === undefined || simdi === null) continue;
+            if (simdi < hedef) adaylar.push({ rozet: r, alan, hedef, simdi, kalan: hedef - simdi });
+        }
+    }
+    adaylar.sort((a, b) => a.kalan - b.kalan || a.hedef - b.hedef);
+    return adaylar[0] || null;
+}

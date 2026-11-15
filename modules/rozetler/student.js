@@ -2,7 +2,7 @@
 import { auth } from '../../js/auth.js';
 import { db } from '../../js/db.js';
 import { esc, sayi, modulBasligi } from '../../js/arayuz.js';
-import { verileriGetir, sahiplik, sahipMi, kategoriyeGore, rozetGorseli, KATEGORILER } from './ortak.js';
+import { verileriGetir, sahiplik, sahipMi, kategoriyeGore, rozetGorseli, KATEGORILER, yeniRozetiAl } from './ortak.js';
 
 export async function render(container) {
     if (!(await db.getModuleVisibility('rozetler'))) {
@@ -13,13 +13,8 @@ export async function render(container) {
     const { rozetler, ogrenciler, matris } = await verileriGetir();
     const sahip = sahiplik(matris);
     const kazandiklarim = rozetler.filter(r => sahipMi(sahip, benim, r.id));
-    // En son kazanılan rozet: bu cihazda daha önce gösterilmediyse bir kez parlar
-    const sonKayit = matris.filter(m => m.ogrId === benim && m.deger === '✔️' && m.tarih).sort((a, b) => String(b.tarih).localeCompare(String(a.tarih)))[0];
-    let yeniRozetId = null;
-    try {
-        const anahtar = `gorulen-rozet-${benim}`;
-        if (sonKayit && localStorage.getItem(anahtar) !== sonKayit.targetId) { yeniRozetId = sonKayit.targetId; localStorage.setItem(anahtar, sonKayit.targetId); }
-    } catch { /* gizli sekmede localStorage olmayabilir */ }
+    // En son kazanılan rozet: bu cihazda daha önce gösterilmediyse bir kez parlar (ana sayfadaki kutlamayla aynı işaret)
+    const yeniRozetId = yeniRozetiAl(matris, benim);
     if (yeniRozetId) kazandiklarim.sort((a, b) => (b.id === yeniRozetId) - (a.id === yeniRozetId));
 
     container.innerHTML = `

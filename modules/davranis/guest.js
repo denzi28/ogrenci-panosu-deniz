@@ -1,7 +1,7 @@
 // Davranış panosu — veli görünümü (salt okunur sıralama)
 import { db } from '../../js/db.js';
 import { esc, sayi, modulBasligi } from '../../js/arayuz.js';
-import { verileriGetir, puanHaritasi, siralama, podyumHtml, toplamHtml } from './ortak.js';
+import { verileriGetir, puanHaritasi, siralama, podyumHtml, toplamHtml, adHtml } from './ortak.js';
 
 export async function render(container) {
     if (!(await db.getModuleVisibility('davranis'))) {
@@ -21,7 +21,7 @@ export async function render(container) {
                 ${liste.map(o => `
                     <div class="satir">
                         <span class="satir-sira">${o.sira ?? '–'}</span>
-                        <span class="satir-ad">${esc(o.name)}</span>
+                        <span class="satir-ad avatarli">${adHtml(o)}</span>
                         ${toplamHtml(o.toplam)}
                     </div>`).join('')}
             </section>` : `<div class="panel"><p class="bos-not">Henüz öğrenci yok</p></div>`}`;

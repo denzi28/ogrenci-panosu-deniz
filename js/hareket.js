@@ -79,3 +79,40 @@ export function bildirim(html, { sure = 4000, yildiz = true } = {}) {
     if (yildiz) requestAnimationFrame(() => kutla(b.querySelector('.yildiz-cikartma')));
     setTimeout(() => { b.classList.add('gidiyor'); setTimeout(() => b.remove(), hareketAz() ? 0 : 250); }, sure);
 }
+
+// Büyük kutlama: ekranın üstünden dökülen konfeti (sadece transform/opacity, tek seferlik)
+export function konfeti(adet = 70) {
+    if (hareketAz()) return;
+    const kap = document.createElement('div');
+    kap.className = 'konfeti-yagmuru';
+    kap.setAttribute('aria-hidden', 'true');
+    const renkler = ['#f2b630', '#ef4444', '#16a34a', '#3b82f6', '#a855f7', '#ec4899'];
+    for (let i = 0; i < adet; i++) {
+        const p = document.createElement('i');
+        p.style.left = `${Math.random() * 100}%`;
+        p.style.background = renkler[i % renkler.length];
+        p.style.setProperty('--x', `${Math.random() * 160 - 80}px`);
+        p.style.setProperty('--d', `${Math.random() * 720 - 360}deg`);
+        p.style.animationDelay = `${Math.random() * 500}ms`;
+        kap.appendChild(p);
+    }
+    document.body.appendChild(kap);
+    setTimeout(() => kap.remove(), 3200);
+}
+
+// Kısa "tebrikler" zili. Telefonlar dokunmadan ses çalmaya izin vermeyebilir; o zaman sessizce geçer.
+let sesBaglami = null;
+export function zil() {
+    try {
+        sesBaglami = sesBaglami || new (window.AudioContext || window.webkitAudioContext)();
+        const b = sesBaglami;
+        const cal = () => [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => {
+            const o = b.createOscillator(), g = b.createGain(), t = b.currentTime + i * 0.12;
+            o.type = 'triangle'; o.frequency.value = f;
+            g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.12, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.35);
+            o.connect(g).connect(b.destination); o.start(t); o.stop(t + 0.4);
+        });
+        if (b.state === 'running') cal();
+        else b.resume().then(() => { if (b.state === 'running') cal(); }).catch(() => {});
+    } catch { /* ses yoksa sorun değil */ }
+}

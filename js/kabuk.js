@@ -145,12 +145,26 @@ async function anaSayfayiCiz(icerik, rol, kullanici, moduller, gorunurlukler) {
                 : '<i class="fas fa-chevron-right modul-ok"></i>'}
         </a>`).join('');
 
+    const ilkAd = esc(String(kullanici?.name || 'Öğrenci').trim().split(/\s+/)[0]);
     icerik.innerHTML = `
+        ${rol === 'student' ? `
+        <header class="sayfa-baslik ogrenci-karsilama">
+            <button type="button" class="avatar-sec" id="avatar-sec" aria-label="Avatarını seç">
+                <span class="avatar-rozet bos" style="--boyut:72px" aria-hidden="true"></span>
+                <span class="avatar-kalem" aria-hidden="true"><i class="fas fa-pen"></i></span>
+            </button>
+            <div>
+                <small style="text-transform:none">${baslik.ust}</small>
+                <h1>Merhaba ${ilkAd}!</h1>
+                <p class="avatar-ipucu" hidden>Avatarını seçmek için resme dokun</p>
+            </div>
+        </header>
+        <div id="hedef-alani"></div>` : `
         <header class="sayfa-baslik">
             <small style="text-transform:none">${baslik.ust}</small>
             <h1>${baslik.h1}</h1>
             ${baslik.alt ? `<p>${baslik.alt}</p>` : ''}
-        </header>
+        </header>`}
         <div id="sayilar-alani"></div>
         <div class="ana-izgara" id="ana-izgara">
             <div id="tahta-alani"><div class="iskelet" style="height:200px"></div></div>
@@ -163,6 +177,7 @@ async function anaSayfayiCiz(icerik, rol, kullanici, moduller, gorunurlukler) {
                 : `<div class="card bos-durum">Şu an velilere açık bir bölüm yok</div>`}
         </section>`;
     girisOynat(icerik);
+    if (rol === 'student') ogrenciKosesi(kullanici);
 
     // Veriler paralel ve birbirinden bağımsız yüklenir; biri başarısız olursa diğerleri yine görünür.
     const getir = (tablo, sadeceAcik = false) => (sadeceAcik ? db.getPublic(tablo) : db.getAll(tablo)).catch(() => []);
@@ -177,6 +192,12 @@ async function anaSayfayiCiz(icerik, rol, kullanici, moduller, gorunurlukler) {
     tahtayiCiz(dersler, beslenme, acik('program'), acik('beslenme'));
     bilgiListesiniCiz(etkinlikler, duyurular, acik('etkinlikler'), acik('duyurular'), odevler, acik('odevler'));
     if (rol !== 'guest') sayilariCiz(rol, kullanici).catch(e => console.warn('Sayılar yüklenemedi:', e));
+}
+
+// Öğrenci ana sayfası: avatar, sıradaki rozet, yeni rozet kutlaması (js/ogrenciKosesi.js)
+async function ogrenciKosesi(kullanici) {
+    try { (await import('./ogrenciKosesi.js')).koseyiKur(kullanici); }
+    catch (e) { console.warn('Öğrenci köşesi yüklenemedi:', e); }
 }
 
 // ÖNE ÇIKAN AN: kara tahtada günün (hafta sonuysa pazartesinin) dersleri ve beslenmesi

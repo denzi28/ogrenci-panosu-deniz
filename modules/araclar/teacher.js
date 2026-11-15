@@ -80,7 +80,7 @@ function yoklamaDurumunuCiz(kaydediliyor = false) {
     if (kaydediliyor) alan.innerHTML = '<span class="arac-not">Kaydediliyor</span>';
     else if (kayitHatasi) alan.innerHTML = '<span class="error">Yoklama kaydedilemedi. İnternet bağlantısını kontrol edip bir öğrenciye tekrar dokunun</span>';
     else if (yoklamaAlindi) alan.innerHTML = '<span class="yoklama-tamam"><i class="fas fa-circle-check"></i>Bugünün yoklaması kayıtlı</span>';
-    else alan.innerHTML = '<button type="button" class="btn btn-secondary btn-kucuk" data-islem="yoklama-kaydet"><i class="fas fa-check"></i>Herkes burada, yoklamayı kaydet</button>';
+    else alan.innerHTML = `<button type="button" class="btn btn-secondary btn-kucuk" data-islem="yoklama-kaydet"><i class="fas fa-check"></i>${gelmeyen.size ? 'Bugünün yoklamasını kaydet' : 'Herkes burada, yoklamayı kaydet'}</button>`;
 }
 
 // Art arda dokunuşlar sırayla yazılır; en son seçim kalır

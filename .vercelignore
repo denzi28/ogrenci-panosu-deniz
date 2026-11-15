@@ -1,7 +1,8 @@
 # Sitede yayınlanmayacak dosyalar (sadece repoda durur)
-araclar/
-ar*iv.zip
-firestore.rules
-sunucu_baslat.command
-sunucu_baslat.bat
-.gitignore
+# Sadece kökteki araç klasörü (modules/araclar sitede yayınlanmalı)
+/araclar/
+/ar*iv.zip
+/firestore.rules
+/sunucu_baslat.command
+/sunucu_baslat.bat
+/.gitignore

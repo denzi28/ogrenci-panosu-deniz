@@ -62,8 +62,8 @@ class Auth {
     }
 
     async logout() {
+        this._yerelTemizle(); // önce: oturum düşünce giriş sayfasına yönlendiren dinleyici tetiklenmesin
         await signOut(firebaseAuth).catch(() => {});
-        this._yerelTemizle();
         window.location.href = 'index.html';
     }
 }

@@ -39,7 +39,7 @@ export async function kabukBaslat({ rol }) {
     if (!sinif) { bulunamadi(icerik); return; }
     if (sinif.ad) appConfig.sinifAdi = sinif.ad;
     document.querySelectorAll('.marka-rozet').forEach(el => { el.textContent = sinif.ad; el.classList.toggle('uzun', String(sinif.ad).length > 4); });
-    document.title = document.title.replace(/3\/D/g, sinif.ad);
+    document.title = rol === 'guest' ? `${sinif.ad} sınıfı · Sınıf Panosu` : document.title.replace(/3\/D/g, sinif.ad);
     if (rol === 'teacher' && sinif.varsayilan) anaSinifKaydiniOlustur();
     if (rol === 'teacher' && !sinif.kurulumBitti) { location.replace('kurulum.html'); return; }
     // Veli sayfasında sınıf adresi (?sinif=4a) iç linklerde kaybolmasın

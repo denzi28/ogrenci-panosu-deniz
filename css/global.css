@@ -313,13 +313,13 @@ th { font-weight: 600; }
 .tahta-bos { color: var(--tebesir-soluk); font-size: 15px; }
 
 /* Tebeşir yazısı: ana sayfadaki tahtada el yazısı, hafif tebeşir tozu dokusu ve satırlar elle yazılmış gibi hafif eğri */
-#tahta-alani .tahta {
+:is(#tahta-alani, #tanitim-tahta) .tahta {
     --tebesir-font: 'Patrick Hand', 'Comic Sans MS', 'Segoe Print', cursive;
     --font: var(--tebesir-font); /* tahtanın içindeki her yazı tebeşir */
     --tebesir-doku: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.1' numOctaves='2' seed='7'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 -1.6 1.45'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23f)'/%3E%3C/svg%3E");
     background-image: radial-gradient(ellipse at 30% 20%, rgba(236, 238, 228, .06), transparent 60%), radial-gradient(ellipse at 80% 90%, rgba(236, 238, 228, .04), transparent 50%);
 }
-#tahta-alani .tahta :is(h2, .tahta-ust small, .tahta-dersler li, .tahta-not, .tahta-bos) {
+:is(#tahta-alani, #tanitim-tahta) .tahta :is(h2, .tahta-ust small, .tahta-dersler li, .tahta-not, .tahta-bos) {
     font-family: var(--tebesir-font);
     font-weight: 400;
     letter-spacing: .3px;
@@ -329,21 +329,21 @@ th { font-weight: 600; }
     -webkit-mask-size: 160px 160px;
     mask-size: 160px 160px;
 }
-#tahta-alani .tahta h2 { font-size: 28px; line-height: 1.1; transform: rotate(-1deg); transform-origin: left; }
-#tahta-alani .tahta-ust small { font-size: 18px; }
-#tahta-alani .tahta-dersler li { font-size: 23px; line-height: 1.25; border-bottom-style: dashed; }
-#tahta-alani .tahta-dersler li span { font-size: 21px; width: 20px; }
-#tahta-alani .tahta-dersler li:nth-child(3n+1) { transform: rotate(-.8deg); }
-#tahta-alani .tahta-dersler li:nth-child(3n+2) { transform: rotate(.5deg); }
-#tahta-alani .tahta-dersler li:nth-child(3n) { transform: rotate(-.3deg); }
-#tahta-alani .tahta-not { font-size: 21px; transform: rotate(-.4deg); }
-#tahta-alani .tahta-not b { font-weight: 400; }
-#tahta-alani .tahta-bos { font-size: 20px; }
+:is(#tahta-alani, #tanitim-tahta) .tahta h2 { font-size: 28px; line-height: 1.1; transform: rotate(-1deg); transform-origin: left; }
+:is(#tahta-alani, #tanitim-tahta) .tahta-ust small { font-size: 18px; }
+:is(#tahta-alani, #tanitim-tahta) .tahta-dersler li { font-size: 23px; line-height: 1.25; border-bottom-style: dashed; }
+:is(#tahta-alani, #tanitim-tahta) .tahta-dersler li span { font-size: 21px; width: 20px; }
+:is(#tahta-alani, #tanitim-tahta) .tahta-dersler li:nth-child(3n+1) { transform: rotate(-.8deg); }
+:is(#tahta-alani, #tanitim-tahta) .tahta-dersler li:nth-child(3n+2) { transform: rotate(.5deg); }
+:is(#tahta-alani, #tanitim-tahta) .tahta-dersler li:nth-child(3n) { transform: rotate(-.3deg); }
+:is(#tahta-alani, #tanitim-tahta) .tahta-not { font-size: 21px; transform: rotate(-.4deg); }
+:is(#tahta-alani, #tanitim-tahta) .tahta-not b { font-weight: 400; }
+:is(#tahta-alani, #tanitim-tahta) .tahta-bos { font-size: 20px; }
 @media (max-width: 520px) {
-    #tahta-alani .tahta-dersler { gap: 4px 16px; }
-    #tahta-alani .tahta-dersler li { font-size: 20px; gap: 8px; }
-    #tahta-alani .tahta-dersler li span { font-size: 18px; width: 14px; }
-    #tahta-alani .tahta h2 { font-size: 24px; }
+    :is(#tahta-alani, #tanitim-tahta) .tahta-dersler { gap: 4px 16px; }
+    :is(#tahta-alani, #tanitim-tahta) .tahta-dersler li { font-size: 20px; gap: 8px; }
+    :is(#tahta-alani, #tanitim-tahta) .tahta-dersler li span { font-size: 18px; width: 14px; }
+    :is(#tahta-alani, #tanitim-tahta) .tahta h2 { font-size: 24px; }
 }
 
 /* Yan bilgi listesi */
@@ -1133,3 +1133,69 @@ input[type="color"] { width: 100%; height: 40px; padding: 2px; border: 1px solid
 .giris-bilgi b { font-family: ui-monospace, monospace; font-size: 16px; letter-spacing: .5px; }
 .giris-ogretmen { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--hairline); }
 .giris-ogretmen a { font-weight: 600; color: var(--primary); }
+
+/* ==========================================================================
+   TANITIM SAYFASI (index.html, adreste ?sinif= yokken)
+   Sınıf sayfası ile tanıtım aynı dosyada; html.tanitim hangisinin görüneceğini seçer.
+   ========================================================================== */
+.tanitim-sayfa { display: none; }
+html.tanitim .tanitim-sayfa { display: block; }
+html.tanitim .sinif-sayfa { display: none; }
+
+.tanitim-kap { max-width: 1120px; margin: 0 auto; padding: 0 16px 48px; }
+.tanitim-giris {
+    display: grid; gap: 32px; align-items: center;
+    padding: 40px 0 48px;
+}
+.tanitim-metin small { display: block; color: var(--primary); font-weight: 600; font-size: 14px; margin-bottom: 12px; }
+.tanitim-metin h1 { font-size: clamp(34px, 6vw, 54px); font-weight: 600; letter-spacing: -0.02em; line-height: 1.05; max-width: 14ch; }
+.tanitim-metin > p { color: var(--text-2); font-size: 17px; line-height: 1.6; margin-top: 16px; max-width: 34rem; }
+.tanitim-dugmeler { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
+.tanitim-dugmeler .btn { padding-left: 20px; padding-right: 20px; }
+.tanitim-veli { display: flex; gap: 8px; align-items: baseline; margin-top: 20px; color: var(--muted); font-size: 14px; max-width: 34rem; }
+.tanitim-veli i { color: var(--primary); }
+.tanitim-tahta .tahta { transform: rotate(1.2deg); }
+.tanitim-tahta .tahta-dersler { grid-template-columns: 1fr 1fr; }
+.tanitim-tahta .tahta-dersler li { white-space: nowrap; }
+.tanitim-tahta .tahta-dersler li span { color: var(--yildiz); }
+
+.tanitim-bolum { padding: 32px 0 40px; border-top: 1px solid var(--hairline); }
+.tanitim-bolum h2 { font-size: 22px; font-weight: 600; margin-bottom: 20px; }
+.tanitim-ozellikler { list-style: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+.tanitim-ozellikler li {
+    display: flex; gap: 14px; align-items: flex-start;
+    padding: 16px; background: var(--surface);
+    border: 1px solid var(--hairline); border-radius: var(--r-kart); box-shadow: var(--shadow-sm);
+}
+.tanitim-ozellikler i {
+    flex-shrink: 0; width: 36px; height: 36px; border-radius: var(--r-kontrol);
+    display: grid; place-items: center; font-size: 15px;
+    background: var(--primary-soft); color: var(--primary);
+}
+.tanitim-ozellikler li:first-child i { background: #fbefd0; color: var(--yildiz-kenar); }
+.tanitim-ozellikler strong { display: block; font-size: 15px; font-weight: 600; }
+.tanitim-ozellikler span { display: block; color: var(--text-2); font-size: 14px; margin-top: 2px; }
+
+.tanitim-adimlar { list-style: none; counter-reset: adim; display: grid; gap: 12px; }
+.tanitim-adimlar li { counter-increment: adim; position: relative; padding: 4px 0 12px 52px; min-height: 40px; }
+.tanitim-adimlar li::before {
+    content: counter(adim);
+    position: absolute; left: 0; top: 0;
+    width: 36px; height: 36px; border-radius: 50%;
+    display: grid; place-items: center;
+    background: var(--tahta); color: var(--tebesir); font-weight: 600;
+}
+.tanitim-adimlar strong { display: block; font-size: 16px; font-weight: 600; }
+.tanitim-adimlar span { display: block; color: var(--text-2); margin-top: 4px; max-width: 40rem; }
+
+.tanitim-alt { text-align: center; color: var(--muted); font-size: 13px; padding: 24px 16px 32px; border-top: 1px solid var(--hairline); }
+
+@media (min-width: 900px) {
+    .tanitim-giris { grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr); gap: 56px; padding: 72px 0 64px; }
+    .tanitim-adimlar { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; }
+}
+@media (max-width: 520px) {
+    .tanitim-giris { padding-top: 28px; }
+    .tanitim-dugmeler .btn { flex: 1 1 100%; justify-content: center; }
+    .tanitim-tahta .tahta { transform: none; }
+}

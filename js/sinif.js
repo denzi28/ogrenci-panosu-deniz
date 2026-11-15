@@ -7,7 +7,7 @@
 //
 // Hangi sınıfın açık olduğu:
 //   öğretmen/öğrenci sayfası -> giriş yapan kişinin sınıfı
-//   veli sayfası (index.html) -> adresteki ?sinif=4a, yoksa ana sınıf
+//   veli sayfası (index.html?sinif=4a) -> adresteki sınıf. Adres boşsa index.html tanıtım sayfasıdır.
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import { firestore } from './firebase.js';
 
@@ -52,7 +52,7 @@ export async function sinifBilgisi(sinifId = aktifSinifId(), { yenile = false } 
 // Velilere verilecek link
 export function veliLinki(sinifId = aktifSinifId()) {
     const taban = location.origin + location.pathname.replace(/[^/]*$/, '');
-    return sinifId === ANA_SINIF ? taban : `${taban}?sinif=${sinifId}`;
+    return `${taban}?sinif=${sinifId}`; // ana adres artık tanıtım sayfası; her sınıfın kendi linki var
 }
 
 // "4/A" -> "4a", "Papatyalar Sınıfı" -> "papatyalar-sinifi"

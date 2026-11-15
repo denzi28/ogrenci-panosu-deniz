@@ -2,7 +2,7 @@
 // Sadece öğrenci ana sayfasında çalışır (js/kabuk.js). Hiçbiri olmazsa sayfa yine eskisi gibi görünür.
 import { db } from './db.js';
 import { esc, sayi } from './arayuz.js';
-import { AVATARLAR, avatarHtml, avatarlariGetir, avatarKaydet } from './avatar.js';
+import { AVATARLAR, AVATAR_SECIMI_ACIK, avatarHtml, avatarlariGetir, avatarKaydet } from './avatar.js';
 import { kutla, konfeti, zil } from './hareket.js';
 import * as rozet from '../modules/rozetler/ortak.js';
 import * as kitap from '../modules/kitap/ortak.js';
@@ -20,8 +20,10 @@ export async function koseyiKur(kullanici) {
     if (!ben?.id) return;
     const harita = await avatarlariGetir();
     avatarim = harita.get(ben.id) || null;
+    if (!AVATAR_SECIMI_ACIK && !avatarim) document.getElementById('avatar-sec')?.remove();
     avatariGoster();
-    document.getElementById('avatar-sec')?.addEventListener('click', seciciyiAc);
+    if (AVATAR_SECIMI_ACIK) document.getElementById('avatar-sec')?.addEventListener('click', seciciyiAc);
+    else { document.querySelector('#avatar-sec .avatar-kalem')?.remove(); document.getElementById('avatar-sec')?.setAttribute('disabled', ''); }
     rozetBolumu().catch(e => console.warn('Rozet köşesi yüklenemedi:', e));
 }
 
@@ -37,7 +39,7 @@ function avatariGoster() {
     }
     const dugme = document.getElementById('avatar-sec');
     if (dugme) dugme.setAttribute('aria-label', avatarim ? `Avatarın: ${AVATARLAR[avatarim][1]}. Değiştirmek için dokun` : 'Avatarını seç');
-    document.querySelector('.avatar-ipucu')?.toggleAttribute('hidden', !!avatarim);
+    document.querySelector('.avatar-ipucu')?.toggleAttribute('hidden', !!avatarim || !AVATAR_SECIMI_ACIK);
 }
 
 // ---------------------------------------------------------------- Avatar seçici

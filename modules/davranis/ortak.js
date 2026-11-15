@@ -3,8 +3,8 @@ import { db } from '../../js/db.js';
 import { esc, sayi } from '../../js/arayuz.js';
 import { avatarlariEkle, avatarHtml } from '../../js/avatar.js';
 
-// Sıralama satırında ad: avatar + isim
-export const adHtml = (o) => `${avatarHtml(o.avatar, o.name, { boyut: 28 })}<span class="ad-yazi">${esc(o.name)}</span>`;
+// Sıralama satırında ad: avatar + isim (avatar seçmemiş çocuk eskisi gibi sadece isimle)
+export const adHtml = (o) => `${o.avatar ? avatarHtml(o.avatar, o.name, { boyut: 28 }) : ''}<span class="ad-yazi">${esc(o.name)}</span>`;
 
 export const ENCOK_YILDIZ = 5;
 
@@ -53,7 +53,7 @@ export function podyumHtml(liste) {
         return `
             <div class="podyum-sutun s${n}">
                 <div class="podyum-adlar">
-                    <div class="podyum-avatarlar">${kisiler.map(k => avatarHtml(k.avatar, k.name, { boyut: n === 1 ? 52 : 42 })).join('')}</div>
+                    ${kisiler.some(k => k.avatar) ? `<div class="podyum-avatarlar">${kisiler.filter(k => k.avatar).map(k => avatarHtml(k.avatar, k.name, { boyut: n === 1 ? 52 : 42 })).join('')}</div>` : ''}
                     ${kisiler.map(k => `<span>${esc(k.name)}</span>`).join('')}
                 </div>
                 <div class="podyum-basamak">

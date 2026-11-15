@@ -1146,6 +1146,7 @@ input[type="color"] { width: 100%; height: 40px; padding: 2px; border: 1px solid
 }
 .avatar-sec:hover { transform: scale(1.04) rotate(-3deg); }
 .avatar-sec:active { transform: scale(.97); }
+.avatar-sec:disabled { cursor: default; transform: none; }
 .avatar-kalem {
     position: absolute; right: -2px; bottom: -2px; width: 26px; height: 26px; border-radius: 50%;
     display: grid; place-items: center; font-size: 11px;

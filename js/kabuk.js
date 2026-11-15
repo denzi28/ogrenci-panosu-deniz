@@ -3,6 +3,7 @@
 import { appConfig } from './config.js';
 import { db } from './db.js';
 import { initApp } from './app.js';
+import { sinifBilgisi, aktifSinifId, ANA_SINIF } from './sinif.js';
 import { girisOynat, sayilariSaydir } from './hareket.js';
 import { gectiMi } from '../modules/etkinlikler/ortak.js';
 import { gectiMi as odevGectiMi, teslimSirasi as odevSirasi } from '../modules/odevler/ortak.js';
@@ -33,6 +34,17 @@ export async function kabukBaslat({ rol }) {
     const { auth } = rol !== 'guest' ? await import('./auth.js') : { auth: null };
     if (auth) kullanici = auth.currentUser || kullanici;
 
+    // Hangi sınıf? Adı ve kurulum durumu sınıf kaydından gelir
+    const sinif = await sinifBilgisi();
+    if (!sinif) { bulunamadi(icerik); return; }
+    if (sinif.ad) appConfig.sinifAdi = sinif.ad;
+    document.querySelectorAll('.marka-rozet').forEach(el => { el.textContent = sinif.ad; el.classList.toggle('uzun', String(sinif.ad).length > 4); });
+    document.title = document.title.replace(/3\/D/g, sinif.ad);
+    if (rol === 'teacher' && sinif.varsayilan) anaSinifKaydiniOlustur();
+    if (rol === 'teacher' && !sinif.kurulumBitti) { location.replace('kurulum.html'); return; }
+    // Veli sayfasında sınıf adresi (?sinif=4a) iç linklerde kaybolmasın
+    if (rol === 'guest' && location.search) document.querySelectorAll('a[href="index.html"]').forEach(a => { a.href = 'index.html' + location.search; });
+
     ustBariCiz(rol, kullanici, auth);
 
     // Misafir sadece velilere açık bölümleri görür. Öğretmen hepsini görür, kapalı olanlar işaretlenir.
@@ -57,6 +69,21 @@ export async function kabukBaslat({ rol }) {
 
     bolumMenusunuKur(moduller);
     await initApp(rol, { otomatikYonlendirme: false, gorunurModuller: moduller });
+}
+
+// Adresteki ?sinif= bir sınıfa ait değilse
+function bulunamadi(icerik) {
+    icerik.innerHTML = `<div class="panel" style="max-width:520px;margin:40px auto"><div class="panel-ic"><h2 style="margin-bottom:8px">Sınıf bulunamadı</h2><p style="color:var(--text-2)">Bu bağlantıdaki sınıf yok ya da kaldırılmış. Bağlantıyı sınıf öğretmeninizden tekrar isteyin.</p></div></div>`;
+}
+
+// Ana sınıfın (ilk kurulan sınıf) kaydı yoksa öğretmen ilk girdiğinde sessizce oluşturulur
+async function anaSinifKaydiniOlustur() {
+    if (aktifSinifId() !== ANA_SINIF) return;
+    try {
+        const { doc, setDoc } = await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js');
+        const { firestore } = await import('./firebase.js');
+        await setDoc(doc(firestore, 'siniflar', ANA_SINIF), { ad: appConfig.sinifAdi, ana: true, kurulumBitti: true, olusturma: new Date().toISOString() }, { merge: true });
+    } catch (e) { console.warn('Ana sınıf kaydı oluşturulamadı (kurallar güncel değil olabilir):', e.code || e); }
 }
 
 function ustBariCiz(rol, kullanici, auth) {

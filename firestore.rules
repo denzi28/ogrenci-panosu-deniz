@@ -1,84 +1,155 @@
 rules_version = '2';
 
-// SINIF PANOSU — VERİTABANI ERİŞİM KURALLARI
+// SINIF PANOSU — VERİTABANI ERİŞİM KURALLARI (çok sınıflı)
 // Firebase Console > Firestore Database > Rules sekmesine bu dosyanın tamamı yapıştırılıp "Publish" edilir.
 //
+// Yapı (ayrıntı: js/sinif.js):
+//   Ana sınıf (3/D)  -> en üstteki tablolar (users, kitap_matrisi, ...). Eski veri yerinde durur.
+//   Diğer sınıflar   -> siniflar/{sinifId}/{tablo}/{id}
+//   roller/{uid}     -> giriş hesabı hangi kişi, hangi rol, hangi sınıf. sinifId yoksa ana sınıf sayılır.
+//   siniflar/{id}    -> sınıf adı ve kurulum durumu (herkes okur, veli linki için)
+//   davetler/{kod}   -> tek kullanımlık öğretmen davet kodları. Kimse okuyamaz; sadece ana sınıf öğretmeni yönetir.
+//
 // Özet:
-//  - Misafir (veli): duyuru/etkinliklerin "herkese açık" olanlarını, panoları ve öğrenci adlarını görebilir. Hiçbir şey yazamaz.
-//  - Öğrenci: kendi gizli bilgisini (TC, EBA şifresi) görür, kendi şifresini ve kendi oyun puanını yazabilir.
-//  - Öğretmen: her şeyi görür ve yönetir.
-//  - TC, şifreler, EBA şifreleri, öğretmen notları (users_gizli) başkasına asla gösterilmez.
+//  - Misafir (veli): bir sınıfın "herkese açık" duyuru/etkinliklerini, panolarını ve öğrenci adlarını görür. Yazamaz.
+//  - Öğrenci: sadece kendi sınıfında; kendi gizli bilgisini görür, kendi şifresini ve oyun puanını yazar.
+//  - Öğretmen: sadece kendi sınıfını yönetir. Başka sınıfın verisine yazamaz, gizli bilgisini göremez.
+//  - Yeni öğretmen hesabı sadece geçerli bir davet koduyla açılır; kod aynı işlemde silinir (tek kullanımlık).
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    function rolKaydi() {
-      return get(/databases/$(database)/documents/roller/$(request.auth.uid)).data;
-    }
-    // Firebase'e giriş yapmış VE sınıfa kayıtlı (rolü olan) kullanıcı.
-    // Rolü olmayan, dışarıdan açılmış hesaplar hiçbir yetki kazanmaz.
+    function anaSinif() { return '3d'; }
+    function rolYolu(uid) { return /databases/$(database)/documents/roller/$(uid); }
+    function rolKaydi() { return get(rolYolu(request.auth.uid)).data; }
+
+    // Giriş yapmış ve bir sınıfa kayıtlı (rolü olan) kullanıcı. Rolü olmayan hesaplar hiçbir yetki kazanmaz.
     function uye() {
-      return request.auth != null
-        && exists(/databases/$(database)/documents/roller/$(request.auth.uid));
+      return request.auth != null && exists(rolYolu(request.auth.uid));
     }
-    function ogretmen() {
-      return uye() && rolKaydi().role == 'teacher';
-    }
-    function benim(userId) {
-      return uye() && rolKaydi().userId == userId;
-    }
-    // İlk kurulum: kurucu öğretmen hesabı ("ogretmen" kullanıcı adı) kendi öğretmen rolünü bir kez oluşturabilir.
+    function sinifim() { return rolKaydi().get('sinifId', anaSinif()); }
+    function uyeOf(s) { return uye() && sinifim() == s; }
+    function ogretmenOf(s) { return uyeOf(s) && rolKaydi().role == 'teacher'; }
+    function benim(userId) { return uye() && rolKaydi().userId == userId; }
+    // Davet kodlarını ana sınıfın öğretmenleri yönetir
+    function yonetici() { return ogretmenOf(anaSinif()); }
+
+    // İlk kurulum: kurucu öğretmen hesabı ("ogretmen" kullanıcı adı) ana sınıfta kendi öğretmen rolünü oluşturabilir.
     function kurucu() {
       return request.auth != null
         && request.auth.token.email == 'k6f677265746d656e@sinifpanosu.app';
     }
 
-    // Hangi giriş hesabı hangi kişi, rolü ne
-    match /roller/{uid} {
-      allow read: if (request.auth != null && request.auth.uid == uid) || ogretmen();
-      allow create: if ogretmen()
-        || (kurucu() && uid == request.auth.uid && request.resource.data.role == 'teacher');
-      allow update, delete: if ogretmen();
+    // Davet koduyla öğretmen kaydı. Tek işlemde (batch) şunlar birlikte olmalı:
+    //   roller/{uid} oluşur  +  davetler/{kod} silinir  +  siniflar/{yeniSinif} oluşur
+    function davetleKayit(uid) {
+      let d = request.resource.data;
+      return request.auth != null && uid == request.auth.uid
+        && d.keys().hasOnly(['role', 'userId', 'sinifId', 'davet'])
+        && d.role == 'teacher'
+        && d.sinifId is string && d.sinifId != anaSinif()
+        && d.userId is string && d.davet is string
+        && exists(/databases/$(database)/documents/davetler/$(d.davet))
+        && !existsAfter(/databases/$(database)/documents/davetler/$(d.davet))
+        && !exists(/databases/$(database)/documents/siniflar/$(d.sinifId))
+        && existsAfter(/databases/$(database)/documents/siniflar/$(d.sinifId));
     }
+
+    // Hangi giriş hesabı hangi kişi, rolü ne, sınıfı ne
+    match /roller/{uid} {
+      // Kendi kaydı; öğretmen kendi sınıfınınkileri (sorguda sinifId ile); yönetici hepsini (eski kayıtlarda sınıf alanı yok)
+      allow read: if (request.auth != null && request.auth.uid == uid)
+        || (uye() && rolKaydi().role == 'teacher' && resource.data.get('sinifId', anaSinif()) == sinifim())
+        || yonetici();
+      allow create: if (ogretmenOf(request.resource.data.get('sinifId', anaSinif())) && request.resource.data.role == 'student')
+        || (kurucu() && uid == request.auth.uid && request.resource.data.role == 'teacher'
+            && request.resource.data.get('sinifId', anaSinif()) == anaSinif())
+        || davetleKayit(uid);
+      allow update: if ogretmenOf(resource.data.get('sinifId', anaSinif()))
+        && request.resource.data.get('sinifId', anaSinif()) == resource.data.get('sinifId', anaSinif())
+        && request.resource.data.role == resource.data.role;
+      allow delete: if ogretmenOf(resource.data.get('sinifId', anaSinif())) && resource.data.role == 'student';
+    }
+
+    // Sınıf bilgisi: adı herkes görür (veli linki); sadece kendi öğretmeni değiştirir
+    match /siniflar/{s} {
+      allow read: if true;
+      allow create: if (s == anaSinif() && ogretmenOf(anaSinif()))
+        || (request.auth != null
+            && request.resource.data.ogretmenUid == request.auth.uid
+            && getAfter(rolYolu(request.auth.uid)).data.role == 'teacher'
+            && getAfter(rolYolu(request.auth.uid)).data.sinifId == s);
+      allow update: if ogretmenOf(s);
+      allow delete: if false;
+
+      // Ana sınıf dışındaki sınıfların bütün tabloları
+      match /{tablo}/{id} {
+        allow read: if (tablo == 'users_gizli' && (ogretmenOf(s) || (uyeOf(s) && benim(id))))
+          || (tablo in ['duyurular', 'etkinlikler'] && (uyeOf(s) || resource.data.visibleToGuest == true))
+          || !(tablo in ['users_gizli', 'duyurular', 'etkinlikler']);
+        allow write: if ogretmenOf(s);
+        // Öğrenci sadece kendi şifresini değiştirir
+        allow update: if tablo == 'users_gizli' && uyeOf(s) && benim(id)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['password']);
+        // Öğrenci sadece kendi oyun puanını yazar
+        allow create, update: if tablo == 'uygulama_matrisi' && uyeOf(s)
+          && benim(request.resource.data.ogrId)
+          && id == request.resource.data.ogrId + '_' + request.resource.data.targetId;
+      }
+    }
+
+    // Tek kullanımlık öğretmen davet kodları
+    match /davetler/{kod} {
+      allow get, list, create: if yonetici();
+      allow update: if false;
+      // Yönetici siler ya da kodu kullanan yeni öğretmen kaydıyla aynı işlemde silinir
+      allow delete: if yonetici()
+        || (request.auth != null
+            && !exists(rolYolu(request.auth.uid))
+            && existsAfter(rolYolu(request.auth.uid))
+            && getAfter(rolYolu(request.auth.uid)).data.get('davet', '') == kod);
+    }
+
+    // ---------------------------------------------------------------- ANA SINIF (en üstteki tablolar)
 
     // Herkese açık kişi bilgisi: ad, okul no, rol
     match /users/{id} {
       allow read: if true;
-      allow write: if ogretmen();
+      allow write: if ogretmenOf(anaSinif());
     }
 
     // Gizli kişi bilgisi: TC, kullanıcı adı, şifre, EBA şifresi, öğretmen notu
     match /users_gizli/{id} {
-      allow read: if ogretmen() || benim(id);
-      allow create, delete: if ogretmen();
-      allow update: if ogretmen()
-        || (benim(id) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['password']));
+      allow read: if ogretmenOf(anaSinif()) || (uyeOf(anaSinif()) && benim(id));
+      allow create, delete: if ogretmenOf(anaSinif());
+      allow update: if ogretmenOf(anaSinif())
+        || (uyeOf(anaSinif()) && benim(id) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['password']));
     }
 
     // Duyuru ve etkinlikler: misafir sadece "herkese açık" işaretli olanları görür
     match /duyurular/{id} {
-      allow read: if uye() || resource.data.visibleToGuest == true;
-      allow write: if ogretmen();
+      allow read: if uyeOf(anaSinif()) || resource.data.visibleToGuest == true;
+      allow write: if ogretmenOf(anaSinif());
     }
     match /etkinlikler/{id} {
-      allow read: if uye() || resource.data.visibleToGuest == true;
-      allow write: if ogretmen();
+      allow read: if uyeOf(anaSinif()) || resource.data.visibleToGuest == true;
+      allow write: if ogretmenOf(anaSinif());
     }
 
     // Oyun puanları: öğrenci sadece KENDİ puanını yazabilir
     match /uygulama_matrisi/{id} {
       allow read: if true;
-      allow create, update: if ogretmen()
-        || (benim(request.resource.data.ogrId)
+      allow create, update: if ogretmenOf(anaSinif())
+        || (uyeOf(anaSinif()) && benim(request.resource.data.ogrId)
             && id == request.resource.data.ogrId + '_' + request.resource.data.targetId);
-      allow delete: if ogretmen();
+      allow delete: if ogretmenOf(anaSinif());
     }
 
-    // Diğer tüm sınıf içerikleri (davranış, kitap, rozet, ihtiyaç, beslenme, ders programı, ayarlar...):
-    // herkes okuyabilir, sadece öğretmen değiştirebilir.
+    // Ana sınıfın diğer tüm içerikleri (davranış, kitap, rozet, ihtiyaç, beslenme, ders programı, ayarlar...):
+    // herkes okuyabilir, sadece ana sınıfın öğretmeni değiştirebilir.
     // (Yukarıdaki özel tablolar burada hariç tutulur; Firestore'da kurallardan biri izin verirse erişim açılır.)
     match /{tablo}/{id} {
-      allow read: if !(tablo in ['roller', 'users_gizli', 'duyurular', 'etkinlikler']);
-      allow write: if ogretmen() && !(tablo in ['roller', 'users_gizli']);
+      allow read: if !(tablo in ['roller', 'users_gizli', 'duyurular', 'etkinlikler', 'davetler']);
+      allow write: if ogretmenOf(anaSinif()) && !(tablo in ['roller', 'users_gizli', 'siniflar', 'davetler']);
     }
   }
 }

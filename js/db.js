@@ -1,6 +1,11 @@
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, setDoc, getDoc, query, where, arrayUnion } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import { firestore } from './firebase.js';
 import { hesapOlustur, hesapGuncelle, hesapSil } from './hesaplar.js';
+import { tabloYolu, aktifSinifId, ANA_SINIF } from './sinif.js';
+
+// Tablo adları aktif sınıfın yoluna çevrilir (bkz. js/sinif.js). Modüller sadece tablo adını bilir.
+const koleksiyon = (ad) => collection(firestore, ...tabloYolu(ad));
+const belge = (ad, id) => doc(firestore, ...tabloYolu(ad), id);
 
 // ---------------------------------------------------------------------------
 // KULLANICI VERİSİNİN GİZLİLİĞİ
@@ -29,7 +34,7 @@ function aktifKullanici() {
 }
 
 async function hamListe(collectionName, q = null) {
-    const snap = await getDocs(q || collection(firestore, collectionName));
+    const snap = await getDocs(q || koleksiyon(collectionName));
     const data = [];
     snap.forEach(d => data.push({ id: d.id, ...d.data() }));
     return data;
@@ -46,13 +51,13 @@ class Database {
         if (aktifKullanici()?.role !== 'teacher') return;
         this.kayitliKoleksiyonlar.add(collectionName);
         try {
-            const docRef = doc(firestore, "system_settings", "koleksiyon_listesi");
+            const docRef = belge("system_settings", "koleksiyon_listesi");
             await setDoc(docRef, { isimler: arrayUnion(collectionName) }, { merge: true });
         } catch(e) { console.error("Tablo listeye eklenemedi:", e); }
     }
 
     async getCollectionList() {
-        const docRef = doc(firestore, "system_settings", "koleksiyon_listesi");
+        const docRef = belge("system_settings", "koleksiyon_listesi");
         const docSnap = await getDoc(docRef);
         if (docSnap.exists() && docSnap.data().isimler) return docSnap.data().isimler;
         return [];
@@ -61,7 +66,16 @@ class Database {
     async getAll(collectionName) {
         this.registerCollection(collectionName);
         if (collectionName === 'users') return this._kullanicilariGetir();
+        if (collectionName === 'roller') return this._rolleriGetir();
         return hamListe(collectionName);
+    }
+
+    // Giriş hesapları ortak tablodadır; sadece bu sınıfınkiler döner (yedekleme bunları kullanır).
+    // Ana sınıfın eski kayıtlarında sınıf alanı yoktur, o yüzden ana sınıf hepsini okuyup süzer (kurallar izin verir).
+    async _rolleriGetir() {
+        const s = aktifSinifId();
+        if (s !== ANA_SINIF) return hamListe('roller', query(collection(firestore, 'roller'), where('sinifId', '==', s)));
+        return (await hamListe('roller')).filter(r => (r.sinifId || ANA_SINIF) === ANA_SINIF);
     }
 
     // Öğretmen: herkesin tam bilgisi. Öğrenci: herkesin açık bilgisi + kendi gizli bilgisi. Misafir: sadece açık bilgi.
@@ -74,7 +88,7 @@ class Database {
                 const gizliler = new Map((await hamListe(GIZLI_TABLO)).map(g => [g.id, g]));
                 kullanicilar.forEach(k => Object.assign(k, gizliler.get(k.id) || {}, { id: k.id }));
             } else if (ben?.role === 'student' && ben.id) {
-                const snap = await getDoc(doc(firestore, GIZLI_TABLO, ben.id));
+                const snap = await getDoc(belge(GIZLI_TABLO, ben.id));
                 const k = kullanicilar.find(k => k.id === ben.id);
                 if (snap.exists() && k) Object.assign(k, snap.data(), { id: k.id });
             }
@@ -86,14 +100,14 @@ class Database {
 
     async getPublic(collectionName) {
         this.registerCollection(collectionName);
-        return hamListe(collectionName, query(collection(firestore, collectionName), where("visibleToGuest", "==", true)));
+        return hamListe(collectionName, query(koleksiyon(collectionName), where("visibleToGuest", "==", true)));
     }
 
     async add(collectionName, itemData) {
         this.registerCollection(collectionName);
         const newItem = { createdAt: new Date().toISOString(), ...itemData };
         if (collectionName === 'users') return this._kullaniciEkle(newItem);
-        const docRef = await addDoc(collection(firestore, collectionName), newItem);
+        const docRef = await addDoc(koleksiyon(collectionName), newItem);
         return { id: docRef.id, ...newItem };
     }
 
@@ -102,16 +116,16 @@ class Database {
         acik.role = acik.role || 'student';
         // Önce giriş hesabı açılır; kullanıcı adı alınmışsa hiçbir kayıt oluşmadan hata verir.
         const uid = await hesapOlustur(gizli.username, gizli.password);
-        const docRef = await addDoc(collection(firestore, 'users'), acik);
-        await setDoc(doc(firestore, GIZLI_TABLO, docRef.id), { ...gizli, uid });
-        await setDoc(doc(firestore, 'roller', uid), { role: acik.role, userId: docRef.id });
+        const docRef = await addDoc(koleksiyon('users'), acik);
+        await setDoc(belge(GIZLI_TABLO, docRef.id), { ...gizli, uid });
+        await setDoc(belge('roller', uid), { role: acik.role, userId: docRef.id, sinifId: aktifSinifId() });
         return { id: docRef.id, ...veri };
     }
 
     async update(collectionName, id, updatedFields) {
         this.registerCollection(collectionName);
         if (collectionName === 'users') return this._kullaniciGuncelle(id, updatedFields);
-        const docRef = doc(firestore, collectionName, id);
+        const docRef = belge(collectionName, id);
         await updateDoc(docRef, updatedFields);
         return { id, ...updatedFields };
     }
@@ -121,7 +135,7 @@ class Database {
         delete gizli.uid; // uid elle değiştirilemez, hesap işlemleriyle belirlenir
 
         if ('username' in gizli || 'password' in gizli) {
-            const mevcutSnap = await getDoc(doc(firestore, GIZLI_TABLO, id));
+            const mevcutSnap = await getDoc(belge(GIZLI_TABLO, id));
             const mevcut = mevcutSnap.exists() ? mevcutSnap.data() : {};
             if (mevcut.uid) {
                 const yeniUid = await hesapGuncelle(
@@ -129,10 +143,10 @@ class Database {
                     { kullaniciAdi: gizli.username ?? mevcut.username, sifre: gizli.password ?? mevcut.password }
                 );
                 if (yeniUid && yeniUid !== mevcut.uid) {
-                    const rolSnap = await getDoc(doc(firestore, 'roller', mevcut.uid));
-                    const rol = rolSnap.exists() ? rolSnap.data().role : (acik.role || 'student');
-                    await setDoc(doc(firestore, 'roller', yeniUid), { role: rol, userId: id });
-                    await deleteDoc(doc(firestore, 'roller', mevcut.uid));
+                    const rolSnap = await getDoc(belge('roller', mevcut.uid));
+                    const eskiRol = rolSnap.exists() ? rolSnap.data() : {};
+                    await setDoc(belge('roller', yeniUid), { role: eskiRol.role || acik.role || 'student', userId: id, sinifId: eskiRol.sinifId || aktifSinifId() });
+                    await deleteDoc(belge('roller', mevcut.uid));
                     gizli.uid = yeniUid;
                 }
             }
@@ -140,33 +154,33 @@ class Database {
             for (const k of Object.keys(gizli)) if (k !== 'uid' && gizli[k] === mevcut[k]) delete gizli[k];
         }
 
-        if (Object.keys(acik).length) await updateDoc(doc(firestore, 'users', id), acik);
-        if (Object.keys(gizli).length) await setDoc(doc(firestore, GIZLI_TABLO, id), gizli, { merge: true });
+        if (Object.keys(acik).length) await updateDoc(belge('users', id), acik);
+        if (Object.keys(gizli).length) await setDoc(belge(GIZLI_TABLO, id), gizli, { merge: true });
         return { id, ...alanlar };
     }
 
     async delete(collectionName, id) {
         if (collectionName === 'users') return this._kullaniciSil(id);
-        const docRef = doc(firestore, collectionName, id);
+        const docRef = belge(collectionName, id);
         await deleteDoc(docRef);
     }
 
     async _kullaniciSil(id) {
-        const gizliSnap = await getDoc(doc(firestore, GIZLI_TABLO, id));
+        const gizliSnap = await getDoc(belge(GIZLI_TABLO, id));
         if (gizliSnap.exists()) {
             const g = gizliSnap.data();
             if (g.uid) {
                 try { await hesapSil(g.username, g.password); }
                 catch (e) { console.warn("Giriş hesabı silinemedi, kayıt yine de silinecek:", e.message); }
-                await deleteDoc(doc(firestore, 'roller', g.uid));
+                await deleteDoc(belge('roller', g.uid));
             }
-            await deleteDoc(doc(firestore, GIZLI_TABLO, id));
+            await deleteDoc(belge(GIZLI_TABLO, id));
         }
-        await deleteDoc(doc(firestore, 'users', id));
+        await deleteDoc(belge('users', id));
     }
 
     async toggleVisibility(collectionName, id) {
-        const docRef = doc(firestore, collectionName, id);
+        const docRef = belge(collectionName, id);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
             const currentVisibility = docSnap.data().visibleToGuest;
@@ -181,24 +195,24 @@ class Database {
         try {
             if (collectionName === 'users') {
                 const { acik, gizli } = ayir(itemData);
-                await setDoc(doc(firestore, 'users', id), acik);
-                if (Object.keys(gizli).length) await setDoc(doc(firestore, GIZLI_TABLO, id), gizli, { merge: true });
+                await setDoc(belge('users', id), acik);
+                if (Object.keys(gizli).length) await setDoc(belge(GIZLI_TABLO, id), gizli, { merge: true });
                 return true;
             }
-            await setDoc(doc(firestore, collectionName, id), itemData);
+            await setDoc(belge(collectionName, id), itemData);
             return true;
         } catch (error) { console.error(error); return false; }
     }
 
     async getModuleVisibility(moduleId) {
-        const docRef = doc(firestore, "module_settings", moduleId);
+        const docRef = belge("module_settings", moduleId);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) return docSnap.data().guestVisible;
         return true;
     }
 
     async toggleModuleVisibility(moduleId, isVisible) {
-        const docRef = doc(firestore, "module_settings", moduleId);
+        const docRef = belge("module_settings", moduleId);
         await setDoc(docRef, { guestVisible: isVisible }, { merge: true });
     }
 
@@ -206,7 +220,7 @@ class Database {
     async saveMatrixStatus(collectionName, ogrId, targetId, value) {
         this.registerCollection(collectionName);
         const docId = `${ogrId}_${targetId}`;
-        const docRef = doc(firestore, collectionName, docId);
+        const docRef = belge(collectionName, docId);
         const islemTarihi = new Date().toISOString();
         await setDoc(docRef, { ogrId, targetId, deger: value, tarih: islemTarihi }, { merge: true });
     }

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Sınıf kurulumu · Sınıf Panosu</title>
+    <meta name="theme-color" content="#f7f4ee">
+    <link rel="icon" type="image/png" href="assets/icon-192.png">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/global.css">
+    <link rel="stylesheet" href="css/tema-renkli.css">
+    <script src="js/tema.js"></script>
+</head>
+<body>
+    <header class="ust-bar">
+        <span class="marka"><span class="marka-rozet" id="kurulum-rozet"><i class="fas fa-chalkboard"></i></span><span class="marka-yazi"><strong>Sınıf kurulumu</strong><small id="kurulum-ogretmen"></small></span></span>
+        <div class="ust-eylemler"><button type="button" class="btn btn-secondary" id="kurulum-cikis"><i class="fas fa-arrow-right-from-bracket"></i><span class="gizle-tel">Çıkış</span></button></div>
+    </header>
+    <main class="kurulum-kap">
+        <div class="kurulum-ilerleme" id="kurulum-ilerleme" aria-hidden="true"></div>
+        <section class="panel kurulum-kart" aria-live="polite">
+            <div class="panel-ic" id="kurulum-govde"><p class="bos-not">Hazırlanıyor</p></div>
+            <footer class="kurulum-alt" id="kurulum-alt"></footer>
+        </section>
+    </main>
+    <script type="module">
+        import { kurulumuBaslat } from './js/kurulum.js';
+        kurulumuBaslat();
+    </script>
+</body>
+</html>

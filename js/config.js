@@ -20,6 +20,7 @@ export const appConfig = {
         { id: 'araclar',     name: 'Tahta araçları',      ikon: 'fa-dice',          aciklama: 'Kura, sayaç ve grup oluşturma', roller: ['teacher'] },
         { id: 'rapor',       name: 'Gelişim raporu',      ikon: 'fa-file-lines',    aciklama: 'Veli toplantısı için öğrenci karnesi', roller: ['teacher'] },
         { id: 'eba',         name: 'EBA şifreleri',       ikon: 'fa-key',           aciklama: 'EBA giriş bilgileri', roller: ['teacher', 'student'] },
+        { id: 'ayarlar',     name: 'Sınıf ayarları',      ikon: 'fa-gear',          aciklama: 'Sınıf adı, veli linki ve davet kodları', roller: ['teacher'] },
         { id: 'yedekleme',   name: 'Sistem yedekleme',    ikon: 'fa-database',      aciklama: 'Yedek al ve geri yükle', roller: ['teacher'] }
     ]
 };

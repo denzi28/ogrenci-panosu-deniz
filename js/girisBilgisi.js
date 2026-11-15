@@ -1,12 +1,14 @@
 // Öğrenci giriş bilgileri: tek, anlatması kolay bir düzen.
 //   Kullanıcı adı = çocuğun adı + okul numarası  (Ada Yıldız, 101 -> ada101). Türkçe harfler sadeleşir: Çağrı -> cagri.
 //   Okul numarası yoksa sadece ad; aynı ad varsa sonuna 2, 3 ... eklenir.
-//   Şifre = 4 haneli sayı. Öğrenci "Profilim"den değiştirebilir; öğretmen her zaman güncelini görür.
+//   Şifre = basit bir kelime + 4 rakam (kedi4827). Öğrenci "Profilim"den değiştirebilir; öğretmen her zaman güncelini görür.
+//   Neden kelime + 4 rakam: kullanıcı adı tahmin edilebilir (sınıf arkadaşları okul numarasını bilir), güvenliği şifre taşır.
+//   4 haneli sayı 9.000 olasılıktır; bu biçim bir milyondan fazla.
 // Kurulum sihirbazı ve Öğrenciler bölümü aynı kuralı kullanır. Giriş kartları da buradan yazdırılır.
 import { esc, yazdir } from './arayuz.js';
-import { veliLinki } from './sinif.js';
+import { veliLinki, aktifSinifId } from './sinif.js';
 
-export const DUZEN_ACIKLAMASI = 'Kullanıcı adı çocuğun adı ile okul numarasıdır (ör. ada101). Şifre 4 haneli bir sayıdır. Öğrenci şifresini Profilim bölümünden değiştirebilir';
+export const DUZEN_ACIKLAMASI = 'Kullanıcı adı çocuğun adı ile okul numarasıdır (ör. ada101). Şifre bir kelime ile 4 rakamdır (ör. kedi4827). Öğrenci şifresini Profilim bölümünden değiştirebilir';
 
 const TR = { 'ç': 'c', 'ğ': 'g', 'ı': 'i', 'İ': 'i', 'ö': 'o', 'ş': 's', 'ü': 'u', 'Ç': 'c', 'Ğ': 'g', 'Ö': 'o', 'Ş': 's', 'Ü': 'u' };
 export const sadeYazi = (s) => String(s || '').replace(/[çğıİöşüÇĞÖŞÜ]/g, c => TR[c]).toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -21,7 +23,31 @@ export function kullaniciAdiOner(ad, okulno = '', kullanilanlar = new Set()) {
     return aday;
 }
 
-export const sifreOner = () => String(1000 + (crypto.getRandomValues(new Uint32Array(1))[0] % 9000));
+// Çocukların kolayca yazabileceği, Türkçe harf içermeyen kelimeler
+const SIFRE_KELIMELERI = [
+    'elma', 'armut', 'kiraz', 'erik', 'incir', 'ayva', 'limon', 'kavun', 'karpuz', 'muz', 'nar', 'mango',
+    'hurma', 'kedi', 'aslan', 'kaplan', 'zebra', 'panda', 'tavsan', 'ayi', 'kartal', 'balina', 'yunus', 'ahtapot',
+    'kanguru', 'penguen', 'papagan', 'tilki', 'sincap', 'kirpi', 'koala', 'tavuk', 'horoz', 'kaz', 'inek', 'koyun',
+    'deve', 'fil', 'kurt', 'geyik', 'kunduz', 'foka', 'marti', 'leylek', 'serce', 'deniz', 'nehir', 'orman',
+    'bulut', 'toprak', 'kaya', 'ada', 'vadi', 'tepe', 'papatya', 'lale', 'zambak', 'nergis', 'defne', 'yaprak',
+    'dal', 'bahar', 'yaz', 'kalem', 'silgi', 'kitap', 'defter', 'masa', 'top', 'balon', 'kutu', 'pasta',
+    'kek', 'simit', 'bisiklet', 'araba', 'tren', 'gemi', 'roket', 'kamyon', 'fener', 'saat', 'anahtar', 'pencere',
+    'lamba', 'terlik', 'eldiven', 'ceket', 'harita', 'pusula', 'robot', 'davul', 'gitar', 'keman', 'zil', 'mavi',
+    'mor', 'pembe', 'beyaz', 'turuncu', 'lacivert', 'gri', 'bordo', 'ekmek', 'peynir', 'zeytin', 'bal', 'ceviz',
+    'findik', 'badem', 'kestane', 'mantar', 'havuc', 'patates', 'domates', 'biber', 'marul', 'yildirim', 'kasirga', 'elmas',
+    'yakut', 'zumrut', 'inci', 'altin', 'gumus', 'bakir', 'demir', 'kale', 'kule', 'kopru', 'saray', 'cadir',
+    'sepet', 'sandal', 'yelken', 'kayik', 'ruzgar', 'sihir', 'masal', 'oyun', 'sarki', 'resim', 'boya', 'yengec'
+];
+const rastgele = (n) => crypto.getRandomValues(new Uint32Array(1))[0] % n;
+export const sifreOner = () => SIFRE_KELIMELERI[rastgele(SIFRE_KELIMELERI.length)] + String(1000 + rastgele(9000));
+
+// Yeni ya da değişen şifre için kural (eski hesapların şifresine dokunulmaz). Sorun yoksa boş yazı döner.
+export function sifreSorunu(sifre) {
+    const s = String(sifre || '');
+    if (s.length < 6) return 'Şifre en az 6 karakter olmalı (ör. kedi4827)';
+    if (!/[0-9]/.test(s) || !/[^0-9]/.test(s)) return 'Şifrede hem harf hem rakam olmalı (ör. kedi4827)';
+    return '';
+}
 
 // Başka bir sınıfta aynı kullanıcı adı varsa giriş hesabı açılamaz; sonuna harf eklenerek tekrar denenir (ada101 -> ada101b)
 export const yedekKullaniciAdi = (ad, deneme) => `${ad}${'bcdefgh'[deneme - 1] || deneme}`;
@@ -63,7 +89,7 @@ export function girisKartlariniYazdir(ogrenciler, sinifAdi) {
                 <li>Sağ üstteki <b>Giriş yap</b>'a dokunun</li>
                 <li>Kullanıcı adını ve şifreyi yazın</li>
             </ol>
-            <div class="alt"><b>Veliler giriş yapmadan da bakabilir:</b> ${esc(veli)}</div>
+            <div class="alt"><b>Veliler giriş yapmadan da bakabilir:</b> ${esc(veli)} · sınıf kodu <b>${esc(aktifSinifId())}</b></div>
         </div>`).join('');
     yazdir(`${sinifAdi} giriş kartları`, `
         <style>

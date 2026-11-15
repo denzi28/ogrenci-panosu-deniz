@@ -1,7 +1,8 @@
 // Tahta araçları — öğretmen: kura çekme, geri sayım sayacı, rastgele grup oluşturma.
-// "Bugün gelmeyenler" seçilirse kura ve gruplara katılmazlar (sadece bu cihazda, o gün için hatırlanır).
-// Veritabanına hiçbir şey yazılmaz.
+// "Bugün gelmeyenler" aynı zamanda günün yoklamasıdır: veritabanına yazılır (bkz. yoklama.js), gelişim raporunda devamsızlık olarak görünür.
+// Gelmeyenler kura ve gruplara katılmaz.
 import { db } from '../../js/db.js';
+import { bugunTarihi, gunuGetir, gunuKaydet } from './yoklama.js';
 import { esc, sayi, modulBasligi, sekmeler, baglaSekmeler, yazdir } from '../../js/arayuz.js';
 import { oynat, kutla, hareketAz } from '../../js/hareket.js';
 
@@ -10,12 +11,13 @@ const TAKIMLAR = [['🦁', 'Aslanlar'], ['🦅', 'Kartallar'], ['🐬', 'Yunusla
 const SURELER = [1, 2, 3, 5, 10, 15];
 
 let kok, ogrenciler = [], gelmeyen = new Set(), cikanlar = [], kuraDonuyor = false;
+let yoklamaAlindi = false, kayitSirasi = Promise.resolve(), kayitHatasi = false;
 let sayac = { toplam: 300, kalan: 300, bitis: null, zaman: null };
 let grup = { tur: 'sayi', deger: 4, sonuc: [] };
 
 // ---------------------------------------------------------------- küçük yardımcılar
 const karistir = (d) => { const a = [...d]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
-const bugunAnahtar = () => `gelmeyenler-${new Date().toISOString().slice(0, 10)}`;
+const bugunAnahtar = () => `gelmeyenler-${bugunTarihi()}`; // internet yokken yedek
 function gelmeyenleriOku() { try { return new Set(JSON.parse(localStorage.getItem(bugunAnahtar())) || []); } catch { return new Set(); } }
 function gelmeyenleriYaz() { try { localStorage.setItem(bugunAnahtar(), JSON.stringify([...gelmeyen])); } catch { } }
 const gelenler = () => ogrenciler.filter(o => !gelmeyen.has(o.id));
@@ -38,7 +40,10 @@ export async function render(container) {
     container.innerHTML = `<div id="arac-kok"></div>`;
     kok = container.firstElementChild;
     ogrenciler = (await db.getAll('users')).filter(u => u.role === 'student').sort((a, b) => (a.name || '').localeCompare(b.name || '', 'tr-TR'));
-    gelmeyen = gelmeyenleriOku();
+    // Bugünün yoklaması kayıtlıysa o; değilse bu cihazdaki yedek
+    const kayit = await gunuGetir().catch(() => null);
+    yoklamaAlindi = !!kayit;
+    gelmeyen = kayit ? new Set((kayit.gelmeyenler || []).filter(id => ogrenciler.some(o => o.id === id))) : gelmeyenleriOku();
     kok.innerHTML = `
         ${modulBasligi({
             baslik: 'Tahta araçları',
@@ -46,8 +51,9 @@ export async function render(container) {
             eylemler: '<button type="button" class="btn btn-secondary" data-islem="tam-ekran"><i class="fas fa-expand"></i>Tam ekran</button>',
         })}
         <details class="panel acilir-panel" id="gelmeyen-panel"${gelmeyen.size ? ' open' : ''}>
-            <summary class="panel-ust"><h2>Bugün gelmeyenler</h2><small id="gelmeyen-ozet"></small></summary>
-            <div class="panel-ic"><p class="arac-not" style="margin-bottom:12px">Gelmeyenlere dokunun. Kura ve gruplara katılmazlar. Seçim bugün bu cihazda hatırlanır</p><div class="ad-cipleri" id="gelmeyen-liste"></div></div>
+            <summary class="panel-ust"><h2>Bugünün yoklaması</h2><small id="gelmeyen-ozet"></small></summary>
+            <div class="panel-ic"><p class="arac-not" style="margin-bottom:12px">Gelmeyenlere dokunun; seçim kendiliğinden kaydedilir ve gelişim raporunda devamsızlık olarak görünür. Gelmeyenler kura ve gruplara katılmaz</p><div class="ad-cipleri" id="gelmeyen-liste"></div>
+                <div class="yoklama-durum" id="yoklama-durum" role="status"></div></div>
         </details>
         ${sekmeler([{ id: 'a-kura', ad: 'Kura çek' }, { id: 'a-sayac', ad: 'Sayaç' }, { id: 'a-grup', ad: 'Gruplar' }], 'a-kura')}
         <div id="view-a-kura"></div>
@@ -65,6 +71,26 @@ function gelmeyenleriCiz() {
     kok.querySelector('#gelmeyen-ozet').textContent = gelmeyen.size ? `${sayi(gelmeyen.size)} öğrenci yok · ${sayi(gelenler().length)} kişi var` : `Herkes burada · ${sayi(ogrenciler.length)} kişi`;
     kok.querySelector('#gelmeyen-liste').innerHTML = ogrenciler.map(o =>
         `<button type="button" class="ad-cip" data-islem="gelmeyen" data-id="${esc(o.id)}" aria-pressed="${gelmeyen.has(o.id)}">${esc(o.name)}</button>`).join('') || '<p class="bos-not">Henüz öğrenci yok</p>';
+    yoklamaDurumunuCiz();
+}
+
+function yoklamaDurumunuCiz(kaydediliyor = false) {
+    const alan = kok.querySelector('#yoklama-durum');
+    if (!alan || !ogrenciler.length) return;
+    if (kaydediliyor) alan.innerHTML = '<span class="arac-not">Kaydediliyor</span>';
+    else if (kayitHatasi) alan.innerHTML = '<span class="error">Yoklama kaydedilemedi. İnternet bağlantısını kontrol edip bir öğrenciye tekrar dokunun</span>';
+    else if (yoklamaAlindi) alan.innerHTML = '<span class="yoklama-tamam"><i class="fas fa-circle-check"></i>Bugünün yoklaması kayıtlı</span>';
+    else alan.innerHTML = '<button type="button" class="btn btn-secondary btn-kucuk" data-islem="yoklama-kaydet"><i class="fas fa-check"></i>Herkes burada, yoklamayı kaydet</button>';
+}
+
+// Art arda dokunuşlar sırayla yazılır; en son seçim kalır
+function yoklamayiKaydet() {
+    const liste = [...gelmeyen];
+    yoklamaDurumunuCiz(true);
+    kayitSirasi = kayitSirasi.then(() => gunuKaydet(liste)).then(
+        () => { yoklamaAlindi = true; kayitHatasi = false; },
+        (e) => { console.warn('Yoklama:', e); kayitHatasi = true; },
+    ).then(() => yoklamaDurumunuCiz());
 }
 
 async function tikla(e) {
@@ -74,11 +100,12 @@ async function tikla(e) {
     if (islem === 'tam-ekran') return tamEkran();
     if (islem === 'gelmeyen') {
         gelmeyen.has(d.dataset.id) ? gelmeyen.delete(d.dataset.id) : gelmeyen.add(d.dataset.id);
-        gelmeyenleriYaz(); gelmeyenleriCiz();
+        gelmeyenleriYaz(); gelmeyenleriCiz(); yoklamayiKaydet();
         cikanlar = cikanlar.filter(id => !gelmeyen.has(id));
         if (!kuraDonuyor) kuraCiz();
         return;
     }
+    if (islem === 'yoklama-kaydet') return yoklamayiKaydet();
     if (islem === 'kura') return kuraCek();
     if (islem === 'kura-sifirla') { cikanlar = []; return kuraCiz(); }
     if (islem === 'sure') { sayacDurdur(); sayac.toplam = sayac.kalan = +d.dataset.dk * 60; return sayacCiz(); }

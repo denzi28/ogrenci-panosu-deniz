@@ -1152,8 +1152,13 @@ html.tanitim .sinif-sayfa { display: none; }
 .tanitim-metin > p { color: var(--text-2); font-size: 17px; line-height: 1.6; margin-top: 16px; max-width: 34rem; }
 .tanitim-dugmeler { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
 .tanitim-dugmeler .btn { padding-left: 20px; padding-right: 20px; }
-.tanitim-veli { display: flex; gap: 8px; align-items: baseline; margin-top: 20px; color: var(--muted); font-size: 14px; max-width: 34rem; }
-.tanitim-veli i { color: var(--primary); }
+.tanitim-veli { margin-top: 28px; padding-top: 20px; border-top: 1px dashed var(--hairline-strong); max-width: 30rem; }
+.tanitim-veli label { display: flex; gap: 8px; align-items: baseline; color: var(--text-2); font-size: 14px; font-weight: 500; margin-bottom: 8px; }
+.tanitim-veli label i { color: var(--primary); }
+.tanitim-kod-satir { display: flex; gap: 8px; }
+.tanitim-kod-satir input { flex: 1; min-width: 0; text-transform: lowercase; }
+.tanitim-veli .error { margin-top: 6px; }
+.sinif-kodu { font-family: ui-monospace, monospace; font-size: 18px; letter-spacing: 1px; background: var(--surface-2); border-radius: var(--r-kucuk); padding: 2px 10px; }
 .tanitim-tahta .tahta { transform: rotate(1.2deg); }
 .tanitim-tahta .tahta-dersler { grid-template-columns: 1fr 1fr; }
 .tanitim-tahta .tahta-dersler li { white-space: nowrap; }
@@ -1199,3 +1204,7 @@ html.tanitim .sinif-sayfa { display: none; }
     .tanitim-dugmeler .btn { flex: 1 1 100%; justify-content: center; }
     .tanitim-tahta .tahta { transform: none; }
 }
+
+/* Tahta araçları: yoklama durumu */
+.yoklama-durum { margin-top: 12px; min-height: 24px; font-size: 14px; }
+.yoklama-tamam { display: inline-flex; gap: 6px; align-items: center; color: var(--primary); font-weight: 500; }

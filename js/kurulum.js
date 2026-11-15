@@ -6,7 +6,7 @@ import { db } from './db.js';
 import { appConfig } from './config.js';
 import { esc, sayi } from './arayuz.js';
 import { sinifBilgisi, aktifSinifId, veliLinki } from './sinif.js';
-import { kullaniciAdiOner, sifreOner, yedekKullaniciAdi, satirCoz, girisKartlariniYazdir, DUZEN_ACIKLAMASI } from './girisBilgisi.js';
+import { kullaniciAdiOner, sifreOner, yedekKullaniciAdi, satirCoz, girisKartlariniYazdir, DUZEN_ACIKLAMASI, sifreSorunu } from './girisBilgisi.js';
 import { HAZIR_ROZETLER } from '../modules/rozetler/ortak.js';
 import { GUNLER as PROGRAM_GUNLERI, DERS_SAYISI, TABLO as PROGRAM_TABLO } from '../modules/program/ortak.js';
 import { GUNLER as BESLENME_GUNLERI, TABLO as BESLENME_TABLO } from '../modules/beslenme/ortak.js';
@@ -186,7 +186,7 @@ function satirlariOku() {
     return $('k-liste').value.split('\n').map(satirCoz).filter(Boolean).map(c => ({
         ad: c.ad, okulno: c.okulno, tcno: c.tcno,
         kullanici: c.kullanici || kullaniciAdiOner(c.ad, c.okulno, kullanilan),
-        sifre: c.sifre || sifreOner(),
+        sifre: c.sifre && !sifreSorunu(c.sifre) ? c.sifre : sifreOner(), // eski listedeki kısa şifre yerine güçlüsü
     }));
 }
 
@@ -214,6 +214,7 @@ async function ogrencileriEkle(satirlar) {
         const al = (a) => tr.querySelector(`[data-alan="${a}"]`).value.trim();
         const v = { name: al('ad'), okulno: al('okulno'), username: al('kullanici'), password: al('sifre'), tcno: tr.dataset.tc || '' };
         if (!v.name || !v.username || !v.password) { sorunlar.push(`${v.name || 'İsimsiz satır'}: eksik bilgi`); continue; }
+        if (sifreSorunu(v.password)) { sorunlar.push(`${v.name}: ${sifreSorunu(v.password)}`); continue; }
         dugme.textContent = `Hesaplar açılıyor ${eklenen + 1}/${satirlar.length}`;
         // Kullanıcı adı başka bir sınıfta alınmışsa sonuna sayı eklenerek tekrar denenir
         let denenen = v.username, basarili = false;
@@ -283,7 +284,7 @@ async function bitisCiz() {
         <div class="kurulum-bitti-ikon" aria-hidden="true"><span class="yildiz-cikartma"></span></div>
         <h1 class="kurulum-baslik" style="text-align:center">${esc(sinif.ad)} hazır</h1>
         <p class="kurulum-aciklama" style="text-align:center;margin-left:auto;margin-right:auto">Atladığınız adımları istediğiniz zaman ilgili bölümden yapabilirsiniz</p>
-        <div class="kurulum-bilgi"><i class="fas fa-link"></i><div style="min-width:0;flex:1"><small>Velilere vereceğiniz link</small><strong style="overflow-wrap:anywhere">${esc(link)}</strong></div>
+        <div class="kurulum-bilgi"><i class="fas fa-link"></i><div style="min-width:0;flex:1"><small>Velilere vereceğiniz link (ya da ana sayfada yazacakları sınıf kodu: <b class="sinif-kodu">${esc(aktifSinifId())}</b>)</small><strong style="overflow-wrap:anywhere">${esc(link)}</strong></div>
             <button type="button" class="btn btn-secondary btn-kucuk" id="k-kopyala"><i class="fas fa-copy"></i>Kopyala</button></div>
         <div class="kurulum-bilgi"><i class="fas fa-user-group"></i><div style="flex:1"><small>Öğrenciler</small><strong>${sayi(ogrenciler.length)} öğrenci${eklenenGirisler.length ? `, ${sayi(eklenenGirisler.length)} tanesinin giriş bilgisi yeni oluştu` : ''}</strong></div>
             ${eklenenGirisler.length ? '<button type="button" class="btn btn-secondary btn-kucuk" id="k-yazdir"><i class="fas fa-print"></i>Giriş kartları</button>' : ''}</div>`;

@@ -52,7 +52,14 @@
                         <a class="btn btn-primary btn-buyuk" href="login.html"><i class="fas fa-right-to-bracket"></i>Giriş yap</a>
                         <a class="btn btn-secondary btn-buyuk" href="kayit.html"><i class="fas fa-user-plus"></i>Öğretmen hesabı aç</a>
                     </div>
-                    <p class="tanitim-veli"><i class="fas fa-circle-info"></i>Veli misiniz? Sınıfın sayfasını görmek için öğretmeninizin gönderdiği linki açın.</p>
+                    <form class="tanitim-veli" id="sinif-kodu-form" autocomplete="off" novalidate>
+                        <label for="sinif-kodu"><i class="fas fa-people-roof"></i>Veli misiniz? Öğretmeninizin verdiği sınıf kodunu yazın</label>
+                        <div class="tanitim-kod-satir">
+                            <input type="text" id="sinif-kodu" placeholder="ör. 3d" maxlength="30" autocapitalize="none" spellcheck="false" enterkeyhint="go">
+                            <button type="submit" class="btn btn-secondary" id="sinif-kodu-btn">Sınıfı aç</button>
+                        </div>
+                        <p class="error" id="sinif-kodu-hata" role="alert"></p>
+                    </form>
                 </div>
                 <div class="tanitim-tahta" id="tanitim-tahta" aria-hidden="true">
                     <div class="tahta">
@@ -142,6 +149,26 @@
             const d = document.getElementById('tanitim-tema');
             const ciz = () => d.setAttribute('aria-pressed', window.gorunumTemasi?.simdiki() === 'renkli');
             if (window.gorunumTemasi) { ciz(); d.addEventListener('click', () => { window.gorunumTemasi.degistir(); ciz(); }); } else d.remove();
+
+            // Veli: sınıf kodu (ör. "3d", "3/D", "4 A") -> o sınıfın sayfası
+            const form = document.getElementById('sinif-kodu-form');
+            const hata = document.getElementById('sinif-kodu-hata');
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const yazi = document.getElementById('sinif-kodu').value.trim();
+                if (!yazi) { hata.textContent = 'Sınıf kodunu yazın'; return; }
+                const btn = document.getElementById('sinif-kodu-btn');
+                btn.disabled = true; hata.textContent = '';
+                try {
+                    const { sinifKisaltmasi, sinifBilgisi } = await import('./js/sinif.js');
+                    const k = sinifKisaltmasi(yazi);
+                    for (const aday of [...new Set([k, k.replace(/-/g, '')])]) {
+                        if (await sinifBilgisi(aday)) { location.href = 'index.html?sinif=' + encodeURIComponent(aday); return; }
+                    }
+                    hata.textContent = 'Bu kodla bir sınıf bulunamadı. Kodu öğretmeninize sorun';
+                } catch { hata.textContent = navigator.onLine ? 'Bir sorun oldu, tekrar deneyin' : 'İnternet bağlantısı yok'; }
+                btn.disabled = false;
+            });
         } else {
             const { kabukBaslat } = await import('./js/kabuk.js');
             kabukBaslat({ rol: 'guest' });

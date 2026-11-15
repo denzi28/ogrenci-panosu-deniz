@@ -1,4 +1,4 @@
-// Gelişim raporu — öğretmen: her öğrenci için tek sayfalık karne (davranış, kitap, rozet, görev, ödev).
+// Gelişim raporu — öğretmen: her öğrenci için tek sayfalık karne (davranış, kitap, rozet, görev, ödev, devam).
 // Ekranda öğrenci öğrenci gezilir; tek tek ya da hepsi birden (her öğrenci ayrı sayfa) yazdırılır.
 // Veri yeni bir yere yazılmaz; sadece diğer bölümlerin kayıtları okunur.
 import { esc, sayi, modulBasligi } from '../../js/arayuz.js';
@@ -8,6 +8,7 @@ import * as kitap from '../kitap/ortak.js';
 import * as rozet from '../rozetler/ortak.js';
 import * as gorev from '../uygulamalar/ortak.js';
 import * as odev from '../odevler/ortak.js';
+import * as yoklama from '../araclar/yoklama.js';
 
 let kok, v, sira = 0;
 const notlar = new Map(); // öğretmen görüşü: sadece bu ekranda tutulur, kaydedilmez
@@ -51,10 +52,11 @@ function ciz() {
 // ---------------------------------------------------------------- Veri
 async function verileriTopla() {
     const bos = (e) => { console.warn('Rapor verisi okunamadı:', e); return null; };
-    const [d, k, r, g, o] = await Promise.all([
+    const [d, k, r, g, o, y] = await Promise.all([
         davranis.verileriGetir().catch(bos), kitap.verileriGetir().catch(bos), rozet.verileriGetir().catch(bos),
-        gorev.verileriGetir().catch(bos), odev.verileriGetir().catch(bos),
+        gorev.verileriGetir().catch(bos), odev.verileriGetir().catch(bos), yoklama.hepsiniGetir().catch(bos),
     ]);
+    const devam = yoklama.devamOzeti(y || []);
     const ogrenciler = (d?.ogrenciler || k?.ogrenciler || []).slice()
         .sort((a, b) => (parseInt(a.okulno) || 1e6) - (parseInt(b.okulno) || 1e6) || (a.name || '').localeCompare(b.name || '', 'tr-TR'));
     const davranisHarita = d ? davranis.puanHaritasi(d.matris) : new Map();
@@ -65,7 +67,7 @@ async function verileriTopla() {
     const okunan = (o) => k ? kitap.ogrenciOzeti(o, k.kalemler, kitapHarita).okunan.length : 0;
     const ort = (f) => ogrenciler.length ? Math.round(ogrenciler.reduce((t, x) => t + f(x), 0) / ogrenciler.length) : 0;
     return {
-        ogrenciler, d, k, r, g, o, davranisHarita, kitapHarita, sahip, yildiz, okunan,
+        ogrenciler, d, k, r, g, o, devam, davranisHarita, kitapHarita, sahip, yildiz, okunan,
         ortalama: { yildiz: ort(x => yildiz(x.id)), kitap: ort(okunan) },
     };
 }
@@ -146,6 +148,16 @@ function raporHtml(ogr, { ekran = false } = {}) {
             <p>${sayi(odevOz.yapti)} tam, ${sayi(odevOz.eksik)} eksik, ${sayi(odevOz.yapmadi)} yapılmadı${odevOz.bekleyen ? `, ${sayi(odevOz.bekleyen)} henüz bakılmadı` : ''}</p>
             ${odevOz.eksikler.length ? `<p class="rapor-ek">Eksik ya da yapılmayanlar: ${odevOz.eksikler.map(x => esc(x.baslik)).join(', ')}</p>` : ''}
         </section>` : ''}
+
+        ${v.devam.gunSayisi ? (() => {
+            const gun = v.devam.devamsizlik(id);
+            const tarihler = v.devam.tarihler(id).map(t => new Date(`${t}T12:00:00`).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' }));
+            return `
+        <section class="rapor-bolum">
+            <h3>Devam <small>Yoklama alınan ${sayi(v.devam.gunSayisi)} gün</small></h3>
+            <p>${gun ? `${sayi(gun)} gün gelmedi` : 'Yoklama alınan her gün derse geldi'}</p>
+            ${gun ? `<p class="rapor-ek">Gelmediği günler: ${tarihler.map(esc).join(', ')}</p>` : ''}
+        </section>`; })() : ''}
 
         <section class="rapor-bolum rapor-not">
             <h3>Öğretmen görüşü</h3>

@@ -4,7 +4,7 @@ import { db } from '../../js/db.js';
 import { esc, sayi, modulBasligi, gorunurlukAnahtari, baglaGorunurlukAnahtari, kaydedildiIsareti, yazdir } from '../../js/arayuz.js';
 import { noSirasi, adSirasi, ogrencileriAyir } from './ortak.js';
 import { appConfig } from '../../js/config.js';
-import { kullaniciAdiOner, sifreOner, yedekKullaniciAdi, satirCoz, girisKartlariniYazdir, DUZEN_ACIKLAMASI } from '../../js/girisBilgisi.js';
+import { kullaniciAdiOner, sifreOner, yedekKullaniciAdi, satirCoz, girisKartlariniYazdir, DUZEN_ACIKLAMASI, sifreSorunu } from '../../js/girisBilgisi.js';
 
 let kok, ogrenciler = [], siralama = 'no', arama = '', gizliAcik = false;
 
@@ -99,6 +99,7 @@ function listeyiCiz(isaretle) {
                 ${o.ozellik ? `<span class="not"><small>Not</small>${esc(o.ozellik)}</span>` : ''}` : ''}
             </span>
             <span class="satir-eylem">
+                <button type="button" class="ikon-dugme" data-islem="sifre-ver" title="Yeni şifre ver" aria-label="${esc(o.name)} için yeni şifre"><i class="fas fa-key"></i></button>
                 <button type="button" class="ikon-dugme" data-islem="kart" title="Giriş kartını yazdır" aria-label="${esc(o.name)} giriş kartı"><i class="fas fa-id-card"></i></button>
                 <button type="button" class="ikon-dugme" data-islem="duzenle" title="Düzenle" aria-label="${esc(o.name)} düzenle"><i class="fas fa-pen"></i></button>
                 <button type="button" class="ikon-dugme tehlike" data-islem="sil" title="Sil" aria-label="${esc(o.name)} sil"><i class="fas fa-trash"></i></button>
@@ -142,12 +143,12 @@ async function hesapliEkle(veri) {
     }
 }
 
-function sonucGoster(eklenenler) {
+function sonucGoster(eklenenler, baslik = null) {
     const alan = kok.querySelector('#ogr-sonuc');
     if (!eklenenler.length) { alan.innerHTML = ''; return; }
     alan.innerHTML = `
         <section class="panel sonuc-panel">
-            <div class="panel-ust"><h2><i class="fas fa-circle-check" style="color:var(--primary);margin-right:6px"></i>${sayi(eklenenler.length)} öğrencinin hesabı açıldı</h2>
+            <div class="panel-ust"><h2><i class="fas fa-circle-check" style="color:var(--primary);margin-right:6px"></i>${esc(baslik || `${sayi(eklenenler.length)} öğrencinin hesabı açıldı`)}</h2>
                 <span style="display:flex;gap:8px"><button type="button" class="btn btn-primary btn-kucuk" data-islem="yeni-kartlar"><i class="fas fa-id-card"></i>Kartlarını yazdır</button><button type="button" class="ikon-dugme" data-islem="sonuc-kapat" aria-label="Kapat"><i class="fas fa-xmark"></i></button></span></div>
             ${eklenenler.map(o => `<div class="satir"><span class="satir-ad">${esc(o.name)}</span><span class="giris-bilgi"><small>Kullanıcı adı</small><b>${esc(o.username)}</b></span><span class="giris-bilgi"><small>Şifre</small><b>${esc(o.password)}</b></span></div>`).join('')}
         </section>`;
@@ -164,6 +165,8 @@ async function kaydet(e) {
     if (v.tcno && !/^\d{11}$/.test(v.tcno)) { hata.textContent = 'TC kimlik numarası 11 rakam olmalı'; return; }
     if (/\s/.test(v.username)) { hata.textContent = 'Kullanıcı adında boşluk olmasın'; return; }
     if (adAlinmis(v.username, id)) { hata.textContent = `"${v.username}" kullanıcı adı başka bir öğrencide var`; return; }
+    const eskiSifre = id ? ogrenciler.find(o => o.id === id)?.password : null;
+    if (v.password !== eskiSifre && sifreSorunu(v.password)) { hata.textContent = sifreSorunu(v.password); return; }
     const dugme = kok.querySelector('#ogr-kaydet');
     dugme.disabled = true;
     hata.textContent = '';
@@ -187,7 +190,7 @@ function satirlariOku() {
         if (!c) return null;
         const once = eski.get(`${c.ad}|${c.okulno}`);
         const username = c.kullanici || (once && !kullanilan.has(kucuk(once.username)) ? (kullanilan.add(kucuk(once.username)), once.username) : kullaniciAdiOner(c.ad, c.okulno, kullanilan));
-        return { satir: i + 1, name: c.ad, tcno: c.tcno, okulno: c.okulno, username, password: c.sifre || once?.password || sifreOner() };
+        return { satir: i + 1, name: c.ad, tcno: c.tcno, okulno: c.okulno, username, password: (c.sifre && !sifreSorunu(c.sifre) ? c.sifre : once?.password) || sifreOner() }; // eski listedeki kısa şifre yerine güçlüsü
     }).filter(Boolean);
     return topluOneri;
 }
@@ -195,6 +198,7 @@ function sorun(k, gorulen) {
     if (!k.name || !k.username || !k.password) return 'ad eksik';
     if (/\s/.test(k.username)) return 'kullanıcı adında boşluk var';
     if (adAlinmis(k.username) || gorulen.has(kucuk(k.username))) return `"${k.username}" kullanıcı adı zaten var`;
+    if (sifreSorunu(k.password)) return sifreSorunu(k.password).replace(/^Şifre/, 'şifre');
     return '';
 }
 function onizle() {
@@ -257,6 +261,7 @@ async function tikla(e) {
     if (!o) return;
     if (islem === 'duzenle') return formuAc(o);
     if (islem === 'kart') return girisKartlariniYazdir([o], appConfig.sinifAdi);
+    if (islem === 'sifre-ver') return yeniSifreVer(o, d);
     if (islem === 'sil') {
         if (!confirm(`${o.name} silinsin mi? Giriş hesabı da kapanır`)) return;
         d.disabled = true;
@@ -264,6 +269,23 @@ async function tikla(e) {
         catch (err) { alert(`Silinemedi: ${err.message || 'bilinmeyen hata'}`); }
         await yenile();
     }
+}
+
+// Şifresini unutan öğrenciye yeni şifre: giriş hesabı da hemen değişir, eski şifre artık çalışmaz
+async function yeniSifreVer(o, d) {
+    if (!confirm(`${o.name} için yeni şifre oluşturulsun mu? Eski şifre artık çalışmaz`)) return;
+    const yeni = sifreOner();
+    d.disabled = true;
+    try {
+        await db.update('users', o.id, { password: yeni });
+        o.password = yeni;
+        sonucGoster([o], `${o.name} için yeni şifre`);
+        kok.querySelector('#ogr-sonuc').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        listeyiCiz(o.id);
+    } catch (err) {
+        alert(`Şifre değiştirilemedi: ${err.message || 'bilinmeyen hata'}`);
+    }
+    d.disabled = false;
 }
 
 function yazdirListe() {

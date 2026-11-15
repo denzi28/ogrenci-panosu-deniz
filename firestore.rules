@@ -13,6 +13,7 @@ rules_version = '2';
 // Özet:
 //  - Misafir (veli): bir sınıfın "herkese açık" duyuru/etkinliklerini, panolarını ve öğrenci adlarını görür. Yazamaz.
 //  - Öğrenci: sadece kendi sınıfında; kendi gizli bilgisini görür, kendi şifresini ve oyun puanını yazar.
+//  - Yoklama (devamsızlık) ve gizli bilgiler (okul no, TC, şifreler) misafire ve diğer öğrencilere kapalıdır.
 //  - Öğretmen: sadece kendi sınıfını yönetir. Başka sınıfın verisine yazamaz, gizli bilgisini göremez.
 //  - Yeni öğretmen hesabı sadece geçerli bir davet koduyla açılır; kod aynı işlemde silinir (tek kullanımlık).
 service cloud.firestore {
@@ -84,8 +85,9 @@ service cloud.firestore {
       // Ana sınıf dışındaki sınıfların bütün tabloları
       match /{tablo}/{id} {
         allow read: if (tablo == 'users_gizli' && (ogretmenOf(s) || (uyeOf(s) && benim(id))))
+          || (tablo == 'yoklama' && ogretmenOf(s))
           || (tablo in ['duyurular', 'etkinlikler'] && (uyeOf(s) || resource.data.visibleToGuest == true))
-          || !(tablo in ['users_gizli', 'duyurular', 'etkinlikler']);
+          || !(tablo in ['users_gizli', 'yoklama', 'duyurular', 'etkinlikler']);
         allow write: if ogretmenOf(s);
         // Öğrenci sadece kendi şifresini değiştirir
         allow update: if tablo == 'users_gizli' && uyeOf(s) && benim(id)
@@ -135,6 +137,11 @@ service cloud.firestore {
       allow write: if ogretmenOf(anaSinif());
     }
 
+    // Yoklama (devamsızlık): sadece öğretmen
+    match /yoklama/{id} {
+      allow read, write: if ogretmenOf(anaSinif());
+    }
+
     // Oyun puanları: öğrenci sadece KENDİ puanını yazabilir
     match /uygulama_matrisi/{id} {
       allow read: if true;
@@ -148,7 +155,7 @@ service cloud.firestore {
     // herkes okuyabilir, sadece ana sınıfın öğretmeni değiştirebilir.
     // (Yukarıdaki özel tablolar burada hariç tutulur; Firestore'da kurallardan biri izin verirse erişim açılır.)
     match /{tablo}/{id} {
-      allow read: if !(tablo in ['roller', 'users_gizli', 'duyurular', 'etkinlikler', 'davetler']);
+      allow read: if !(tablo in ['roller', 'users_gizli', 'duyurular', 'etkinlikler', 'davetler', 'yoklama']);
       allow write: if ogretmenOf(anaSinif()) && !(tablo in ['roller', 'users_gizli', 'siniflar', 'davetler']);
     }
   }

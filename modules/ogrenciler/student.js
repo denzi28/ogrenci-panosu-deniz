@@ -2,6 +2,7 @@
 import { auth } from '../../js/auth.js';
 import { db } from '../../js/db.js';
 import { esc, modulBasligi } from '../../js/arayuz.js';
+import { sifreSorunu } from '../../js/girisBilgisi.js';
 
 export async function render(container) {
     const kullanicilar = await db.getAll('users');
@@ -51,6 +52,7 @@ export async function render(container) {
         const yaz = (metin, iyi = false) => { mesaj.textContent = metin; mesaj.style.color = iyi ? 'var(--primary)' : 'var(--danger)'; };
         if (yeni !== tekrar) return yaz('İki şifre aynı değil');
         if (yeni === ben.password) return yaz('Yeni şifre eskisiyle aynı');
+        if (sifreSorunu(yeni)) return yaz(sifreSorunu(yeni));
         const dugme = container.querySelector('#sifre-kaydet');
         dugme.disabled = true;
         try {

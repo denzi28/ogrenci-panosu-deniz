@@ -33,6 +33,7 @@ export async function render(container) {
             <div class="panel-ic">
                 <div class="kurulum-bilgi" style="margin:0"><i class="fas fa-link"></i><div style="flex:1;min-width:0"><strong style="overflow-wrap:anywhere">${esc(link)}</strong></div>
                     <button type="button" class="btn btn-secondary btn-kucuk" data-islem="kopyala" data-metin="${esc(link)}"><i class="fas fa-copy"></i>Kopyala</button></div>
+                <p class="arac-not" style="margin-top:12px">Link yerine sınıf kodu da verebilirsiniz: <b class="sinif-kodu">${esc(aktifSinifId())}</b> Veli sitenin ana sayfasında bu kodu yazınca sınıfın sayfası açılır</p>
             </div>
         </section>
         ${yonetici() ? `

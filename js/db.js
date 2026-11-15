@@ -1,4 +1,4 @@
-import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, setDoc, getDoc, query, where, arrayUnion } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { collection, getDocs, addDoc, updateDoc, deleteDoc, deleteField, doc, setDoc, getDoc, query, where, arrayUnion } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 import { firestore } from './firebase.js';
 import { hesapOlustur, hesapGuncelle, hesapSil } from './hesaplar.js';
 import { tabloYolu, aktifSinifId, ANA_SINIF } from './sinif.js';
@@ -11,13 +11,15 @@ const belge = (ad, id) => doc(firestore, ...tabloYolu(ad), id);
 // KULLANICI VERİSİNİN GİZLİLİĞİ
 // Eskiden tüm kullanıcı bilgileri (TC, şifre, EBA şifresi...) tek "users" tablosundaydı ve
 // siteyi açan herkes hepsini indirebiliyordu. Artık iki tabloya ayrılıyor:
-//   users        -> herkese açık: ad, okul no, rol           (panolar, liderlik tablosu)
-//   users_gizli  -> sadece öğretmen ve öğrencinin kendisi:  TC, kullanıcı adı, şifre, EBA şifresi, not
+//   users        -> herkese açık: ad, rol                    (panolar, liderlik tablosu)
+//   users_gizli  -> sadece öğretmen ve öğrencinin kendisi:  okul no, TC, kullanıcı adı, şifre, EBA şifresi, not
 //   roller/{uid} -> Firebase hesabı hangi öğrenci/öğretmen, rolü ne
 // Modüller yine db.getAll('users') / db.update('users', ...) kullanır; ayırma işini bu dosya yapar.
 // Erişim kuralları: firestore.rules
 // ---------------------------------------------------------------------------
-const ACIK_ALANLAR = ['name', 'okulno', 'role', 'createdAt'];
+// Okul numarası gizli tarafta: kullanıcı adı ad + okul no olduğundan, açık listede durursa kullanıcı adları tahmin edilebilir.
+// (Eski kayıtlarda açık tarafta kalmış okul no, öğretmen o öğrenciyi düzenleyince kaldırılır.)
+const ACIK_ALANLAR = ['name', 'role', 'createdAt'];
 const GIZLI_TABLO = 'users_gizli';
 
 function ayir(veri) {
@@ -98,6 +100,13 @@ class Database {
         return kullanicilar;
     }
 
+    // Tek kayıt (yoksa null)
+    async get(collectionName, id) {
+        this.registerCollection(collectionName);
+        const snap = await getDoc(belge(collectionName, id));
+        return snap.exists() ? { id: snap.id, ...snap.data() } : null;
+    }
+
     async getPublic(collectionName) {
         this.registerCollection(collectionName);
         return hamListe(collectionName, query(koleksiyon(collectionName), where("visibleToGuest", "==", true)));
@@ -153,6 +162,9 @@ class Database {
             // Değişmeyen alanları tekrar yazma: öğrencinin sadece "password" alanını değiştirmesine izin var.
             for (const k of Object.keys(gizli)) if (k !== 'uid' && gizli[k] === mevcut[k]) delete gizli[k];
         }
+
+        // Eski kayıtta açık tarafta kalmış okul no gizli tarafa taşınır
+        if ('okulno' in gizli && aktifKullanici()?.role === 'teacher') acik.okulno = deleteField();
 
         if (Object.keys(acik).length) await updateDoc(belge('users', id), acik);
         if (Object.keys(gizli).length) await setDoc(belge(GIZLI_TABLO, id), gizli, { merge: true });

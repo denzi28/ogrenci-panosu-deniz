@@ -27,7 +27,7 @@ from concurrent.futures import ThreadPoolExecutor
 SIFRE_EKI = '#3D-pano'          # js/hesaplar.js ile aynı olmalı
 EPOSTA_ALANI = 'sinifpanosu.app'  # js/hesaplar.js ile aynı olmalı
 KURUCU_KULLANICI_ADI = 'ogretmen' # firestore.rules içindeki kurucu() ile aynı olmalı
-ACIK_ALANLAR = {'name', 'okulno', 'role', 'createdAt'}  # js/db.js ile aynı olmalı
+ACIK_ALANLAR = {'name', 'role', 'createdAt'}  # js/db.js ile aynı olmalı
 
 
 def eposta(kullanici_adi):

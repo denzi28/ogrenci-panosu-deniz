@@ -18,7 +18,7 @@ const TABLO = 'avatarlar';
 
 // Avatar seçimi, veritabanı kuralı (firestore.rules: avatarlar) yayınlandıktan sonra açılır.
 // Kapalıyken: seçici görünmez; daha önce seçilmiş avatarlar yine gösterilir.
-export const AVATAR_SECIMI_ACIK = false;
+export const AVATAR_SECIMI_ACIK = true;
 
 const basHarf = (ad) => String(ad || '?').trim().split(/\s+/).slice(0, 2).map(p => p[0]).join('').toLocaleUpperCase('tr-TR');
 

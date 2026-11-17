@@ -127,4 +127,3 @@ html.tema-renkli .podyum-sutun.s1 .podyum-adlar::before { content: "👑"; displ
 html.tema-renkli .podyum-adlar { font-size: 17px; font-weight: 600; }
 
 /* Görünüm düğmesi renkli temadayken basılı görünür */
-html.tema-renkli .tema-dugme[aria-pressed="true"] { background: linear-gradient(135deg, #f97316, #ec4899 50%, #6366f1); color: #fff; border-color: transparent; box-shadow: 0 4px 0 #9d2a6e; }

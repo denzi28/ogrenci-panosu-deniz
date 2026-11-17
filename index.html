@@ -37,7 +37,6 @@
                 <span class="marka-yazi"><strong>Sınıf Panosu</strong></span>
             </a>
             <div class="ust-eylemler">
-                <button type="button" id="tanitim-tema" class="btn btn-secondary tema-dugme" aria-pressed="false" title="Görünümü değiştir: sade ya da renkli"><i class="fas fa-palette"></i><span class="gizle-tel">Renkli</span></button>
                 <a class="btn btn-primary" href="login.html">Giriş yap</a>
             </div>
         </header>
@@ -158,10 +157,6 @@
 
     <script type="module">
         if (document.documentElement.classList.contains('tanitim')) {
-            const d = document.getElementById('tanitim-tema');
-            const ciz = () => d.setAttribute('aria-pressed', window.gorunumTemasi?.simdiki() === 'renkli');
-            if (window.gorunumTemasi) { ciz(); d.addEventListener('click', () => { window.gorunumTemasi.degistir(); ciz(); }); } else d.remove();
-
             // Veli: sınıf kodu (ör. "3d", "3/D", "4 A") -> o sınıfın sayfası
             const form = document.getElementById('sinif-kodu-form');
             const hata = document.getElementById('sinif-kodu-hata');

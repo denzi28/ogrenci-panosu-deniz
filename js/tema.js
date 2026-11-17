@@ -1,19 +1,6 @@
-// Görünüm seçimi: "sade" ya da "renkli". Sayfa çizilmeden önce çalışır ki renk sonradan değişmesin.
-// Seçim her cihazda ayrı hatırlanır. Seçim yoksa sayfanın varsayılanı kullanılır
-// (<html data-varsayilan-tema="renkli"> öğrenci sayfasında).
+// Görünüm: sitenin tamamı renkli temayla açılır (öğretmen, öğrenci, veli, giriş sayfaları).
+// Sayfa çizilmeden önce çalışır ki renk sonradan değişmesin. Eski "sade" seçimi artık dikkate alınmaz.
 (function () {
-    var ANAHTAR = 'gorunum-temasi';
-    function kayitli() { try { return localStorage.getItem(ANAHTAR); } catch (e) { return null; } }
-    function uygula(tema) { document.documentElement.classList.toggle('tema-renkli', tema === 'renkli'); }
-    var varsayilan = document.documentElement.getAttribute('data-varsayilan-tema') || 'sade';
-    uygula(kayitli() || varsayilan);
-    window.gorunumTemasi = {
-        simdiki: function () { return document.documentElement.classList.contains('tema-renkli') ? 'renkli' : 'sade'; },
-        degistir: function () {
-            var yeni = this.simdiki() === 'renkli' ? 'sade' : 'renkli';
-            uygula(yeni);
-            try { localStorage.setItem(ANAHTAR, yeni); } catch (e) { }
-            return yeni;
-        },
-    };
+    document.documentElement.classList.add('tema-renkli');
+    try { localStorage.removeItem('gorunum-temasi'); } catch (e) { }
 })();

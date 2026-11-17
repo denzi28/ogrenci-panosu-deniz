@@ -63,12 +63,12 @@ html.tema-renkli[data-tema="robot"] .sayi-kart strong { font-family: var(--basli
 
 /* Bölüm ikonları: parlayan küçük ekranlar */
 html.tema-renkli[data-tema="robot"] :is(.modul-ikon, .menu-item .icon) {
-    border-radius: 12px; transform: none; background: #1c2b3a; color: var(--c, #fbbf24);
+    border-radius: 12px; transform: none; background: #1c2b3a; color: color-mix(in srgb, var(--c, #fbbf24) 70%, #fff);
     box-shadow: inset 0 0 0 3px #3a4d61, 0 3px 0 #0b1520;
     text-shadow: 0 0 10px color-mix(in srgb, var(--c, #fbbf24) 80%, transparent);
 }
 html.tema-renkli[data-tema="robot"] .menu-item .icon { border-radius: 8px; box-shadow: inset 0 0 0 2px #3a4d61; }
-html.tema-renkli[data-tema="robot"] .menu-item.aktif .icon { color: var(--c, #fbbf24); }
+html.tema-renkli[data-tema="robot"] .menu-item.aktif .icon { color: color-mix(in srgb, var(--c, #fbbf24) 70%, #fff); }
 html.tema-renkli[data-tema="robot"] .modul-kutu:nth-child(even) .modul-ikon { transform: none; }
 
 /* Menü */

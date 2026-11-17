@@ -18,12 +18,25 @@ export function katman(ad, { arkada = false } = {}) {
 const SAKIN = 'input, select, textarea, label, form, table, [contenteditable], .katman, .rapor, .tema-secici';
 export const sakinMi = (el) => !!el?.closest?.(SAKIN);
 
-// Dokununca/tıklayınca çalışır (fare, parmak, akıllı tahta kalemi). Hareket azaltılmışsa ya da sakin yerdeyse çalışmaz.
+// Öğretmen sayfasında dokunma efekti yok (yıldız verirken, not girerken ekran sakin kalsın)
+const ogretmenSayfasi = location.pathname.includes('teacher');
+
+// Gerçek bir dokunuşta/tıklamada çalışır (fare, parmak, akıllı tahta kalemi); kaydırma ya da sürükleme sayılmaz:
+// parmak kalkarken 12 pikselden az kaymış ve 600 ms'den kısa basılmış olmalı. Hareket azaltılmışsa ya da sakin yerdeyse çalışmaz.
 export function dokununca(fn) {
+    if (ogretmenSayfasi) return;
+    const basislar = new Map();
     document.addEventListener('pointerdown', (e) => {
         if (e.button > 0 || hareketAz() || sakinMi(e.target)) return;
-        fn(e);
+        basislar.set(e.pointerId, { x: e.clientX, y: e.clientY, t: performance.now(), hedef: e.target });
     }, { passive: true });
+    document.addEventListener('pointerup', (e) => {
+        const b = basislar.get(e.pointerId);
+        basislar.delete(e.pointerId);
+        if (!b || performance.now() - b.t > 600 || Math.hypot(e.clientX - b.x, e.clientY - b.y) > 12) return;
+        fn({ clientX: e.clientX, clientY: e.clientY, target: b.hedef });
+    }, { passive: true });
+    document.addEventListener('pointercancel', (e) => basislar.delete(e.pointerId), { passive: true });
 }
 
 // Sekme arkadayken süs hareketleri dursun (pil ve işlemci için)

@@ -51,10 +51,15 @@
         TEMALAR.forEach(function (x, i) {
             if (i === 4) { var ay = document.createElement('li'); ay.className = 'ayrac'; ay.setAttribute('aria-hidden', 'true'); liste.appendChild(ay); }
             var li = document.createElement('li'), a = document.createElement('a');
-            var u = new URL(location.href);
-            u.searchParams.set('tema', x[0]);
-            a.href = u.pathname + u.search + u.hash;
+            a.href = '#';
             a.textContent = x[1];
+            // Adres tıklama anında kurulur: o an açık olan bölüm (#...) ve sınıf (?sinif=) korunur
+            a.addEventListener('click', function (e) {
+                e.preventDefault();
+                var u = new URL(location.href);
+                u.searchParams.set('tema', x[0]);
+                location.href = u.pathname + u.search + u.hash;
+            });
             if (x[2]) { var s = document.createElement('small'); s.textContent = x[2]; a.appendChild(s); }
             if (x[0] === t) a.setAttribute('aria-current', 'true');
             li.appendChild(a); liste.appendChild(li);

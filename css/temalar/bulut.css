@@ -1,0 +1,105 @@
+/* TEMA 8 — RENK BULUTLARI (etkileşimli)
+   İlham: bulanık renk lekesi arka planları ve organik "blob" şekil üreteçleri (bbblurry / blobmaker tarzı). Burada sıfırdan yazıldı.
+   Fikir: arkada yavaşça dolaşan büyük, yumuşak renk bulutları; fare/parmak gelince bulutlar ona doğru eğilir.
+   Kartlar buzlu cam gibi beyaz; dokununca o noktada bir boya damlası yayılıp sönümlenir. Bölüm ikonları yumuşak lekeler.
+   Performans: bulanıklık filtresi yerine yumuşak kenarlı radyal renk geçişleri (eski tahtalarda da akıcı).
+   Yazı: başlıklar Comfortaa (yuvarlak, geometrik), gövde Nunito. */
+@import url('https://fonts.googleapis.com/css2?family=Comfortaa:wght@500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap');
+
+html.tema-renkli[data-tema="bulut"] {
+    --font: 'Nunito', system-ui, sans-serif;
+    --baslik: 'Comfortaa', 'Nunito', sans-serif;
+    --bg: #f6f3ff;
+    --surface: #ffffff;
+    --surface-2: #f4f0ff;
+    --ink: #2a2440;
+    --text: #2a2440;
+    --text-2: #4b4566;
+    --muted: #5d5779;
+    --hairline: rgba(42, 36, 64, .10);
+    --hairline-strong: rgba(42, 36, 64, .22);
+    --primary: #6741d9;
+    --primary-hover: #5530c4;
+    --primary-soft: #ece6ff;
+    --cam: rgba(255, 255, 255, .82);
+    --r-panel: 28px; --r-kart: 26px; --r-kontrol: 16px;
+    --golge: 0 12px 30px -10px rgba(103, 65, 217, .28), 0 2px 0 rgba(255, 255, 255, .9) inset;
+    --shadow-sm: var(--golge);
+}
+html.tema-renkli[data-tema="bulut"] body { background: var(--bg); }
+/* Betik yüklenmezse de görünen sabit renk bulutları */
+html.tema-renkli[data-tema="bulut"]:not(.bulut-hazir) body {
+    background:
+        radial-gradient(40vmax 40vmax at 10% 10%, rgba(255, 179, 199, .55), transparent 70%),
+        radial-gradient(40vmax 40vmax at 90% 30%, rgba(165, 216, 255, .55), transparent 70%),
+        radial-gradient(40vmax 40vmax at 40% 95%, rgba(255, 224, 138, .5), transparent 70%),
+        var(--bg);
+    background-attachment: fixed;
+}
+html.tema-renkli[data-tema="bulut"] :is(h1, h2, h3, .modul-yazi strong, .marka-yazi strong, .hedef-yazi strong, .tanitim-ozellikler strong) { --font: var(--baslik); font-weight: 700; letter-spacing: -.3px; }
+html.tema-renkli[data-tema="bulut"] :is(.modul-ust h1, .sayfa-baslik h1) { font-size: 36px; line-height: 1.15; }
+
+html.tema-renkli[data-tema="bulut"] .ust-bar { background: rgba(255, 255, 255, .6); backdrop-filter: blur(14px) saturate(1.4); border-bottom: 1px solid rgba(255, 255, 255, .9); }
+html.tema-renkli[data-tema="bulut"] .marka-rozet { border-radius: 42% 58% 55% 45% / 48% 42% 58% 52%; background: linear-gradient(135deg, #f472b6, #6741d9); box-shadow: 0 6px 14px rgba(103, 65, 217, .35); transform: none; }
+
+/* Buzlu cam kartlar */
+html.tema-renkli[data-tema="bulut"] :is(.panel, .card, .bilgi-liste, .sayi-kart, .modul-kutu, .rozet-kart, .ilan-kart, .hedef-kart, .giris-kart, .tanitim-ozellikler li, .kurulum-kart) {
+    border: 1.5px solid rgba(255, 255, 255, .95); border-radius: var(--r-kart); background: var(--cam); box-shadow: var(--golge);
+}
+html.tema-renkli[data-tema="bulut"] .modul-kutu { box-shadow: 0 14px 30px -12px color-mix(in srgb, var(--c, var(--primary)) 45%, transparent), 0 2px 0 rgba(255, 255, 255, .9) inset; }
+html.tema-renkli[data-tema="bulut"] .modul-kutu:hover { transform: translateY(-3px); background: #fff; }
+html.tema-renkli[data-tema="bulut"] .sayi-kart:nth-child(3n+1) { background: rgba(255, 243, 214, .9); }
+html.tema-renkli[data-tema="bulut"] .sayi-kart:nth-child(3n+2) { background: rgba(224, 240, 255, .9); }
+html.tema-renkli[data-tema="bulut"] .sayi-kart:nth-child(3n+3) { background: rgba(255, 228, 240, .9); }
+html.tema-renkli[data-tema="bulut"] .sayi-kart strong { font-family: var(--baslik); font-weight: 700; font-size: 36px; }
+
+/* Yumuşak leke ikonlar; üstüne gelince/basınca biçim değiştirir */
+html.tema-renkli[data-tema="bulut"] .modul-ikon {
+    border-radius: 42% 58% 55% 45% / 48% 42% 58% 52%; transform: none;
+    background: radial-gradient(circle at 30% 25%, color-mix(in srgb, var(--c, var(--primary)) 55%, #fff), var(--c, var(--primary)) 75%);
+    box-shadow: 0 8px 16px -6px color-mix(in srgb, var(--c, var(--primary)) 70%, transparent);
+    transition: border-radius 600ms cubic-bezier(.3, 1.5, .5, 1);
+}
+html.tema-renkli[data-tema="bulut"] .modul-kutu:nth-child(even) .modul-ikon { border-radius: 58% 42% 45% 55% / 52% 58% 42% 48%; transform: none; }
+html.tema-renkli[data-tema="bulut"] .modul-kutu:hover .modul-ikon { border-radius: 55% 45% 38% 62% / 40% 60% 40% 60%; }
+html.tema-renkli[data-tema="bulut"] .menu-item .icon { border-radius: 42% 58% 55% 45% / 48% 42% 58% 52%; }
+
+html.tema-renkli[data-tema="bulut"] .menu-item { border-radius: 999px; }
+html.tema-renkli[data-tema="bulut"] .menu-item:hover { background: rgba(255, 255, 255, .6); }
+html.tema-renkli[data-tema="bulut"] .menu-item.aktif { background: #fff; box-shadow: 0 8px 18px -8px rgba(103, 65, 217, .35); }
+html.tema-renkli[data-tema="bulut"] .yan-menu { background: rgba(255, 255, 255, .35); }
+html.tema-renkli[data-tema="bulut"] .mobile-nav { background: rgba(255, 255, 255, .85); backdrop-filter: blur(14px); border-top: 1px solid rgba(255, 255, 255, .9); }
+
+html.tema-renkli[data-tema="bulut"] .btn { border-radius: 999px; }
+html.tema-renkli[data-tema="bulut"] .btn-primary { background: linear-gradient(135deg, #7c4ff0, #6741d9 60%, #5530c4); box-shadow: 0 10px 20px -8px rgba(103, 65, 217, .7); }
+html.tema-renkli[data-tema="bulut"] .btn-secondary { background: rgba(255, 255, 255, .85); }
+html.tema-renkli[data-tema="bulut"] .sekmeler { border: 1.5px solid #fff; border-radius: 999px; background: rgba(255, 255, 255, .7); }
+html.tema-renkli[data-tema="bulut"] .sekme { border-radius: 999px; }
+html.tema-renkli[data-tema="bulut"] .sekme[aria-selected="true"] { background: var(--primary); box-shadow: 0 6px 14px -6px rgba(103, 65, 217, .7); }
+html.tema-renkli[data-tema="bulut"] :is(input, select, textarea) { border: 2px solid rgba(103, 65, 217, .2); border-radius: 16px; background: #fff; }
+html.tema-renkli[data-tema="bulut"] :is(input, select, textarea):focus { border-color: var(--primary); }
+
+html.tema-renkli[data-tema="bulut"] .hedef-cubuk { height: 16px; background: rgba(103, 65, 217, .1); }
+html.tema-renkli[data-tema="bulut"] .hedef-cubuk span { background: linear-gradient(90deg, #fda4af, #c4b5fd, #93c5fd); }
+html.tema-renkli[data-tema="bulut"] .avatar-rozet:not(.bos), html.tema-renkli[data-tema="bulut"] .avatar.emoji { background: #fff; box-shadow: 0 8px 18px -6px rgba(103, 65, 217, .45); }
+html.tema-renkli[data-tema="bulut"] .tanitim-adimlar li::before { background: linear-gradient(135deg, #f472b6, #6741d9); color: #fff; }
+html.tema-renkli[data-tema="bulut"] .tanitim-bolum { border-top: 1.5px solid rgba(103, 65, 217, .15); }
+
+/* --- Etkileşim (js/temalar/bulut.js) --- */
+.renk-bulut { position: absolute; left: var(--x); top: var(--y); width: var(--g); height: var(--g); margin: calc(var(--g) / -2) 0 0 calc(var(--g) / -2); transition: transform 1600ms cubic-bezier(.2, .7, .3, 1); will-change: transform; }
+.renk-bulut i { position: absolute; inset: 0; border-radius: 50%; background: radial-gradient(circle, var(--renk) 0%, color-mix(in srgb, var(--renk) 40%, transparent) 40%, transparent 70%); animation: bulut-dolas var(--t) ease-in-out infinite alternate; animation-delay: var(--gecikme); }
+@keyframes bulut-dolas {
+    0% { transform: translate(0, 0) scale(1); }
+    50% { transform: translate(6vw, -4vh) scale(1.12); }
+    100% { transform: translate(-5vw, 5vh) scale(.92); }
+}
+.boya-damla { position: absolute; width: 80px; height: 80px; margin: -40px 0 0 -40px; background: var(--renk); opacity: .7; animation: damla-yayil 1100ms cubic-bezier(.2, .8, .3, 1) forwards; will-change: transform, opacity, border-radius; }
+@keyframes damla-yayil {
+    0% { transform: scale(0); border-radius: 50%; opacity: .85; }
+    35% { transform: scale(1.05); border-radius: 42% 58% 55% 45% / 48% 42% 58% 52%; }
+    60% { transform: scale(1.25); border-radius: 58% 42% 45% 55% / 40% 60% 40% 60%; opacity: .55; }
+    100% { transform: scale(1.7); border-radius: 50% 50% 40% 60% / 55% 45% 55% 45%; opacity: 0; }
+}
+.boya-zerre { position: absolute; width: var(--s); height: var(--s); margin: calc(var(--s) / -2) 0 0 calc(var(--s) / -2); border-radius: 50%; background: var(--renk); animation: zerre-sic 800ms cubic-bezier(.2, .7, .4, 1) forwards; }
+@keyframes zerre-sic { from { transform: translate(0, 0) scale(1); opacity: .9; } to { transform: translate(var(--dx), var(--dy)) scale(.3); opacity: 0; } }

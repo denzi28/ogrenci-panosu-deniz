@@ -1,0 +1,96 @@
+/* TEMA 7 — GÜN DOĞUMU TEPELERİ (etkileşimli)
+   İlham: katmanlı dalga ve tepe üreteçleri (Haikei tarzı "layered peaks"). Burada sıfırdan yazıldı, dosya alınmadı.
+   Fikir: şeftali-lila gün doğumu gökyüzü, dipte üst üste dört pastel tepe. Tepeler her açılışta biraz farklı çizilir;
+   fare/parmak hareket edince katmanlar farklı hızda kayar (derinlik hissi). Dokununca o noktadan bir uçurtma yükselir.
+   Bölüm ikonları küçük tepe (kubbe) biçiminde. Yazı: başlıklar Quicksand (yuvarlak), gövde Nunito. */
+@import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap');
+
+html.tema-renkli[data-tema="tepe"] {
+    --font: 'Nunito', system-ui, sans-serif;
+    --baslik: 'Quicksand', 'Nunito', sans-serif;
+    --bg: #fff1e6;
+    --surface: #ffffff;
+    --surface-2: #f6f0ff;
+    --ink: #2e2550;
+    --text: #2e2550;
+    --text-2: #4a3f6b;
+    --muted: #5b5078;
+    --hairline: rgba(46, 37, 80, .12);
+    --hairline-strong: rgba(46, 37, 80, .24);
+    --primary: #0f766e;
+    --primary-hover: #115e59;
+    --primary-soft: #d5f5ef;
+    --tepe-1: #e6dcff; --tepe-2: #cdeee4; --tepe-3: #b8e6d2; --tepe-4: #a3dcc1;
+    --r-panel: 24px; --r-kart: 22px; --r-kontrol: 14px;
+    --golge: 0 6px 0 rgba(109, 80, 170, .10), 0 14px 28px -12px rgba(109, 80, 170, .35);
+    --shadow-sm: var(--golge);
+}
+/* Gökyüzü ve güneş */
+html.tema-renkli[data-tema="tepe"] body {
+    background:
+        radial-gradient(circle at 82% 16%, #fff7c2 0 46px, rgba(255, 214, 140, .45) 47px 90px, rgba(255, 214, 140, 0) 160px),
+        linear-gradient(180deg, #ffeedd 0%, #ffe6ee 45%, #efe8ff 100%);
+    background-attachment: fixed;
+}
+/* Betik yüklenmezse de duran sade tepeler */
+html.tema-renkli[data-tema="tepe"]:not(.tepe-hazir) body::after {
+    content: ""; position: fixed; left: 0; right: 0; bottom: 0; height: 22vh; z-index: -1; pointer-events: none;
+    background: radial-gradient(120% 100% at 30% 100%, var(--tepe-3) 60%, transparent 61%), radial-gradient(110% 90% at 85% 100%, var(--tepe-2) 60%, transparent 61%);
+}
+html.tema-renkli[data-tema="tepe"] :is(h1, h2, h3, .modul-yazi strong, .marka-yazi strong, .hedef-yazi strong, .tanitim-ozellikler strong) { --font: var(--baslik); font-weight: 700; letter-spacing: -.1px; }
+html.tema-renkli[data-tema="tepe"] :is(.modul-ust h1, .sayfa-baslik h1) { font-size: 38px; line-height: 1.1; }
+
+html.tema-renkli[data-tema="tepe"] .ust-bar { background: rgba(255, 241, 230, .9); backdrop-filter: blur(6px); border-bottom: 2px solid rgba(46, 37, 80, .07); }
+html.tema-renkli[data-tema="tepe"] .marka-rozet { border-radius: 50% 50% 10px 10px; background: linear-gradient(180deg, #5eead4, #0f766e); box-shadow: 0 3px 0 #134e4a; transform: none; }
+
+html.tema-renkli[data-tema="tepe"] :is(.panel, .card, .bilgi-liste, .sayi-kart, .modul-kutu, .rozet-kart, .ilan-kart, .hedef-kart, .giris-kart, .tanitim-ozellikler li, .kurulum-kart) {
+    border: 0; border-radius: var(--r-kart); background: var(--surface); box-shadow: var(--golge);
+}
+html.tema-renkli[data-tema="tepe"] .modul-kutu { box-shadow: 0 6px 0 color-mix(in srgb, var(--c, var(--primary)) 25%, #ece4fb), 0 14px 28px -14px rgba(109, 80, 170, .35); }
+html.tema-renkli[data-tema="tepe"] .modul-kutu:hover { transform: translateY(-3px); }
+html.tema-renkli[data-tema="tepe"] .sayi-kart:nth-child(3n+1) { background: #fff3d6; }
+html.tema-renkli[data-tema="tepe"] .sayi-kart:nth-child(3n+2) { background: #e3f7f0; }
+html.tema-renkli[data-tema="tepe"] .sayi-kart:nth-child(3n+3) { background: #f0e8ff; }
+html.tema-renkli[data-tema="tepe"] .sayi-kart strong { font-family: var(--baslik); font-weight: 700; font-size: 38px; }
+
+/* Tepe biçimli ikonlar */
+html.tema-renkli[data-tema="tepe"] .modul-ikon { border-radius: 50% 50% 14px 14px / 60% 60% 14px 14px; transform: none; box-shadow: inset 0 -6px 0 rgba(0, 0, 0, .12), 0 3px 0 color-mix(in srgb, var(--c, var(--primary)) 60%, #000); }
+html.tema-renkli[data-tema="tepe"] .modul-kutu:nth-child(even) .modul-ikon { transform: none; }
+html.tema-renkli[data-tema="tepe"] .menu-item .icon { border-radius: 50% 50% 8px 8px / 60% 60% 8px 8px; }
+
+html.tema-renkli[data-tema="tepe"] .menu-item { border-radius: 999px; }
+html.tema-renkli[data-tema="tepe"] .menu-item:hover { background: rgba(255, 255, 255, .7); }
+html.tema-renkli[data-tema="tepe"] .menu-item.aktif { background: #fff; box-shadow: 0 4px 0 rgba(109, 80, 170, .12); }
+html.tema-renkli[data-tema="tepe"] .mobile-nav { background: rgba(255, 255, 255, .96); border-top: 0; box-shadow: 0 -6px 18px rgba(109, 80, 170, .12); }
+
+html.tema-renkli[data-tema="tepe"] .btn { border-radius: 999px; }
+html.tema-renkli[data-tema="tepe"] .btn-primary { background: var(--primary); box-shadow: 0 4px 0 #134e4a; }
+html.tema-renkli[data-tema="tepe"] .sekme[aria-selected="true"] { background: var(--primary); box-shadow: 0 3px 0 #134e4a; }
+html.tema-renkli[data-tema="tepe"] .sekmeler { border: 0; border-radius: 999px; box-shadow: var(--golge); }
+html.tema-renkli[data-tema="tepe"] .sekme { border-radius: 999px; }
+html.tema-renkli[data-tema="tepe"] :is(input, select, textarea) { border: 2px solid #e2d8f5; border-radius: 14px; background: #fff; }
+html.tema-renkli[data-tema="tepe"] :is(input, select, textarea):focus { border-color: var(--primary); }
+
+/* Hedef çubuğu: gün doğumu */
+html.tema-renkli[data-tema="tepe"] .hedef-cubuk { height: 16px; background: #f1ecfa; }
+html.tema-renkli[data-tema="tepe"] .hedef-cubuk span { background: linear-gradient(90deg, #fdba74, #f472b6, #a78bfa); }
+html.tema-renkli[data-tema="tepe"] .avatar-rozet:not(.bos), html.tema-renkli[data-tema="tepe"] .avatar.emoji { background: #fff3d6; box-shadow: 0 0 0 3px #fff, 0 6px 14px rgba(109, 80, 170, .25); }
+html.tema-renkli[data-tema="tepe"] .tanitim-adimlar li::before { background: var(--primary); color: #fff; border-radius: 50% 50% 8px 8px; }
+html.tema-renkli[data-tema="tepe"] .tanitim-bolum { border-top: 2px dashed var(--hairline-strong); }
+
+/* --- Etkileşim (js/temalar/tepe.js) --- */
+.tepe-katman { position: absolute; left: -40px; right: -40px; bottom: -10px; will-change: transform; transition: transform 500ms cubic-bezier(.2, .8, .3, 1); }
+.tepe-katman svg { display: block; width: 100%; height: 100%; }
+.bulutcuk { position: absolute; left: 0; top: var(--ust); width: var(--g); height: calc(var(--g) * .42); opacity: .9; animation: bulut-gec var(--t) linear infinite; animation-delay: var(--gecikme); will-change: transform; }
+.bulutcuk::before { content: ""; position: absolute; inset: 0; border-radius: 999px; background: #fff; box-shadow: calc(var(--g) * .22) calc(var(--g) * -.16) 0 calc(var(--g) * .02) #fff, calc(var(--g) * -.18) calc(var(--g) * -.08) 0 calc(var(--g) * -.04) #fff; }
+@keyframes bulut-gec { from { transform: translateX(-200px); } to { transform: translateX(calc(100vw + 200px)); } }
+.ucurtma { position: absolute; width: 44px; margin: -30px 0 0 -22px; animation: ucurtma-yuksel 2600ms cubic-bezier(.3, .2, .4, 1) forwards; will-change: transform, opacity; }
+.ucurtma svg { display: block; width: 100%; height: auto; overflow: visible; animation: ucurtma-salin 600ms ease-in-out infinite alternate; transform-origin: 50% 20%; }
+@keyframes ucurtma-yuksel {
+    0% { transform: translate(0, 10px) scale(.3); opacity: 0; }
+    12% { transform: translate(0, 0) scale(1); opacity: 1; }
+    70% { opacity: 1; }
+    100% { transform: translate(var(--x), -280px) scale(.85); opacity: 0; }
+}
+@keyframes ucurtma-salin { from { transform: rotate(-10deg); } to { transform: rotate(10deg); } }

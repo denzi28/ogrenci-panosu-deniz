@@ -10,6 +10,9 @@
     // Seçilen tema kalıcı olunca bu kısım sadeleşir, seçici kaldırılır.
     var TEMALAR = [
         ['', 'Şimdiki renkli tema'],
+        ['tepe', 'Gün Doğumu Tepeleri', 'yeni · uçurtma'],
+        ['bulut', 'Renk Bulutları', 'yeni · boya'],
+        ['piksel', 'Piksel Dünyası', 'yeni · piksel'],
         ['okyanus', 'Okyanus', 'dokun: kabarcık'],
         ['bahce', 'Sihirli Bahçe', 'dokun: çiçek'],
         ['robot', 'Robot Atölyesi', 'dokun: Bip'],
@@ -17,7 +20,7 @@
         ['uzay', 'Uzay Macerası'],
         ['seker', 'Şeker Kili']
     ];
-    var ETKILESIMLI = ['okyanus', 'bahce', 'robot'];
+    var ETKILESIMLI = ['tepe', 'bulut', 'piksel', 'okyanus', 'bahce', 'robot'];
     var t = '';
     try {
         var q = new URLSearchParams(location.search).get('tema');
@@ -49,7 +52,7 @@
         liste.id = 'tema-secici-liste';
         dugme.setAttribute('aria-controls', liste.id);
         TEMALAR.forEach(function (x, i) {
-            if (i === 4) { var ay = document.createElement('li'); ay.className = 'ayrac'; ay.setAttribute('aria-hidden', 'true'); liste.appendChild(ay); }
+            if (i === 1 || i === 7) { var ay = document.createElement('li'); ay.className = 'ayrac'; ay.setAttribute('aria-hidden', 'true'); liste.appendChild(ay); }
             var li = document.createElement('li'), a = document.createElement('a');
             a.href = '#';
             a.textContent = x[1];

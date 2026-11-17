@@ -1,0 +1,96 @@
+/* TEMA 9 — PİKSEL DÜNYASI (etkileşimli)
+   İlham: piksel sanatı ve tekrar eden desen üreteçleri (dama, kare ızgara). Burada sıfırdan yazıldı; hiçbir oyunun
+   karakteri, görseli ya da müziği kullanılmadı.
+   Fikir: açık mavi dama zemin, kalın mürekkep çerçeveli kare kartlar, sert gölgeli "basılan" düğmeler, blok blok dolan hedef çubuğu.
+   Gökte kesik kesik (8-bit gibi) ilerleyen piksel bulutlar. Dokununca piksel yıldız ve kalpler saçılır (js/temalar/piksel.js).
+   Yazı: başlıklar Pixelify Sans (piksel harf, okunaklı), gövde Lexend (okuma kolaylığı için). */
+@import url('https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700&display=swap');
+
+html.tema-renkli[data-tema="piksel"] {
+    --font: 'Lexend', system-ui, sans-serif;
+    --baslik: 'Pixelify Sans', 'Lexend', monospace;
+    --bg: #eaf3ff;
+    --surface: #ffffff;
+    --surface-2: #eef5ff;
+    --ink: #241c46;
+    --text: #241c46;
+    --text-2: #443a6e;
+    --muted: #554b80;
+    --hairline: rgba(36, 28, 70, .14);
+    --hairline-strong: rgba(36, 28, 70, .3);
+    --primary: #2457d6;
+    --primary-hover: #1b44ad;
+    --primary-soft: #dbe7ff;
+    --kalin: 4px;
+    --r-panel: 0; --r-kart: 0; --r-kontrol: 0; --r-kucuk: 0;
+    --golge: 6px 6px 0 rgba(36, 28, 70, .22);
+    --shadow-sm: var(--golge);
+}
+/* Dama zemin */
+html.tema-renkli[data-tema="piksel"] body {
+    background:
+        conic-gradient(#e1edff 25%, #eaf3ff 0 50%, #e1edff 0 75%, #eaf3ff 0) 0 0 / 48px 48px;
+    background-attachment: fixed;
+}
+html.tema-renkli[data-tema="piksel"] :is(h1, h2, h3, .modul-yazi strong, .marka-yazi strong, .hedef-yazi strong, .tanitim-ozellikler strong) { --font: var(--baslik); font-weight: 600; letter-spacing: .5px; }
+html.tema-renkli[data-tema="piksel"] :is(.modul-ust h1, .sayfa-baslik h1) { font-size: 40px; line-height: 1.05; }
+html.tema-renkli[data-tema="piksel"] .tanitim-metin h1 { font-weight: 700; }
+
+html.tema-renkli[data-tema="piksel"] .ust-bar { background: #fff; border-bottom: var(--kalin) solid var(--ink); }
+html.tema-renkli[data-tema="piksel"] .marka-rozet { border-radius: 0; background: var(--primary); color: #fff; box-shadow: 3px 3px 0 var(--ink), inset 0 0 0 3px var(--ink); transform: none; font-family: var(--baslik); }
+
+/* Kalın çerçeveli kare kartlar, sert gölge */
+html.tema-renkli[data-tema="piksel"] :is(.panel, .card, .bilgi-liste, .sayi-kart, .modul-kutu, .rozet-kart, .ilan-kart, .hedef-kart, .giris-kart, .tanitim-ozellikler li, .kurulum-kart) {
+    border: var(--kalin) solid var(--ink); border-radius: 0; background: var(--surface); box-shadow: var(--golge);
+}
+html.tema-renkli[data-tema="piksel"] .panel-ust { border-bottom: var(--kalin) dotted var(--hairline-strong); }
+html.tema-renkli[data-tema="piksel"] .modul-kutu { box-shadow: 6px 6px 0 color-mix(in srgb, var(--c, var(--primary)) 55%, var(--ink)); transition: transform 80ms steps(2), box-shadow 80ms steps(2); }
+html.tema-renkli[data-tema="piksel"] .modul-kutu:hover { transform: translate(-2px, -2px); box-shadow: 8px 8px 0 color-mix(in srgb, var(--c, var(--primary)) 55%, var(--ink)); }
+html.tema-renkli[data-tema="piksel"] .modul-kutu:active { transform: translate(6px, 6px); box-shadow: 0 0 0 transparent; }
+html.tema-renkli[data-tema="piksel"] .sayi-kart:nth-child(3n+1) { background: #fff4c9; }
+html.tema-renkli[data-tema="piksel"] .sayi-kart:nth-child(3n+2) { background: #d9f7e4; }
+html.tema-renkli[data-tema="piksel"] .sayi-kart:nth-child(3n+3) { background: #ffe0ec; }
+html.tema-renkli[data-tema="piksel"] .sayi-kart strong { font-family: var(--baslik); font-weight: 700; font-size: 40px; }
+
+/* Kare ikonlar */
+html.tema-renkli[data-tema="piksel"] :is(.modul-ikon, .menu-item .icon) { border-radius: 0; transform: none; box-shadow: inset 0 0 0 3px var(--ink), 3px 3px 0 var(--ink); }
+html.tema-renkli[data-tema="piksel"] .modul-kutu:nth-child(even) .modul-ikon { transform: none; }
+html.tema-renkli[data-tema="piksel"] .modul-ok { border-radius: 0; box-shadow: inset 0 0 0 2px currentColor; }
+
+html.tema-renkli[data-tema="piksel"] .menu-item { border-radius: 0; }
+html.tema-renkli[data-tema="piksel"] .menu-item:hover { background: #fff; }
+html.tema-renkli[data-tema="piksel"] .menu-item.aktif { background: #fff; box-shadow: inset 0 0 0 3px var(--ink), 4px 4px 0 var(--ink); }
+html.tema-renkli[data-tema="piksel"] .yan-menu { border-right: var(--kalin) solid var(--ink); background: #f5f9ff; }
+html.tema-renkli[data-tema="piksel"] .mobile-nav { background: #fff; border-top: var(--kalin) solid var(--ink); border-radius: 0; }
+html.tema-renkli[data-tema="piksel"] .mobile-nav a { font-family: var(--baslik); }
+
+/* Basılan düğmeler */
+html.tema-renkli[data-tema="piksel"] .btn { border-radius: 0; border: 3px solid var(--ink); box-shadow: 4px 4px 0 var(--ink); font-family: var(--baslik); font-weight: 600; letter-spacing: .4px; transition: transform 60ms steps(2), box-shadow 60ms steps(2); }
+html.tema-renkli[data-tema="piksel"] .btn:active { transform: translate(4px, 4px); box-shadow: 0 0 0 var(--ink); }
+html.tema-renkli[data-tema="piksel"] .btn-secondary { background: #fff; color: var(--ink); }
+html.tema-renkli[data-tema="piksel"] .sekmeler { border: 3px solid var(--ink); border-radius: 0; box-shadow: 4px 4px 0 var(--ink); }
+html.tema-renkli[data-tema="piksel"] .sekme { border-radius: 0; font-family: var(--baslik); }
+html.tema-renkli[data-tema="piksel"] .sekme[aria-selected="true"] { background: var(--primary); box-shadow: none; }
+html.tema-renkli[data-tema="piksel"] :is(input, select, textarea) { border: 3px solid var(--ink); border-radius: 0; background: #fff; }
+html.tema-renkli[data-tema="piksel"] :is(input, select, textarea):focus { outline: 3px solid var(--primary); outline-offset: 2px; }
+html.tema-renkli[data-tema="piksel"] .etiket { border-radius: 0; box-shadow: inset 0 0 0 2px currentColor; }
+
+/* Blok blok dolan hedef çubuğu */
+html.tema-renkli[data-tema="piksel"] .hedef-cubuk { height: 20px; border-radius: 0; border: 3px solid var(--ink); background: #fff; padding: 2px; }
+html.tema-renkli[data-tema="piksel"] .hedef-cubuk span { border-radius: 0; background: repeating-linear-gradient(90deg, #22c55e 0 10px, transparent 10px 13px); }
+html.tema-renkli[data-tema="piksel"] .avatar-rozet:not(.bos), html.tema-renkli[data-tema="piksel"] .avatar.emoji { border-radius: 0; background: #fff4c9; box-shadow: inset 0 0 0 3px var(--ink), 3px 3px 0 var(--ink); }
+html.tema-renkli[data-tema="piksel"] .avatar-rozet.bos, html.tema-renkli[data-tema="piksel"] .avatar { border-radius: 0; }
+html.tema-renkli[data-tema="piksel"] .tanitim-adimlar li::before { border-radius: 0; background: var(--primary); color: #fff; box-shadow: 3px 3px 0 var(--ink); font-family: var(--baslik); }
+html.tema-renkli[data-tema="piksel"] .tanitim-bolum { border-top: var(--kalin) dotted var(--hairline-strong); }
+html.tema-renkli[data-tema="piksel"] .tahta { border-radius: 0; }
+
+/* --- Etkileşim (js/temalar/piksel.js) --- */
+.piksel-parca { position: absolute; width: 4px; height: 4px; margin: -14px 0 0 -14px; animation: piksel-sic 700ms steps(7) forwards; image-rendering: pixelated; }
+@keyframes piksel-sic {
+    0% { transform: translate(0, 0) scale(1); opacity: 1; }
+    80% { opacity: 1; }
+    100% { transform: translate(var(--dx), var(--dy)) scale(.8); opacity: 0; }
+}
+.piksel-bulut { position: absolute; left: 0; top: var(--ust); width: 8px; height: 8px; animation: piksel-gec var(--t) steps(var(--adim)) infinite; animation-delay: var(--gecikme); opacity: .95; }
+@keyframes piksel-gec { from { transform: translateX(-140px); } to { transform: translateX(calc(100vw + 140px)); } }

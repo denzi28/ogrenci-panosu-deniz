@@ -1,0 +1,12 @@
+/* Tema önizleme seçicisi (sadece öneri dalında; tema seçilince kaldırılacak) */
+.tema-secici { position: fixed; left: 12px; bottom: calc(var(--alt-menu-h, 64px) + 12px + env(safe-area-inset-bottom)); z-index: 2600; font: 600 14px/1.2 system-ui, sans-serif; }
+@media (min-width: 1000px) { .tema-secici { bottom: 16px; } }
+.tema-secici > button { display: flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 14px; border-radius: 999px; border: 2px solid #fff; background: #1f2937; color: #fff; cursor: pointer; box-shadow: 0 6px 18px rgba(0, 0, 0, .25); font: inherit; }
+.tema-secici ul { position: absolute; left: 0; bottom: calc(100% + 8px); list-style: none; margin: 0; padding: 6px; min-width: 230px; background: #fff; color: #1f2937; border-radius: 16px; box-shadow: 0 12px 32px rgba(0, 0, 0, .25); }
+.tema-secici ul[hidden] { display: none; }
+.tema-secici li a { display: flex; justify-content: space-between; gap: 12px; padding: 10px 12px; border-radius: 10px; color: inherit; text-decoration: none; }
+.tema-secici li a:hover, .tema-secici li a:focus-visible { background: #f1f5f9; }
+.tema-secici li a[aria-current="true"] { background: #1f2937; color: #fff; }
+.tema-secici li small { font-weight: 600; color: #b45309; }
+.tema-secici li a[aria-current="true"] small { color: #fcd34d; }
+.tema-secici .ayrac { height: 1px; background: #e5e7eb; margin: 4px 8px; }

@@ -1,0 +1,5 @@
+/* Etkileşimli temaların ortak katmanı (okyanus, bahçe, robot). Efektler tıklamayı engellemez, yazdırılmaz. */
+.tema-katman { position: fixed; inset: 0; pointer-events: none; z-index: 2500; overflow: hidden; contain: strict; }
+.tema-katman.arkada { z-index: -1; }
+html.tema-durgun .tema-katman *, html.tema-durgun .tema-katman { animation-play-state: paused !important; }
+@media print { .tema-katman, .bip, .tema-secici { display: none !important; } }

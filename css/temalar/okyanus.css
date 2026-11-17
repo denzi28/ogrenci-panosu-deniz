@@ -1,0 +1,120 @@
+/* TEMA 4 — OKYANUS (etkileşimli)
+   Fikir: sınıf bir mercan resifi. Açık deniz mavisi zemin, yukarıdan süzülen ışık, dipte kum ve yosun;
+   arkada yavaşça yüzen üç balık. Ekrana dokununca parmağın altından kabarcıklar yükselir (js/temalar/okyanus.js).
+   Bölüm ikonları parlak kabarcıklar, düğmeler hap biçimli. Yazılar hep açık zemin üstünde koyu.
+   Yazı: başlıklar Sniglet (yuvarlak, neşeli), gövde Nunito (okunaklı). */
+@import url('https://fonts.googleapis.com/css2?family=Sniglet:wght@400;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap');
+
+html.tema-renkli[data-tema="okyanus"] {
+    --font: 'Nunito', system-ui, sans-serif;
+    --baslik: 'Sniglet', 'Nunito', sans-serif;
+    --deniz: #d9f3fa;
+    --bg: #d9f3fa;
+    --surface: #ffffff;
+    --surface-2: #e8f8fd;
+    --ink: #0b3a53;
+    --text: #0b3a53;
+    --text-2: #2a5770;
+    --muted: #3d6479;
+    --hairline: rgba(11, 58, 83, .12);
+    --hairline-strong: rgba(11, 58, 83, .24);
+    --primary: #0369a1;
+    --primary-hover: #075985;
+    --primary-soft: #dbf0fb;
+    --mercan: #f472b6;
+    --r-panel: 26px; --r-kart: 24px; --r-kontrol: 16px;
+    --golge: 0 6px 0 rgba(3, 105, 161, .12), 0 12px 24px -8px rgba(3, 105, 161, .25);
+    --shadow-sm: var(--golge);
+}
+/* Deniz: üstten süzülen ışık huzmeleri, aşağı indikçe koyulaşan mavi */
+html.tema-renkli[data-tema="okyanus"] body {
+    background:
+        linear-gradient(104deg, transparent 18%, rgba(255, 255, 255, .45) 22%, transparent 28%),
+        linear-gradient(98deg, transparent 52%, rgba(255, 255, 255, .35) 55%, transparent 61%),
+        linear-gradient(110deg, transparent 74%, rgba(255, 255, 255, .3) 77%, transparent 82%),
+        linear-gradient(180deg, #ecfbff 0%, #d4f1f9 45%, #b7e6f3 100%);
+    background-attachment: fixed;
+}
+/* Dipte kum ve sallanmayan yosunlar (sabit süs, içeriğin arkasında) */
+html.tema-renkli[data-tema="okyanus"] body::after {
+    content: ""; position: fixed; left: 0; right: 0; bottom: 0; height: 110px; z-index: -1; pointer-events: none;
+    background:
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 110' preserveAspectRatio='none'%3E%3Cpath d='M30 110 C20 80 44 70 32 44 C26 30 40 18 36 6' stroke='%2334a37a' stroke-width='9' fill='none' stroke-linecap='round'/%3E%3Cpath d='M52 110 C60 86 44 74 56 52' stroke='%2322c55e' stroke-width='7' fill='none' stroke-linecap='round'/%3E%3Cpath d='M300 110 C290 84 312 70 300 40 C296 28 306 18 304 10' stroke='%2334a37a' stroke-width='9' fill='none' stroke-linecap='round'/%3E%3Ccircle cx='350' cy='96' r='14' fill='%23fb7185'/%3E%3Ccircle cx='366' cy='88' r='9' fill='%23f472b6'/%3E%3Ccircle cx='160' cy='100' r='10' fill='%23fbbf24'/%3E%3C/svg%3E") bottom / 100% 110px no-repeat,
+        radial-gradient(120% 60px at 50% 100%, #f6dfae 0 70%, transparent 71%) bottom / 100% 60px no-repeat;
+}
+html.tema-renkli[data-tema="okyanus"] :is(h1, h2, h3, .modul-yazi strong, .marka-yazi strong, .hedef-yazi strong, .tanitim-ozellikler strong) { --font: var(--baslik); font-weight: 800; letter-spacing: .2px; }
+html.tema-renkli[data-tema="okyanus"] :is(.modul-ust h1, .sayfa-baslik h1) { font-size: 38px; line-height: 1.1; }
+
+/* Üst çubuk: su yüzeyi, altında dalga */
+html.tema-renkli[data-tema="okyanus"] .ust-bar { background: rgba(236, 251, 255, .92); backdrop-filter: blur(6px); border-bottom: 0; }
+html.tema-renkli[data-tema="okyanus"] .ust-bar::after {
+    content: ""; position: absolute; left: 0; right: 0; bottom: -11px; height: 12px; pointer-events: none;
+    background: radial-gradient(circle at 12px -4px, rgba(236, 251, 255, .92) 13px, transparent 14px) 0 0 / 24px 12px repeat-x;
+}
+html.tema-renkli[data-tema="okyanus"] .marka-rozet { border-radius: 50%; background: radial-gradient(circle at 32% 28%, #7dd3fc, #0369a1 70%); box-shadow: inset -3px -4px 6px rgba(0, 0, 0, .2), 0 3px 0 #024a72; transform: none; }
+
+/* Kartlar: yumuşak, yuvarlak, hafif dalgalı gölge */
+html.tema-renkli[data-tema="okyanus"] :is(.panel, .card, .bilgi-liste, .sayi-kart, .modul-kutu, .rozet-kart, .ilan-kart, .hedef-kart, .giris-kart, .tanitim-ozellikler li, .kurulum-kart) {
+    border: 0; border-radius: var(--r-kart); background: var(--surface); box-shadow: var(--golge);
+}
+html.tema-renkli[data-tema="okyanus"] .modul-kutu { box-shadow: 0 6px 0 color-mix(in srgb, var(--c, var(--primary)) 28%, #cfeaf3), 0 12px 24px -10px rgba(3, 105, 161, .3); }
+html.tema-renkli[data-tema="okyanus"] .modul-kutu:hover { transform: translateY(-3px); }
+html.tema-renkli[data-tema="okyanus"] .sayi-kart:nth-child(3n+1) { background: #e0f7ff; }
+html.tema-renkli[data-tema="okyanus"] .sayi-kart:nth-child(3n+2) { background: #ffe9f2; }
+html.tema-renkli[data-tema="okyanus"] .sayi-kart:nth-child(3n+3) { background: #fff4d9; }
+html.tema-renkli[data-tema="okyanus"] .sayi-kart strong { font-family: var(--baslik); font-weight: 800; font-size: 38px; }
+
+/* Bölüm ikonları: parlak kabarcıklar */
+html.tema-renkli[data-tema="okyanus"] :is(.modul-ikon, .menu-item .icon) {
+    border-radius: 50%; transform: none;
+    background: radial-gradient(circle at 30% 26%, rgba(255, 255, 255, .75) 0 14%, transparent 15%), radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--c, var(--primary)) 85%, #fff), var(--c, var(--primary)) 70%);
+    box-shadow: inset -3px -5px 8px rgba(0, 0, 0, .18), 0 3px 0 color-mix(in srgb, var(--c, var(--primary)) 60%, #000);
+}
+html.tema-renkli[data-tema="okyanus"] .modul-kutu:nth-child(even) .modul-ikon { transform: none; }
+html.tema-renkli[data-tema="okyanus"] .modul-ok { border-radius: 50%; }
+
+/* Menü */
+html.tema-renkli[data-tema="okyanus"] .menu-item { border-radius: 999px; }
+html.tema-renkli[data-tema="okyanus"] .menu-item:hover { background: rgba(255, 255, 255, .65); }
+html.tema-renkli[data-tema="okyanus"] .menu-item.aktif { background: #fff; box-shadow: 0 4px 0 rgba(3, 105, 161, .15); }
+html.tema-renkli[data-tema="okyanus"] .mobile-nav { background: rgba(255, 255, 255, .96); border-top: 0; box-shadow: 0 -6px 18px rgba(3, 105, 161, .12); }
+
+/* Düğmeler: hap biçimli, üstte ışık yansıması */
+html.tema-renkli[data-tema="okyanus"] .btn { border-radius: 999px; }
+html.tema-renkli[data-tema="okyanus"] .btn-primary { background: linear-gradient(180deg, #0a7fc0 0%, #0369a1 55%); box-shadow: 0 4px 0 #024a72, inset 0 2px 0 rgba(255, 255, 255, .3); }
+html.tema-renkli[data-tema="okyanus"] .btn-primary:hover { background: linear-gradient(180deg, #0369a1, #075985); }
+html.tema-renkli[data-tema="okyanus"] .sekmeler { border: 0; border-radius: 999px; box-shadow: var(--golge); }
+html.tema-renkli[data-tema="okyanus"] .sekme { border-radius: 999px; }
+html.tema-renkli[data-tema="okyanus"] .sekme[aria-selected="true"] { background: var(--primary); box-shadow: 0 3px 0 #024a72; }
+html.tema-renkli[data-tema="okyanus"] :is(input, select, textarea) { border: 2px solid rgba(3, 105, 161, .25); border-radius: 16px; background: #fff; }
+html.tema-renkli[data-tema="okyanus"] :is(input, select, textarea):focus { border-color: var(--primary); }
+
+/* Hedef çubuğu: dolan su */
+html.tema-renkli[data-tema="okyanus"] .hedef-cubuk { height: 16px; background: #d6eef6; box-shadow: inset 0 2px 4px rgba(3, 105, 161, .15); }
+html.tema-renkli[data-tema="okyanus"] .hedef-cubuk span { background: radial-gradient(circle at 6px 3px, rgba(255, 255, 255, .7) 2px, transparent 3px) 0 0 / 14px 16px, linear-gradient(90deg, #38bdf8, #0369a1); }
+html.tema-renkli[data-tema="okyanus"] .avatar-rozet:not(.bos), html.tema-renkli[data-tema="okyanus"] .avatar.emoji { background: #e0f7ff; box-shadow: 0 0 0 3px #fff, 0 4px 10px rgba(3, 105, 161, .25); }
+html.tema-renkli[data-tema="okyanus"] .tanitim-adimlar li::before { background: radial-gradient(circle at 30% 28%, #7dd3fc, #0369a1 70%); color: #fff; }
+html.tema-renkli[data-tema="okyanus"] .tanitim-bolum { border-top: 2px dashed var(--hairline-strong); }
+
+/* --- Etkileşim: kabarcıklar ve balıklar (js/temalar/okyanus.js) --- */
+.kabarcik {
+    position: absolute; width: var(--s); height: var(--s); margin: calc(var(--s) / -2) 0 0 calc(var(--s) / -2); border-radius: 50%;
+    background: radial-gradient(circle at 32% 30%, #fff 0 14%, rgba(255, 255, 255, .25) 16%, rgba(125, 211, 252, .28) 62%, rgba(14, 165, 233, .22));
+    border: 2.5px solid rgba(255, 255, 255, .95); box-shadow: 0 0 0 1.5px rgba(3, 105, 161, .45), inset 0 -3px 6px rgba(3, 105, 161, .25);
+    animation: kabarcik var(--t) cubic-bezier(.2, .6, .4, 1) forwards; will-change: transform, opacity;
+}
+@keyframes kabarcik {
+    0% { transform: translate(0, 0) scale(.2); opacity: 0; }
+    12% { opacity: 1; }
+    35% { transform: translate(calc(var(--x) * -.6), calc(var(--y) * .35)) scale(.85); }
+    65% { transform: translate(calc(var(--x) * .6), calc(var(--y) * .7)) scale(1); opacity: 1; }
+    100% { transform: translate(var(--x), var(--y)) scale(1.1); opacity: 0; }
+}
+.balik { position: absolute; left: 0; top: var(--ust); width: var(--g); opacity: .5; animation: yuz var(--t) linear infinite; animation-delay: var(--gecikme); will-change: transform; }
+.balik svg { display: block; width: 100%; height: auto; animation: salin 2.6s ease-in-out infinite alternate; }
+.balik.ters { animation-direction: reverse; }
+.balik.ters svg { transform: scaleX(-1); animation-name: salin-ters; }
+@keyframes yuz { from { transform: translateX(-160px); } to { transform: translateX(calc(100vw + 160px)); } }
+@keyframes salin { from { transform: translateY(-6px); } to { transform: translateY(6px); } }
+@keyframes salin-ters { from { transform: scaleX(-1) translateY(-6px); } to { transform: scaleX(-1) translateY(6px); } }

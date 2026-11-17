@@ -1,0 +1,111 @@
+/* TEMA 2 — UZAY MACERASI
+   Fikir: sınıf bir uzay gemisi. Lacivert gökyüzü, yıldız tozu ve bulutsu, köşede halkalı gezegen;
+   içerik kartları aydınlık "gemi pencereleri" (okunurluk için yazılar hep açık zemin üstünde koyu).
+   Bölüm ikonları küçük gezegenler, düğmeler parlayan neon. Akıllı tahtada çok iyi görünür.
+   Yazı: Lexend (okuma kolaylığı için tasarlanmış, Google Fonts). */
+@import url('https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700&display=swap');
+
+html.tema-renkli[data-tema="uzay"] {
+    --font: 'Lexend', system-ui, sans-serif;
+    --baslik: 'Lexend', system-ui, sans-serif;
+    --gok: #0f1535;
+    --bg: #0f1535;
+    --surface: #ffffff;
+    --surface-2: #eef0ff;
+    --ink: #1b1f45;
+    --text: #1b1f45;
+    --text-2: #4b5280;
+    --muted: #686f99;
+    --acik: #eef0ff;           /* gökyüzü üstündeki yazı */
+    --acik-2: #b9bfee;
+    --hairline: rgba(27, 31, 69, .12);
+    --hairline-strong: rgba(27, 31, 69, .24);
+    --primary: #6a45f5;
+    --primary-hover: #5733e0;
+    --primary-soft: #ece7ff;
+    --golge: 0 6px 0 rgba(4, 8, 30, .45), 0 0 0 1px rgba(255, 255, 255, .06);
+    --shadow-sm: var(--golge);
+}
+/* Yıldızlı gökyüzü: üç katman yıldız + iki bulutsu */
+html.tema-renkli[data-tema="uzay"] body {
+    background:
+        radial-gradient(1.5px 1.5px at 20px 30px, #fff 50%, transparent 52%) 0 0 / 180px 180px,
+        radial-gradient(1px 1px at 120px 90px, rgba(255, 255, 255, .8) 50%, transparent 52%) 0 0 / 180px 180px,
+        radial-gradient(2px 2px at 70px 150px, #ffe9a8 50%, transparent 52%) 0 0 / 260px 260px,
+        radial-gradient(1px 1px at 200px 40px, rgba(255, 255, 255, .7) 50%, transparent 52%) 0 0 / 240px 240px,
+        radial-gradient(ellipse at 15% 10%, rgba(106, 69, 245, .55), transparent 55%),
+        radial-gradient(ellipse at 90% 85%, rgba(236, 72, 153, .38), transparent 50%),
+        radial-gradient(ellipse at 70% 30%, rgba(14, 165, 233, .22), transparent 45%),
+        var(--gok);
+    background-attachment: fixed;
+}
+/* Köşede halkalı gezegen */
+html.tema-renkli[data-tema="uzay"] body::before {
+    content: ""; position: fixed; right: -60px; bottom: -60px; width: 220px; height: 220px; border-radius: 50%; z-index: -1; pointer-events: none;
+    background: radial-gradient(circle at 35% 30%, #ffd59e, #f97316 45%, #9a3412 80%);
+    box-shadow: inset -20px -20px 40px rgba(0, 0, 0, .35);
+}
+html.tema-renkli[data-tema="uzay"] body::after {
+    content: ""; position: fixed; right: -110px; bottom: 40px; width: 320px; height: 60px; border-radius: 50%; z-index: -1; pointer-events: none;
+    border: 6px solid rgba(255, 213, 158, .6); transform: rotate(-18deg);
+}
+
+/* Gökyüzü üstündeki yazılar açık renk */
+html.tema-renkli[data-tema="uzay"] :is(.sayfa-baslik, .modul-ust) :is(h1, h2) { color: #fff; }
+html.tema-renkli[data-tema="uzay"] :is(.sayfa-baslik, .modul-ust) :is(p, small) { color: var(--acik-2) !important; }
+html.tema-renkli[data-tema="uzay"] .bolum-baslik :is(h3, small) { color: var(--acik); }
+html.tema-renkli[data-tema="uzay"] :is(.modul-ust h1, .sayfa-baslik h1) { font-size: 38px; font-weight: 700; text-shadow: 0 0 24px rgba(106, 69, 245, .8); }
+html.tema-renkli[data-tema="uzay"] :is(h1, h2, h3, .modul-yazi strong) { font-weight: 700; letter-spacing: -.2px; }
+html.tema-renkli[data-tema="uzay"] .avatar-ipucu { color: #ffd59e !important; }
+
+/* Üst çubuk, yan menü, alt menü: koyu cam */
+html.tema-renkli[data-tema="uzay"] .ust-bar { background: rgba(15, 21, 53, .82); backdrop-filter: blur(8px); border-bottom: 1px solid rgba(255, 255, 255, .1); }
+html.tema-renkli[data-tema="uzay"] .marka-yazi strong, html.tema-renkli[data-tema="uzay"] .kullanici-cip { color: #fff; }
+html.tema-renkli[data-tema="uzay"] .marka-yazi small { color: var(--acik-2); }
+html.tema-renkli[data-tema="uzay"] .marka-rozet { background: linear-gradient(135deg, #6a45f5, #ec4899); color: #fff; box-shadow: 0 0 18px rgba(106, 69, 245, .7); }
+html.tema-renkli[data-tema="uzay"] .yan-menu { background: rgba(15, 21, 53, .55); border-right: 1px solid rgba(255, 255, 255, .08); }
+html.tema-renkli[data-tema="uzay"] .yan-menu-baslik { color: var(--acik-2); }
+html.tema-renkli[data-tema="uzay"] .menu-item { color: var(--acik); }
+html.tema-renkli[data-tema="uzay"] .menu-item:hover { background: rgba(255, 255, 255, .08); color: #fff; }
+html.tema-renkli[data-tema="uzay"] .menu-item.aktif { background: rgba(255, 255, 255, .14); color: #fff; box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--c, var(--primary)) 70%, transparent), 0 0 16px color-mix(in srgb, var(--c, var(--primary)) 45%, transparent); }
+html.tema-renkli[data-tema="uzay"] .mobile-nav { background: rgba(15, 21, 53, .92); border-top: 1px solid rgba(255, 255, 255, .12); }
+html.tema-renkli[data-tema="uzay"] .mobile-nav a { color: var(--acik-2); }
+html.tema-renkli[data-tema="uzay"] .mobile-nav a.active { color: #fff; }
+
+/* Kartlar: aydınlık gemi pencereleri */
+html.tema-renkli[data-tema="uzay"] :is(.panel, .card, .bilgi-liste, .sayi-kart, .modul-kutu, .rozet-kart, .ilan-kart, .hedef-kart, .giris-kart, .tanitim-ozellikler li, .kurulum-kart) { border: 0; border-radius: 22px; box-shadow: var(--golge); }
+html.tema-renkli[data-tema="uzay"] .modul-kutu { box-shadow: 0 6px 0 rgba(4, 8, 30, .45), 0 0 22px color-mix(in srgb, var(--c, var(--primary)) 30%, transparent); }
+html.tema-renkli[data-tema="uzay"] .modul-kutu:hover { box-shadow: 0 9px 0 rgba(4, 8, 30, .45), 0 0 30px color-mix(in srgb, var(--c, var(--primary)) 55%, transparent); }
+html.tema-renkli[data-tema="uzay"] .sayi-kart { background: #fff !important; border-top: 6px solid var(--yildiz) !important; }
+html.tema-renkli[data-tema="uzay"] .sayi-kart:nth-child(3n+2) { border-top-color: #38bdf8 !important; }
+html.tema-renkli[data-tema="uzay"] .sayi-kart:nth-child(3n+3) { border-top-color: #ec4899 !important; }
+
+/* Bölüm ikonları: küçük gezegenler */
+html.tema-renkli[data-tema="uzay"] .modul-ikon, html.tema-renkli[data-tema="uzay"] .menu-item .icon {
+    border-radius: 50%; transform: none;
+    background: radial-gradient(circle at 32% 28%, color-mix(in srgb, var(--c, var(--primary)) 45%, #fff), var(--c, var(--primary)) 55%, color-mix(in srgb, var(--c, var(--primary)) 65%, #000));
+    box-shadow: inset -4px -5px 8px rgba(0, 0, 0, .25), 0 0 14px color-mix(in srgb, var(--c, var(--primary)) 50%, transparent);
+}
+html.tema-renkli[data-tema="uzay"] .modul-kutu:nth-child(even) .modul-ikon { transform: none; }
+
+/* Düğmeler: neon */
+html.tema-renkli[data-tema="uzay"] .btn-primary { background: linear-gradient(135deg, #6a45f5, #c026d3); box-shadow: 0 4px 0 #3b1f9e, 0 0 18px rgba(147, 51, 234, .45); }
+html.tema-renkli[data-tema="uzay"] .btn-primary:hover { background: linear-gradient(135deg, #5733e0, #a21caf); }
+html.tema-renkli[data-tema="uzay"] .sekme[aria-selected="true"] { background: linear-gradient(135deg, #6a45f5, #c026d3); box-shadow: 0 3px 0 #3b1f9e; }
+html.tema-renkli[data-tema="uzay"] .hedef-cubuk { background: #1b1f45; height: 14px; box-shadow: none; }
+html.tema-renkli[data-tema="uzay"] .hedef-cubuk span { background: linear-gradient(90deg, #38bdf8, #a78bfa, #f472b6); box-shadow: 0 0 12px rgba(167, 139, 250, .8); }
+html.tema-renkli[data-tema="uzay"] .avatar-rozet:not(.bos) { box-shadow: 0 0 0 3px #fff, 0 0 18px rgba(255, 213, 158, .9); }
+
+/* Giriş ve tanıtım sayfaları: gökyüzü üstündeki yazılar */
+html.tema-renkli[data-tema="uzay"] .giris-alt a { color: var(--acik); }
+html.tema-renkli[data-tema="uzay"] :is(.tanitim-metin h1, .tanitim-bolum h2, .tanitim-adimlar strong, .tanitim-avatarlar strong) { color: #fff; }
+html.tema-renkli[data-tema="uzay"] :is(.tanitim-metin > p, .tanitim-adimlar span, .tanitim-avatarlar p, .tanitim-alt, .tanitim-veli label) { color: var(--acik-2); }
+html.tema-renkli[data-tema="uzay"] .tanitim-metin small { color: #ffd59e; }
+html.tema-renkli[data-tema="uzay"] :is(.tanitim-bolum, .tanitim-alt, .tanitim-veli) { border-color: rgba(255, 255, 255, .14); }
+html.tema-renkli[data-tema="uzay"] .tanitim-adimlar li::before { background: linear-gradient(135deg, #6a45f5, #c026d3); color: #fff; }
+html.tema-renkli[data-tema="uzay"] .avatar-seridi span { border-color: var(--gok); }
+/* Kürsü isimleri gökyüzü üstünde; avatar seçici beyaz pencerede */
+html.tema-renkli[data-tema="uzay"] .podyum-adlar { color: #fff; text-shadow: 0 1px 8px rgba(0, 0, 0, .5); }
+html.tema-renkli[data-tema="uzay"] .podyum-avatarlar .avatar-rozet { border-color: var(--gok); }
+html.tema-renkli[data-tema="uzay"] .avatar-secenek { background: var(--surface-2); }
+html.tema-renkli[data-tema="uzay"] .avatar-secenek:hover, html.tema-renkli[data-tema="uzay"] .avatar-secenek[aria-pressed="true"] { background: #fff3d1; }

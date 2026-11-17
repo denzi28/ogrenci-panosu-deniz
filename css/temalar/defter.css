@@ -1,0 +1,100 @@
+/* TEMA 1 — DEFTER VE ÇIKARTMA
+   Fikir: okul defteri. Kareli kâğıt zemin, kırmızı kenar çizgisi, tükenmez kalem mavisi, el çizimi kenarlar,
+   bant (washi) ile yapıştırılmış kartlar, beyaz kenarlı çıkartma ikonlar, fosforlu kalem altı çizgisi.
+   Teknik: el çizimi kenar = köşelerin düzensiz yuvarlatılması (PaperCSS'teki yöntem, ISC lisansı; burada yeniden yazıldı).
+   Yazı: gövde Andika (okumayı yeni sökenler için tasarlanmış, SIL), başlıklar Patrick Hand (el yazısı). */
+@import url('https://fonts.googleapis.com/css2?family=Andika:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap');
+
+html.tema-renkli[data-tema="defter"] {
+    --font: 'Andika', system-ui, sans-serif;
+    --baslik: 'Patrick Hand', 'Comic Sans MS', cursive;
+    --bg: #fdfaf1;
+    --surface: #fffef9;
+    --surface-2: #f5eedb;
+    --ink: #1d2a4d;            /* tükenmez kalem */
+    --text: #1d2a4d;
+    --text-2: #45507a;
+    --muted: #646d92;
+    --hairline: rgba(29, 42, 77, .14);
+    --hairline-strong: rgba(29, 42, 77, .32);
+    --primary: #2b5bc4;
+    --primary-hover: #2149a6;
+    --primary-soft: #e2eafb;
+    --kalem: #1d2a4d;
+    --el-kenar: 255px 15px 225px 15px / 15px 225px 15px 255px;
+    --el-kenar-2: 15px 225px 15px 255px / 255px 15px 225px 15px;
+    --golge: 2px 8px 8px -5px rgba(29, 42, 77, .35);
+    --shadow-sm: var(--golge);
+    --fosfor: #ffe66d;
+}
+/* Kareli defter + kırmızı kenar çizgisi */
+html.tema-renkli[data-tema="defter"] body {
+    background:
+        linear-gradient(90deg, transparent 54px, rgba(229, 72, 77, .45) 54px 56px, transparent 56px),
+        linear-gradient(rgba(76, 132, 214, .16) 1px, transparent 1px) 0 0 / 26px 26px,
+        linear-gradient(90deg, rgba(76, 132, 214, .16) 1px, transparent 1px) 0 0 / 26px 26px,
+        var(--bg);
+    background-attachment: fixed;
+}
+html.tema-renkli[data-tema="defter"] :is(h1, h2, h3, .modul-yazi strong, .marka-yazi strong, .hedef-yazi strong, .podyum-adlar, .tanitim-ozellikler strong) { --font: var(--baslik); font-weight: 400; letter-spacing: .3px; }
+html.tema-renkli[data-tema="defter"] :is(.modul-ust h1, .sayfa-baslik h1) { font-size: 42px; }
+/* Fosforlu kalemle altı çizili başlık */
+html.tema-renkli[data-tema="defter"] :is(.modul-ust h1, .sayfa-baslik h1, .tanitim-metin h1) {
+    display: inline; background: linear-gradient(transparent 58%, var(--fosfor) 58% 90%, transparent 90%);
+    box-decoration-break: clone; -webkit-box-decoration-break: clone;
+}
+html.tema-renkli[data-tema="defter"] .sayfa-baslik p, html.tema-renkli[data-tema="defter"] .modul-ust p { margin-top: 12px; }
+
+/* El çizimi kenarlı kâğıt kartlar */
+html.tema-renkli[data-tema="defter"] :is(.panel, .card, .bilgi-liste, .sayi-kart, .modul-kutu, .rozet-kart, .ilan-kart, .hedef-kart, .giris-kart, .tanitim-ozellikler li, .kurulum-kart) {
+    background: var(--surface); border: 2px solid var(--kalem); border-radius: var(--el-kenar); box-shadow: var(--golge);
+}
+html.tema-renkli[data-tema="defter"] :is(.modul-kutu, .tanitim-ozellikler li):nth-child(even) { border-radius: var(--el-kenar-2); }
+html.tema-renkli[data-tema="defter"] .panel-ust { border-bottom: 2px dashed var(--hairline-strong); }
+html.tema-renkli[data-tema="defter"] .modul-kutu { box-shadow: var(--golge); border-color: var(--kalem); }
+html.tema-renkli[data-tema="defter"] .modul-kutu:hover { transform: rotate(-.8deg) translateY(-2px); box-shadow: 4px 12px 10px -6px rgba(29, 42, 77, .35); }
+html.tema-renkli[data-tema="defter"] .modul-kutu:active { transform: translateY(2px); }
+
+/* Bant ile yapıştırılmış kartlar */
+html.tema-renkli[data-tema="defter"] :is(.sayi-kart, .hedef-kart, .giris-kart, .tanitim-tahta .tahta) { position: relative; }
+html.tema-renkli[data-tema="defter"] :is(.sayi-kart, .hedef-kart, .giris-kart)::before {
+    content: ""; position: absolute; top: -12px; left: 50%; width: 86px; height: 24px; transform: translateX(-50%) rotate(-3deg);
+    background: repeating-linear-gradient(45deg, rgba(255, 214, 102, .85) 0 8px, rgba(255, 196, 61, .85) 8px 16px);
+    box-shadow: 0 1px 2px rgba(29, 42, 77, .2); pointer-events: none;
+}
+html.tema-renkli[data-tema="defter"] .sayi-kart:nth-child(3n+2)::before { background: repeating-linear-gradient(45deg, rgba(147, 197, 253, .85) 0 8px, rgba(96, 165, 250, .85) 8px 16px); transform: translateX(-50%) rotate(2deg); }
+html.tema-renkli[data-tema="defter"] .sayi-kart:nth-child(3n+3)::before { background: repeating-linear-gradient(45deg, rgba(249, 168, 212, .85) 0 8px, rgba(244, 114, 182, .85) 8px 16px); transform: translateX(-50%) rotate(-1deg); }
+html.tema-renkli[data-tema="defter"] .sayi-kart:nth-child(3n+1) { background: #fffbea; }
+html.tema-renkli[data-tema="defter"] .sayi-kart:nth-child(3n+2) { background: #eef5ff; }
+html.tema-renkli[data-tema="defter"] .sayi-kart:nth-child(3n+3) { background: #fff0f6; }
+
+/* Çıkartma ikonlar: beyaz kenar, gölge, hafif eğik */
+html.tema-renkli[data-tema="defter"] .modul-ikon { border-radius: 14px; border: 3px solid #fff; box-shadow: 0 0 0 2px var(--kalem), 2px 4px 0 rgba(29, 42, 77, .25); transform: rotate(-5deg); }
+html.tema-renkli[data-tema="defter"] .modul-kutu:nth-child(even) .modul-ikon { transform: rotate(4deg); }
+html.tema-renkli[data-tema="defter"] .menu-item .icon { border-radius: 8px; border: 2px solid #fff; box-shadow: 0 0 0 1.5px var(--kalem); }
+html.tema-renkli[data-tema="defter"] .modul-ok { background: none; border: 2px solid var(--kalem); color: var(--kalem); }
+
+/* Üst çubuk ve menü: defter kapağı */
+html.tema-renkli[data-tema="defter"] .ust-bar { background: rgba(253, 250, 241, .94); border-bottom: 2px dashed var(--hairline-strong); }
+html.tema-renkli[data-tema="defter"] .marka-rozet { border: 2px solid #fff; box-shadow: 0 0 0 2px var(--kalem), 2px 3px 0 rgba(29, 42, 77, .3); }
+html.tema-renkli[data-tema="defter"] .menu-item:hover { background: rgba(255, 230, 109, .35); }
+html.tema-renkli[data-tema="defter"] .menu-item.aktif { background: var(--fosfor); box-shadow: none; border-radius: var(--el-kenar); }
+
+/* Düğmeler: el çizimi, mürekkep kenar */
+html.tema-renkli[data-tema="defter"] .btn { border: 2px solid var(--kalem); border-radius: var(--el-kenar); box-shadow: 2px 3px 0 var(--kalem); }
+html.tema-renkli[data-tema="defter"] .btn:hover { transform: rotate(-1deg); }
+html.tema-renkli[data-tema="defter"] .btn:active { transform: translate(2px, 3px); box-shadow: 0 0 0 var(--kalem); }
+html.tema-renkli[data-tema="defter"] .btn-secondary { background: #fff; color: var(--kalem); }
+html.tema-renkli[data-tema="defter"] :is(input, select, textarea) { border: 2px solid var(--hairline-strong); border-radius: var(--el-kenar-2); background: #fff; }
+html.tema-renkli[data-tema="defter"] :is(input, select, textarea):focus { border-color: var(--primary); }
+html.tema-renkli[data-tema="defter"] .sekmeler { border: 2px solid var(--kalem); border-radius: var(--el-kenar); }
+html.tema-renkli[data-tema="defter"] .sekme[aria-selected="true"] { background: var(--fosfor); color: var(--kalem); box-shadow: none; }
+html.tema-renkli[data-tema="defter"] .etiket { border: 1.5px solid currentColor; }
+
+/* Avatar: çıkartma */
+html.tema-renkli[data-tema="defter"] .avatar-rozet:not(.bos), html.tema-renkli[data-tema="defter"] .avatar.emoji { background: #fff; box-shadow: 0 0 0 2px var(--kalem), 2px 3px 0 rgba(29, 42, 77, .25); }
+html.tema-renkli[data-tema="defter"] .hedef-cubuk { border: 2px solid var(--kalem); background: #fff; height: 16px; }
+html.tema-renkli[data-tema="defter"] .hedef-cubuk span { background: repeating-linear-gradient(-45deg, #f2b630 0 8px, #f59e0b 8px 16px); }
+html.tema-renkli[data-tema="defter"] .mobile-nav { border-top: 2px dashed var(--hairline-strong); background: var(--bg); }
+html.tema-renkli[data-tema="defter"] .tanitim-bolum { border-top: 2px dashed var(--hairline-strong); }

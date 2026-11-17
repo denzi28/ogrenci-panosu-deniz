@@ -1,0 +1,93 @@
+/* TEMA 3 — ŞEKER KİLİ (oyun hamuru)
+   Fikir: her şey oyun hamurundan yapılmış gibi: yumuşak pastel zemin, kabarık "hamur" kartlar,
+   damla şekilli bölüm ikonları, hap biçimli tombul düğmeler. Dokunmak isteyeceğin kadar yumuşak.
+   Teknik: hamur gölgesi = bir dış gölge + iki iç gölge (clay.css yöntemi, MIT lisansı; burada yeniden yazıldı).
+   Yazı: başlıklar Baloo 2 (kalın, yuvarlak), gövde Nunito (okunaklı, yuvarlak uçlu). */
+@import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap');
+
+html.tema-renkli[data-tema="seker"] {
+    --font: 'Nunito', system-ui, sans-serif;
+    --baslik: 'Baloo 2', 'Nunito', sans-serif;
+    --bg: #f5edff;
+    --surface: #fffaff;
+    --surface-2: #f3e8ff;
+    --ink: #3a2559;
+    --text: #3a2559;
+    --text-2: #67568a;
+    --muted: #74659a;
+    --hairline: rgba(91, 33, 182, .10);
+    --hairline-strong: rgba(91, 33, 182, .2);
+    --primary: #7c3aed;
+    --primary-hover: #6d28d9;
+    --primary-soft: #efe5ff;
+    --r-panel: 32px; --r-kart: 28px; --r-kontrol: 18px;
+    --hamur: 10px 12px 24px rgba(124, 58, 237, .16), inset -6px -8px 14px rgba(124, 58, 237, .10), inset 6px 8px 14px rgba(255, 255, 255, .95);
+    --hamur-kucuk: 5px 6px 12px rgba(124, 58, 237, .16), inset -3px -4px 8px rgba(124, 58, 237, .10), inset 3px 4px 8px rgba(255, 255, 255, .9);
+    --golge: var(--hamur-kucuk);
+    --shadow-sm: var(--hamur-kucuk);
+}
+/* Pastel zemin: şeftali, nane, gökyüzü lekeleri */
+html.tema-renkli[data-tema="seker"] body {
+    background:
+        radial-gradient(circle at 0% 0%, #ffd9c7 0 22%, transparent 45%),
+        radial-gradient(circle at 100% 20%, #c9f2e3 0 18%, transparent 42%),
+        radial-gradient(circle at 15% 100%, #cfe6ff 0 20%, transparent 45%),
+        radial-gradient(circle at 95% 95%, #ffd6ec 0 16%, transparent 40%),
+        var(--bg);
+    background-attachment: fixed;
+}
+html.tema-renkli[data-tema="seker"] :is(h1, h2, h3, .modul-yazi strong, .marka-yazi strong, .hedef-yazi strong, .tanitim-ozellikler strong) { --font: var(--baslik); font-weight: 800; letter-spacing: 0; }
+html.tema-renkli[data-tema="seker"] :is(.modul-ust h1, .sayfa-baslik h1) { font-size: 40px; line-height: 1.05; }
+
+/* Hamur kartlar */
+html.tema-renkli[data-tema="seker"] :is(.panel, .card, .bilgi-liste, .sayi-kart, .modul-kutu, .rozet-kart, .ilan-kart, .hedef-kart, .giris-kart, .tanitim-ozellikler li, .kurulum-kart) {
+    border: 0; border-radius: var(--r-kart); background: var(--surface); box-shadow: var(--hamur);
+}
+html.tema-renkli[data-tema="seker"] .panel-ust { border-bottom: 2px solid var(--hairline); }
+html.tema-renkli[data-tema="seker"] .modul-kutu { background: color-mix(in srgb, var(--c, var(--primary)) 9%, #fffaff); box-shadow: 10px 12px 24px color-mix(in srgb, var(--c, var(--primary)) 22%, transparent), inset -6px -8px 14px color-mix(in srgb, var(--c, var(--primary)) 14%, transparent), inset 6px 8px 14px rgba(255, 255, 255, .95); }
+html.tema-renkli[data-tema="seker"] .modul-kutu:hover { transform: translateY(-3px) scale(1.01); }
+html.tema-renkli[data-tema="seker"] .modul-kutu:active { transform: scale(.98); }
+html.tema-renkli[data-tema="seker"] .sayi-kart:nth-child(3n+1) { background: #fff3d1; }
+html.tema-renkli[data-tema="seker"] .sayi-kart:nth-child(3n+2) { background: #dff1ff; }
+html.tema-renkli[data-tema="seker"] .sayi-kart:nth-child(3n+3) { background: #ffe1f0; }
+html.tema-renkli[data-tema="seker"] .sayi-kart strong { font-family: 'Baloo 2', sans-serif; font-weight: 800; font-size: 40px; }
+
+/* Damla biçimli hamur ikonlar */
+html.tema-renkli[data-tema="seker"] .modul-ikon {
+    border-radius: 42% 58% 55% 45% / 48% 42% 58% 52%; transform: none;
+    box-shadow: inset -4px -6px 10px rgba(0, 0, 0, .18), inset 4px 6px 10px rgba(255, 255, 255, .45), 4px 6px 12px color-mix(in srgb, var(--c, var(--primary)) 40%, transparent);
+}
+html.tema-renkli[data-tema="seker"] .modul-kutu:nth-child(even) .modul-ikon { border-radius: 55% 45% 42% 58% / 52% 58% 42% 48%; transform: none; }
+html.tema-renkli[data-tema="seker"] .menu-item .icon { border-radius: 12px; box-shadow: inset -2px -3px 5px rgba(0, 0, 0, .18), inset 2px 3px 5px rgba(255, 255, 255, .45); }
+html.tema-renkli[data-tema="seker"] .modul-ok { box-shadow: var(--hamur-kucuk); background: #fff; }
+
+/* Üst çubuk ve menü */
+html.tema-renkli[data-tema="seker"] .ust-bar { background: rgba(245, 237, 255, .85); backdrop-filter: blur(8px); border-bottom: 0; box-shadow: 0 6px 18px rgba(124, 58, 237, .08); }
+html.tema-renkli[data-tema="seker"] .marka-rozet { border-radius: 16px; background: linear-gradient(135deg, #a78bfa, #7c3aed); box-shadow: inset -3px -4px 8px rgba(0, 0, 0, .2), inset 3px 4px 8px rgba(255, 255, 255, .35); transform: none; }
+html.tema-renkli[data-tema="seker"] .menu-item { border-radius: 999px; }
+html.tema-renkli[data-tema="seker"] .menu-item:hover { background: rgba(255, 255, 255, .7); }
+html.tema-renkli[data-tema="seker"] .menu-item.aktif { background: #fff; box-shadow: var(--hamur-kucuk); }
+
+/* Hap biçimli tombul düğmeler */
+html.tema-renkli[data-tema="seker"] .btn { border: 0; border-radius: 999px; box-shadow: 5px 6px 12px rgba(124, 58, 237, .22), inset -3px -4px 8px rgba(0, 0, 0, .14), inset 3px 4px 8px rgba(255, 255, 255, .35); }
+html.tema-renkli[data-tema="seker"] .btn-primary { background: linear-gradient(135deg, #8b5cf6, #6d28d9); }
+html.tema-renkli[data-tema="seker"] .btn-secondary { background: #fff; box-shadow: var(--hamur-kucuk); }
+html.tema-renkli[data-tema="seker"] .btn:active { transform: scale(.96); box-shadow: inset 3px 4px 8px rgba(0, 0, 0, .15); }
+html.tema-renkli[data-tema="seker"] :is(input, select, textarea) { border: 0; border-radius: 18px; background: #fff; box-shadow: inset 3px 4px 8px rgba(124, 58, 237, .12), inset -2px -3px 6px rgba(255, 255, 255, .9); }
+html.tema-renkli[data-tema="seker"] .sekmeler { border: 0; border-radius: 999px; box-shadow: var(--hamur-kucuk); }
+html.tema-renkli[data-tema="seker"] .sekme { border-radius: 999px; }
+html.tema-renkli[data-tema="seker"] .sekme[aria-selected="true"] { background: linear-gradient(135deg, #8b5cf6, #6d28d9); box-shadow: inset -2px -3px 6px rgba(0, 0, 0, .18), inset 2px 3px 6px rgba(255, 255, 255, .3); }
+html.tema-renkli[data-tema="seker"] .etiket { box-shadow: var(--hamur-kucuk); }
+
+/* Avatar, ilerleme, alt menü, kara tahta */
+html.tema-renkli[data-tema="seker"] .avatar-rozet:not(.bos), html.tema-renkli[data-tema="seker"] .avatar.emoji { background: #fff3d1; box-shadow: var(--hamur-kucuk); }
+html.tema-renkli[data-tema="seker"] .hedef-cubuk { height: 18px; background: #fff; box-shadow: inset 3px 4px 8px rgba(124, 58, 237, .14); }
+html.tema-renkli[data-tema="seker"] .hedef-cubuk span { background: linear-gradient(90deg, #f9a8d4, #c084fc); box-shadow: inset -2px -3px 5px rgba(0, 0, 0, .12), inset 2px 3px 5px rgba(255, 255, 255, .5); }
+html.tema-renkli[data-tema="seker"] .mobile-nav { border-top: 0; box-shadow: 0 -8px 24px rgba(124, 58, 237, .12); background: #fffaff; }
+html.tema-renkli[data-tema="seker"] .tahta { border-radius: 30px; }
+html.tema-renkli[data-tema="seker"] .tanitim-bolum { border-top: 2px solid var(--hairline); }
+html.tema-renkli[data-tema="seker"] .tanitim-adimlar li::before { background: linear-gradient(135deg, #a78bfa, #7c3aed); color: #fff; box-shadow: inset -2px -3px 5px rgba(0, 0, 0, .2); }
+/* Yazı kutuları zeminden ayrılsın */
+html.tema-renkli[data-tema="seker"] :is(input, select, textarea) { border: 2px solid rgba(124, 58, 237, .22); box-shadow: inset 3px 4px 8px rgba(124, 58, 237, .14); }
+html.tema-renkli[data-tema="seker"] :is(input, select, textarea):focus { border-color: var(--primary); }
